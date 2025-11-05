@@ -57,7 +57,9 @@ import {
   Globe,
   Archive,
   FileCode,
-  MoreHorizontal
+  MoreHorizontal,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 // Types
@@ -130,6 +132,7 @@ export default function Diagrammer() {
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
   const [showLeftPanel, setShowLeftPanel] = useState(true);
   const [showPropertiesPanel, setShowPropertiesPanel] = useState(true);
+  const [isDark, setIsDark] = useState(true);
 
   const handleZoomIn = () => setZoom(prev => Math.min(prev + 10, 200));
   const handleZoomOut = () => setZoom(prev => Math.max(prev - 10, 50));
@@ -149,18 +152,18 @@ export default function Diagrammer() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-zinc-950">
+    <div className={`h-full flex flex-col ${isDark ? 'bg-zinc-950' : 'bg-gray-50'}`}>
       {/* Top Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800 bg-zinc-900">
+      <div className={`flex items-center justify-between px-4 py-2 border-b ${isDark ? 'border-zinc-800 bg-zinc-900' : 'border-gray-200 bg-white'}`}>
         <div className="flex items-center gap-4">
           {/* View Mode Tabs */}
-          <div className="flex items-center gap-1 bg-zinc-800 rounded-lg p-0.5">
+          <div className={`flex items-center gap-1 rounded-lg p-0.5 ${isDark ? 'bg-zinc-800' : 'bg-gray-100'}`}>
             <button
               onClick={() => setViewMode('diagram')}
               className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 viewMode === 'diagram'
-                  ? 'bg-zinc-700 text-gray-100 shadow-sm'
-                  : 'text-gray-400 hover:text-gray-100'
+                  ? isDark ? 'bg-zinc-700 text-gray-100 shadow-sm' : 'bg-white text-gray-900 shadow-sm'
+                  : isDark ? 'text-gray-400 hover:text-gray-100' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               <Eye className="w-3.5 h-3.5 inline mr-1.5" />
@@ -170,8 +173,8 @@ export default function Diagrammer() {
               onClick={() => setViewMode('quick-editor')}
               className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 viewMode === 'quick-editor'
-                  ? 'bg-zinc-700 text-gray-100 shadow-sm'
-                  : 'text-gray-400 hover:text-gray-100'
+                  ? isDark ? 'bg-zinc-700 text-gray-100 shadow-sm' : 'bg-white text-gray-900 shadow-sm'
+                  : isDark ? 'text-gray-400 hover:text-gray-100' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               <Table2 className="w-3.5 h-3.5 inline mr-1.5" />
@@ -181,8 +184,8 @@ export default function Diagrammer() {
               onClick={() => setViewMode('properties')}
               className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 viewMode === 'properties'
-                  ? 'bg-zinc-700 text-gray-100 shadow-sm'
-                  : 'text-gray-400 hover:text-gray-100'
+                  ? isDark ? 'bg-zinc-700 text-gray-100 shadow-sm' : 'bg-white text-gray-900 shadow-sm'
+                  : isDark ? 'text-gray-400 hover:text-gray-100' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               <Settings className="w-3.5 h-3.5 inline mr-1.5" />
@@ -190,7 +193,7 @@ export default function Diagrammer() {
             </button>
           </div>
 
-          <div className="w-px h-6 bg-zinc-700" />
+          <div className={`w-px h-6 ${isDark ? 'bg-zinc-700' : 'bg-gray-300'}`} />
 
           {/* Tools */}
           {viewMode === 'diagram' && (
@@ -198,7 +201,9 @@ export default function Diagrammer() {
               <button
                 onClick={() => setActiveTool('select')}
                 className={`p-1.5 rounded transition-colors ${
-                  activeTool === 'select' ? 'bg-indigo-500/20 text-indigo-400' : 'text-gray-400 hover:bg-zinc-800'
+                  activeTool === 'select'
+                    ? 'bg-indigo-500/20 text-indigo-400'
+                    : isDark ? 'text-gray-400 hover:bg-zinc-800' : 'text-gray-600 hover:bg-gray-100'
                 }`}
                 title="Select"
               >
@@ -207,7 +212,9 @@ export default function Diagrammer() {
               <button
                 onClick={() => setActiveTool('table')}
                 className={`p-1.5 rounded transition-colors ${
-                  activeTool === 'table' ? 'bg-indigo-500/20 text-indigo-400' : 'text-gray-400 hover:bg-zinc-800'
+                  activeTool === 'table'
+                    ? 'bg-indigo-500/20 text-indigo-400'
+                    : isDark ? 'text-gray-400 hover:bg-zinc-800' : 'text-gray-600 hover:bg-gray-100'
                 }`}
                 title="Add Table"
               >
@@ -216,7 +223,9 @@ export default function Diagrammer() {
               <button
                 onClick={() => setActiveTool('relationship')}
                 className={`p-1.5 rounded transition-colors ${
-                  activeTool === 'relationship' ? 'bg-indigo-500/20 text-indigo-400' : 'text-gray-400 hover:bg-zinc-800'
+                  activeTool === 'relationship'
+                    ? 'bg-indigo-500/20 text-indigo-400'
+                    : isDark ? 'text-gray-400 hover:bg-zinc-800' : 'text-gray-600 hover:bg-gray-100'
                 }`}
                 title="Add Relationship"
               >
@@ -225,7 +234,9 @@ export default function Diagrammer() {
               <button
                 onClick={() => setActiveTool('note')}
                 className={`p-1.5 rounded transition-colors ${
-                  activeTool === 'note' ? 'bg-indigo-500/20 text-indigo-400' : 'text-gray-400 hover:bg-zinc-800'
+                  activeTool === 'note'
+                    ? 'bg-indigo-500/20 text-indigo-400'
+                    : isDark ? 'text-gray-400 hover:bg-zinc-800' : 'text-gray-600 hover:bg-gray-100'
                 }`}
                 title="Add Note"
               >
@@ -239,39 +250,64 @@ export default function Diagrammer() {
           {/* Zoom Controls */}
           {viewMode === 'diagram' && (
             <>
-              <div className="flex items-center gap-1 bg-zinc-800 rounded-lg px-2 py-1">
-                <button onClick={handleZoomOut} className="p-1 hover:bg-zinc-700 rounded" title="Zoom Out">
-                  <ZoomOut className="w-3.5 h-3.5 text-gray-400" />
+              <div className={`flex items-center gap-1 rounded-lg px-2 py-1 ${isDark ? 'bg-zinc-800' : 'bg-gray-100'}`}>
+                <button
+                  onClick={handleZoomOut}
+                  className={`p-1 rounded ${isDark ? 'hover:bg-zinc-700' : 'hover:bg-gray-200'}`}
+                  title="Zoom Out"
+                >
+                  <ZoomOut className={`w-3.5 h-3.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`} />
                 </button>
-                <span className="text-xs font-medium text-gray-400 min-w-[3rem] text-center">{zoom}%</span>
-                <button onClick={handleZoomIn} className="p-1 hover:bg-zinc-700 rounded" title="Zoom In">
-                  <ZoomIn className="w-3.5 h-3.5 text-gray-400" />
+                <span className={`text-xs font-medium min-w-[3rem] text-center ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{zoom}%</span>
+                <button
+                  onClick={handleZoomIn}
+                  className={`p-1 rounded ${isDark ? 'hover:bg-zinc-700' : 'hover:bg-gray-200'}`}
+                  title="Zoom In"
+                >
+                  <ZoomIn className={`w-3.5 h-3.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`} />
                 </button>
               </div>
-              <div className="w-px h-6 bg-zinc-700" />
+              <div className={`w-px h-6 ${isDark ? 'bg-zinc-700' : 'bg-gray-300'}`} />
             </>
           )}
 
           {/* Actions */}
-          <button className="p-1.5 text-gray-400 hover:bg-zinc-800 rounded" title="Undo">
+          <button
+            className={`p-1.5 rounded ${isDark ? 'text-gray-400 hover:bg-zinc-800' : 'text-gray-600 hover:bg-gray-100'}`}
+            title="Undo"
+          >
             <Undo2 className="w-4 h-4" />
           </button>
-          <button className="p-1.5 text-gray-400 hover:bg-zinc-800 rounded" title="Redo">
+          <button
+            className={`p-1.5 rounded ${isDark ? 'text-gray-400 hover:bg-zinc-800' : 'text-gray-600 hover:bg-gray-100'}`}
+            title="Redo"
+          >
             <Redo2 className="w-4 h-4" />
           </button>
 
-          <div className="w-px h-6 bg-zinc-700" />
+          <div className={`w-px h-6 ${isDark ? 'bg-zinc-700' : 'bg-gray-300'}`} />
 
           <button
             onClick={() => setIsLocked(!isLocked)}
             className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors ${
               isLocked
                 ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                : 'bg-zinc-800 text-gray-400 hover:bg-zinc-700'
+                : isDark ? 'bg-zinc-800 text-gray-400 hover:bg-zinc-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
             {isLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
             {isLocked ? 'Locked' : 'Unlocked'}
+          </button>
+
+          {/* Theme Toggle Button */}
+          <button
+            onClick={() => setIsDark(!isDark)}
+            className={`p-1.5 rounded-lg transition-colors ${
+              isDark ? 'text-gray-400 hover:bg-zinc-800' : 'text-gray-600 hover:bg-gray-100'
+            }`}
+            title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          >
+            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
 
           <button className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors">
@@ -290,9 +326,11 @@ export default function Diagrammer() {
               initial={{ width: 0, opacity: 0 }}
               animate={{ width: 280, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
-              className="border-r border-zinc-800 bg-zinc-900 overflow-auto"
+              className={`border-r overflow-auto ${
+                isDark ? 'border-zinc-800 bg-zinc-900' : 'border-gray-200 bg-white'
+              }`}
             >
-              <LeftPanel />
+              <LeftPanel isDark={isDark} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -308,13 +346,14 @@ export default function Diagrammer() {
                 selectedTable={selectedTable}
                 onTableSelect={setSelectedTable}
                 onAddTable={handleAddTable}
+                isDark={isDark}
               />
             )}
             {viewMode === 'quick-editor' && (
-              <QuickEditor tables={tables} onTablesUpdate={setTables} />
+              <QuickEditor tables={tables} onTablesUpdate={setTables} isDark={isDark} />
             )}
             {viewMode === 'properties' && (
-              <PropertiesView selectedTable={tables.find(t => t.id === selectedTable)} />
+              <PropertiesView selectedTable={tables.find(t => t.id === selectedTable)} isDark={isDark} />
             )}
           </AnimatePresence>
         </div>
@@ -326,9 +365,11 @@ export default function Diagrammer() {
               initial={{ width: 0, opacity: 0 }}
               animate={{ width: 280, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
-              className="border-l border-zinc-800 bg-zinc-900 overflow-auto"
+              className={`border-l overflow-auto ${
+                isDark ? 'border-zinc-800 bg-zinc-900' : 'border-gray-200 bg-white'
+              }`}
             >
-              <RightPropertiesPanel table={tables.find(t => t.id === selectedTable)} />
+              <RightPropertiesPanel table={tables.find(t => t.id === selectedTable)} isDark={isDark} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -338,7 +379,7 @@ export default function Diagrammer() {
 }
 
 // Left Panel Component with Model Explorer Tree
-function LeftPanel() {
+function LeftPanel({ isDark }: { isDark: boolean }) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(['model-root', 'entities-tables', 'relationships']));
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -856,7 +897,11 @@ function LeftPanel() {
     return (
       <div>
         <div
-          className="group flex items-center gap-2 px-2 py-1.5 text-sm rounded-md cursor-pointer transition-all duration-200 text-gray-300 hover:text-gray-100 hover:bg-zinc-800/70"
+          className={`group flex items-center gap-2 px-2 py-1.5 text-sm rounded-md cursor-pointer transition-all duration-200 ${
+            isDark
+              ? 'text-gray-300 hover:text-gray-100 hover:bg-zinc-800/70'
+              : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+          }`}
           style={{ paddingLeft: `${8 + level * 16}px` }}
           onClick={() => hasChildren && toggleExpanded(id)}
         >
@@ -885,18 +930,22 @@ function LeftPanel() {
 
   return (
     <div className="p-4">
-      <h3 className="text-sm font-semibold text-gray-100 mb-4">Model Tree</h3>
+      <h3 className={`text-sm font-semibold mb-4 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Model Tree</h3>
 
       {/* Search Box */}
       <div className="mb-4">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
           <input
             type="text"
             placeholder="Search tree..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 text-sm rounded-lg border bg-zinc-800 border-zinc-700 text-gray-100 placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200"
+            className={`w-full pl-10 pr-4 py-2 text-sm rounded-lg border transition-all duration-200 ${
+              isDark
+                ? 'bg-zinc-800 border-zinc-700 text-gray-100 placeholder-gray-500 focus:border-indigo-500'
+                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-indigo-500'
+            } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
           />
         </div>
       </div>
