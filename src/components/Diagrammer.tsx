@@ -346,6 +346,7 @@ export default function Diagrammer() {
                 selectedTable={selectedTable}
                 onTableSelect={setSelectedTable}
                 onAddTable={handleAddTable}
+                onTablesUpdate={setTables}
                 isDark={isDark}
               />
             )}
@@ -967,7 +968,9 @@ function DiagramView({
   zoom,
   selectedTable,
   onTableSelect,
-  onAddTable
+  onAddTable,
+  onTablesUpdate,
+  isDark
 }: {
   tables: Table[];
   relationships: Relationship[];
@@ -975,35 +978,93 @@ function DiagramView({
   selectedTable: string | null;
   onTableSelect: (id: string | null) => void;
   onAddTable: () => void;
+  onTablesUpdate: (tables: Table[]) => void;
+  isDark: boolean;
 }) {
+  const [draggingTable, setDraggingTable] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  const handleMouseDown = (e: React.MouseEvent, tableId: string, table: Table) => {
+    e.stopPropagation();
+    setDraggingTable(tableId);
+    onTableSelect(tableId);
+
+    // Calculate offset from mouse position to table position
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const parentRect = (e.currentTarget as HTMLElement).offsetParent?.getBoundingClientRect();
+
+    if (parentRect) {
+      setDragOffset({
+        x: (e.clientX - parentRect.left) / (zoom / 100) - table.x,
+        y: (e.clientY - parentRect.top) / (zoom / 100) - table.y
+      });
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!draggingTable) return;
+
+    const container = e.currentTarget;
+    const rect = container.getBoundingClientRect();
+
+    // Calculate new position accounting for zoom
+    const newX = (e.clientX - rect.left) / (zoom / 100) - dragOffset.x;
+    const newY = (e.clientY - rect.top) / (zoom / 100) - dragOffset.y;
+
+    // Update table position
+    const updatedTables = tables.map(table =>
+      table.id === draggingTable
+        ? { ...table, x: Math.max(0, newX), y: Math.max(0, newY) }
+        : table
+    );
+    onTablesUpdate(updatedTables);
+  };
+
+  const handleMouseUp = () => {
+    setDraggingTable(null);
+  };
+
   return (
     <motion.div
       key="diagram"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="flex-1 bg-zinc-950 overflow-auto relative"
+      className={`flex-1 overflow-auto relative ${isDark ? 'bg-zinc-950' : 'bg-gray-50'}`}
       style={{
-        backgroundImage: 'radial-gradient(circle, #3A3A3A 1px, transparent 1px)',
+        backgroundImage: isDark
+          ? 'radial-gradient(circle, #3A3A3A 1px, transparent 1px)'
+          : 'radial-gradient(circle, #D1D5DB 1px, transparent 1px)',
         backgroundSize: '20px 20px'
       }}
     >
       <div
-        className="relative"
+        className="relative min-h-full"
         style={{
           transform: `scale(${zoom / 100})`,
           transformOrigin: 'top left',
           width: `${(100 / zoom) * 100}%`,
-          height: `${(100 / zoom) * 100}%`
+          height: `${(100 / zoom) * 100}%`,
+          minHeight: '2000px',
+          minWidth: '2000px'
         }}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
       >
         {/* Render Tables */}
         {tables.map(table => (
           <div
             key={table.id}
-            onClick={() => onTableSelect(table.id)}
-            className={`absolute bg-zinc-800 rounded-lg shadow-sm border-2 transition-all cursor-pointer ${
-              selectedTable === table.id ? 'border-indigo-500 shadow-lg' : 'border-zinc-700 hover:border-zinc-600'
+            onMouseDown={(e) => handleMouseDown(e, table.id, table)}
+            className={`absolute rounded-lg shadow-sm border-2 transition-colors select-none ${
+              draggingTable === table.id ? 'cursor-grabbing' : 'cursor-grab'
+            } ${
+              selectedTable === table.id
+                ? 'border-indigo-500 shadow-lg'
+                : isDark
+                  ? 'border-zinc-700 hover:border-zinc-600 bg-zinc-800'
+                  : 'border-gray-300 hover:border-gray-400 bg-white'
             }`}
             style={{
               left: `${table.x}px`,
@@ -1012,10 +1073,16 @@ function DiagramView({
             }}
           >
             {/* Table Header */}
-            <div className="px-3 py-2 bg-zinc-900 border-b border-zinc-700 rounded-t-lg">
+            <div className={`px-3 py-2 border-b rounded-t-lg ${
+              isDark
+                ? 'bg-zinc-900 border-zinc-700'
+                : 'bg-gray-50 border-gray-200'
+            }`}>
               <div className="flex items-center gap-2">
-                <Database className="w-3.5 h-3.5 text-gray-400" />
-                <span className="text-xs font-semibold text-gray-100">{table.name}</span>
+                <Database className={`w-3.5 h-3.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`} />
+                <span className={`text-xs font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+                  {table.name}
+                </span>
               </div>
             </div>
 
@@ -1024,15 +1091,21 @@ function DiagramView({
               {table.columns.map(col => (
                 <div
                   key={col.id}
-                  className="flex items-center gap-2 px-2 py-1 text-xs hover:bg-zinc-700 rounded"
+                  className={`flex items-center gap-2 px-2 py-1 text-xs rounded ${
+                    isDark ? 'hover:bg-zinc-700' : 'hover:bg-gray-100'
+                  }`}
                 >
                   {col.isPK && (
                     <span className="w-4 h-4 flex items-center justify-center bg-amber-500/20 text-amber-400 rounded text-xs font-bold">
                       PK
                     </span>
                   )}
-                  <span className="flex-1 text-gray-300">{col.name}</span>
-                  <span className="text-gray-500 text-xs">{col.dataType}</span>
+                  <span className={`flex-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                    {col.name}
+                  </span>
+                  <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                    {col.dataType}
+                  </span>
                 </div>
               ))}
             </div>
@@ -1043,9 +1116,13 @@ function DiagramView({
         {tables.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">
-              <Database className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-              <h3 className="text-sm font-medium text-gray-300 mb-2">No Tables Yet</h3>
-              <p className="text-xs text-gray-500 mb-4">Start by adding your first table to the diagram</p>
+              <Database className={`w-12 h-12 mx-auto mb-3 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} />
+              <h3 className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                No Tables Yet
+              </h3>
+              <p className={`text-xs mb-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                Start by adding your first table to the diagram
+              </p>
               <button
                 onClick={onAddTable}
                 className="px-4 py-2 bg-indigo-600 text-white rounded-md text-xs font-medium hover:bg-indigo-700 transition-colors inline-flex items-center gap-2"
