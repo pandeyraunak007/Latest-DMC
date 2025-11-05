@@ -136,7 +136,7 @@ export default function PropertyEditor({ isDark, onClose }: PropertyEditorProps)
           <item.icon className="w-3.5 h-3.5" />
           <span className="text-xs">{item.label}</span>
         </div>
-        {hasChildren && isExpanded && (
+        {hasChildren && isExpanded && item.children && (
           <div>
             {item.children.map((child) => (
               <TreeItem key={child.id} item={child} level={level + 1} />
