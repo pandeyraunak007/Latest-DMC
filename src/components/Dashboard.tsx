@@ -6,7 +6,6 @@ import ReverseEngineeringNew from './ReverseEngineeringNew';
 import FabricForwardEngineering from './FabricForwardEngineering';
 import ModelExplorer from './ModelExplorer';
 import CompleteCompare from './CompleteCompare';
-import Users from './Users';
 import Settings from './Settings';
 import Diagram from './Diagram';
 import MartCatalog from './MartCatalog';
@@ -546,7 +545,7 @@ const CompleteCompareCard = ({ onClick }: { onClick?: () => void }) => {
 
 export default function Dashboard() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [currentPage, setCurrentPage] = useState<'dashboard' | 'mart-catalog' | 'model-explorer' | 'reverse-engineering' | 'forward-engineering' | 'complete-compare' | 'users' | 'settings' | 'diagram'>('dashboard');
+  const [currentPage, setCurrentPage] = useState<'dashboard' | 'mart-catalog' | 'model-explorer' | 'reverse-engineering' | 'forward-engineering' | 'complete-compare' | 'settings' | 'diagram'>('dashboard');
   const [isDark, setIsDark] = useState(true);
 
   const toggleTheme = () => {
@@ -589,12 +588,6 @@ export default function Dashboard() {
       label: 'Complete Compare',
       page: 'complete-compare' as const,
       active: currentPage === 'complete-compare'
-    },
-    {
-      icon: <UsersIcon className="w-4 h-4" />,
-      label: 'Users',
-      page: 'users' as const,
-      active: currentPage === 'users'
     },
     {
       icon: <SettingsIcon className="w-4 h-4" />,
@@ -837,7 +830,6 @@ export default function Dashboard() {
               {currentPage === 'reverse-engineering' && <ReverseEngineeringNew />}
               {currentPage === 'forward-engineering' && <FabricForwardEngineering />}
               {currentPage === 'complete-compare' && <CompleteCompare />}
-              {currentPage === 'users' && <Users />}
               {currentPage === 'settings' && <Settings isDark={isDark} toggleTheme={toggleTheme} />}
               {currentPage === 'diagram' && <Diagram isDark={isDark} toggleTheme={toggleTheme} />}
             </motion.div>
