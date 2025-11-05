@@ -10,6 +10,7 @@ import Settings from './Settings';
 import Diagram from './Diagram';
 import Diagrammer from './Diagrammer';
 import MartCatalog from './MartCatalog';
+import PropertyEditor from './PropertyEditor';
 import ThemeToggle from './shared/ThemeToggle';
 import {
   LayoutDashboard,
@@ -842,6 +843,7 @@ export default function Dashboard() {
               {currentPage === 'settings' && <Settings isDark={isDark} toggleTheme={toggleTheme} />}
               {currentPage === 'diagram' && <Diagram isDark={isDark} toggleTheme={toggleTheme} />}
               {currentPage === 'diagrammer' && <Diagrammer />}
+              {currentPage === 'property-editor' && <PropertyEditor isDark={isDark} onClose={() => setCurrentPage('dashboard')} />}
             </motion.div>
           </AnimatePresence>
         </div>
