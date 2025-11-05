@@ -1674,95 +1674,278 @@ function PropertiesView({ selectedTable, isDark }: { selectedTable?: Table; isDa
   );
 }
 
-// Right Properties Panel Component
+// Right Properties Panel Component - Context-aware properties panel
 function RightPropertiesPanel({ table, isDark }: { table?: Table; isDark: boolean }) {
+  const [activeTab, setActiveTab] = useState('general');
+
+  // Table tabs
+  const tableTabs = [
+    { id: 'general', label: 'General', icon: FileText },
+    { id: 'columns', label: 'Columns', icon: Table2 },
+    { id: 'keys', label: 'Keys', icon: KeyRound },
+    { id: 'display', label: 'Display', icon: Eye }
+  ];
+
+  // Model tabs (when no table selected)
+  const modelTabs = [
+    { id: 'general', label: 'General', icon: FileText },
+    { id: 'tables', label: 'Tables', icon: Table2 },
+    { id: 'settings', label: 'Settings', icon: Settings }
+  ];
+
+  const tabs = table ? tableTabs : modelTabs;
+
   if (!table) {
+    // Model Properties
     return (
-      <div className="p-3 h-full flex items-center justify-center">
-        <div className="text-center">
-          <Database className={`w-12 h-12 mx-auto mb-3 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} />
-          <p className={`text-sm font-medium mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            No Table Selected
-          </p>
-          <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-            Select a table to view its properties
-          </p>
+      <div className="flex h-full">
+        {/* Left Icon Strip */}
+        <div className={`w-6 border-r transition-colors flex flex-col ${
+          isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200'
+        }`}>
+          {modelTabs.map((tab) => (
+            <div
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`h-8 flex items-center justify-center cursor-pointer transition-all duration-200 ${
+                activeTab === tab.id
+                  ? `${isDark ? 'bg-indigo-500 text-white' : 'bg-indigo-600 text-white'} shadow-sm`
+                  : `${isDark ? 'text-gray-400 hover:text-gray-100 hover:bg-zinc-800/50' : 'text-gray-600 hover:text-gray-900 hover:bg-indigo-50/50'}`
+              }`}
+              title={tab.label}
+              style={{ marginBottom: '1px' }}
+            >
+              <tab.icon className="w-3.5 h-3.5" />
+            </div>
+          ))}
+        </div>
+
+        {/* Main Content Area */}
+        <div className={`flex-1 overflow-y-auto transition-colors ${
+          isDark ? 'bg-zinc-900' : 'bg-white'
+        }`}>
+          {/* Context Header */}
+          <div className={`p-2 border-b transition-colors ${
+            isDark ? 'border-zinc-800 bg-zinc-900' : 'border-gray-200 bg-gray-50'
+          }`}>
+            <div className="flex items-center gap-2">
+              {React.createElement(modelTabs.find(tab => tab.id === activeTab)!.icon, {
+                className: `w-4 h-4 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`
+              })}
+              <h2 className={`text-xs font-semibold ${
+                isDark ? 'text-gray-100' : 'text-gray-900'
+              }`}>
+                {modelTabs.find(t => t.id === activeTab)?.label} Properties
+              </h2>
+            </div>
+            <p className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              Data Model
+            </p>
+          </div>
+
+          {/* Content */}
+          <div className="p-2 space-y-2">
+            {activeTab === 'general' && (
+              <div className="space-y-2">
+                <div>
+                  <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Model Name
+                  </label>
+                  <input
+                    type="text"
+                    defaultValue="Data Model"
+                    className={`w-full px-2 py-1 text-xs rounded border ${
+                      isDark ? 'bg-zinc-800 border-zinc-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Description
+                  </label>
+                  <textarea
+                    rows={2}
+                    className={`w-full px-2 py-1 text-xs rounded border ${
+                      isDark ? 'bg-zinc-800 border-zinc-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                    placeholder="Model description..."
+                  />
+                </div>
+              </div>
+            )}
+            {activeTab === 'tables' && (
+              <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                <p>Total Tables: 2</p>
+                <p className="mt-1">Add tables from the toolbar</p>
+              </div>
+            )}
+            {activeTab === 'settings' && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" id="autoLayout" className="rounded" />
+                  <label htmlFor="autoLayout" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Auto Layout
+                  </label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" id="showGrid" defaultChecked className="rounded" />
+                  <label htmlFor="showGrid" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Show Grid
+                  </label>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
   }
 
+  // Table Properties
   return (
-    <div className="p-3">
-      <h3 className={`text-sm font-semibold mb-3 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Table Properties</h3>
-
-      {/* Table Name */}
-      <div className="mb-3">
-        <label className={`block text-xs mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Table Name</label>
-        <input
-          type="text"
-          defaultValue={table.name}
-          className={`w-full px-2 py-1.5 text-xs border rounded-md focus:outline-none focus:border-indigo-500 ${
-            isDark
-              ? 'border-zinc-700 bg-zinc-800 text-gray-100'
-              : 'border-gray-300 bg-white text-gray-900'
-          }`}
-        />
+    <div className="flex h-full">
+      {/* Left Icon Strip */}
+      <div className={`w-6 border-r transition-colors flex flex-col ${
+        isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200'
+      }`}>
+        {tableTabs.map((tab) => (
+          <div
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`h-8 flex items-center justify-center cursor-pointer transition-all duration-200 ${
+              activeTab === tab.id
+                ? `${isDark ? 'bg-indigo-500 text-white' : 'bg-indigo-600 text-white'} shadow-sm`
+                : `${isDark ? 'text-gray-400 hover:text-gray-100 hover:bg-zinc-800/50' : 'text-gray-600 hover:text-gray-900 hover:bg-indigo-50/50'}`
+            }`}
+            title={tab.label}
+            style={{ marginBottom: '1px' }}
+          >
+            <tab.icon className="w-3.5 h-3.5" />
+          </div>
+        ))}
       </div>
 
-      {/* Columns List */}
-      <div className="mb-3">
-        <div className="flex items-center justify-between mb-2">
-          <label className={`block text-xs font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-            Columns ({table.columns.length})
-          </label>
-          <button className="text-xs text-indigo-400 hover:text-indigo-300">
-            <Plus className="w-3 h-3 inline mr-1" />
-            Add
-          </button>
+      {/* Main Content Area */}
+      <div className={`flex-1 overflow-y-auto transition-colors ${
+        isDark ? 'bg-zinc-900' : 'bg-white'
+      }`}>
+        {/* Context Header */}
+        <div className={`p-2 border-b transition-colors ${
+          isDark ? 'border-zinc-800 bg-zinc-900' : 'border-gray-200 bg-gray-50'
+        }`}>
+          <div className="flex items-center gap-2">
+            {React.createElement(tableTabs.find(tab => tab.id === activeTab)!.icon, {
+              className: `w-4 h-4 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`
+            })}
+            <h2 className={`text-xs font-semibold ${
+              isDark ? 'text-gray-100' : 'text-gray-900'
+            }`}>
+              {tableTabs.find(t => t.id === activeTab)?.label} Properties
+            </h2>
+          </div>
+          <p className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+            {table.name}
+          </p>
         </div>
-        <div className="space-y-1 max-h-48 overflow-y-auto">
-          {table.columns.map(col => (
-            <div
-              key={col.id}
-              className={`px-2 py-1 rounded text-xs flex items-center justify-between ${
-                isDark ? 'bg-zinc-800' : 'bg-gray-100'
-              }`}
-            >
-              <div className="flex items-center gap-1.5">
-                {col.isPK && (
-                  <span className="px-1 py-0.5 bg-amber-500/20 text-amber-400 rounded text-xs font-bold">PK</span>
-                )}
-                <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>{col.name}</span>
+
+        {/* Content */}
+        <div className="p-2 space-y-2">
+          {activeTab === 'general' && (
+            <div className="space-y-2">
+              <div>
+                <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Table Name
+                </label>
+                <input
+                  type="text"
+                  defaultValue={table.name}
+                  className={`w-full px-2 py-1 text-xs rounded border ${
+                    isDark ? 'bg-zinc-800 border-zinc-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+                />
               </div>
-              <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{col.dataType}</span>
+              <div>
+                <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Definition
+                </label>
+                <textarea
+                  rows={2}
+                  className={`w-full px-2 py-1 text-xs rounded border ${
+                    isDark ? 'bg-zinc-800 border-zinc-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+                  placeholder="Table definition..."
+                />
+              </div>
             </div>
-          ))}
-        </div>
-      </div>
+          )}
 
-      {/* Actions */}
-      <div className={`pt-3 border-t space-y-1.5 ${isDark ? 'border-zinc-800' : 'border-gray-200'}`}>
-        <button
-          className={`w-full px-2 py-1.5 text-xs text-left rounded flex items-center gap-2 ${
-            isDark ? 'text-gray-300 hover:bg-zinc-800' : 'text-gray-700 hover:bg-gray-100'
-          }`}
-        >
-          <Edit3 className="w-3 h-3" />
-          Edit Table
-        </button>
-        <button
-          className={`w-full px-2 py-1.5 text-xs text-left rounded flex items-center gap-2 ${
-            isDark ? 'text-gray-300 hover:bg-zinc-800' : 'text-gray-700 hover:bg-gray-100'
-          }`}
-        >
-          <Copy className="w-3 h-3" />
-          Duplicate
-        </button>
-        <button className="w-full px-2 py-1.5 text-xs text-left text-red-400 hover:bg-red-500/20 rounded flex items-center gap-2">
-          <Trash2 className="w-3 h-3" />
-          Delete Table
-        </button>
+          {activeTab === 'columns' && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className={`text-xs font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Columns ({table.columns.length})
+                </label>
+                <button className={`text-xs ${isDark ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-700'}`}>
+                  <Plus className="w-3 h-3 inline mr-1" />
+                  Add
+                </button>
+              </div>
+              <div className="space-y-1 max-h-64 overflow-y-auto">
+                {table.columns.map(col => (
+                  <div
+                    key={col.id}
+                    className={`px-2 py-1.5 rounded text-xs ${
+                      isDark ? 'bg-zinc-800' : 'bg-gray-100'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-1.5">
+                        {col.isPK && (
+                          <span className="px-1 py-0.5 bg-amber-500/20 text-amber-400 rounded text-xs font-bold">PK</span>
+                        )}
+                        <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{col.name}</span>
+                      </div>
+                      <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{col.dataType}</span>
+                    </div>
+                    <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                      {!col.isNullable && 'NOT NULL'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'keys' && (
+            <div className="space-y-2">
+              <div>
+                <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Primary Key
+                </label>
+                <div className={`px-2 py-1.5 rounded text-xs ${isDark ? 'bg-zinc-800 text-gray-300' : 'bg-gray-100 text-gray-700'}`}>
+                  {table.columns.filter(c => c.isPK).map(c => c.name).join(', ') || 'None'}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'display' && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="showInDiagram" defaultChecked className="rounded" />
+                <label htmlFor="showInDiagram" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Show in Diagram
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="expandColumns" className="rounded" />
+                <label htmlFor="expandColumns" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Expand Columns
+                </label>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
