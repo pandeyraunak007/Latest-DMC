@@ -316,7 +316,7 @@ export default function Diagrammer() {
 
 // Left Panel Component
 function LeftPanel() {
-  const [expandedSections, setExpandedSections] = useState<string[]>(['models', 'tools']);
+  const [expandedSections, setExpandedSections] = useState<string[]>(['models']);
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev =>
@@ -357,59 +357,6 @@ function LeftPanel() {
             </button>
           </div>
         )}
-      </div>
-
-      {/* Tools Section */}
-      <div className="mb-3">
-        <button
-          onClick={() => toggleSection('tools')}
-          className="flex items-center justify-between w-full text-xs font-medium text-zinc-700 hover:text-zinc-900 mb-2"
-        >
-          <span className="flex items-center gap-2">
-            <Settings className="w-3.5 h-3.5" />
-            Tools
-          </span>
-          {expandedSections.includes('tools') ? (
-            <ChevronDown className="w-3.5 h-3.5" />
-          ) : (
-            <ChevronRight className="w-3.5 h-3.5" />
-          )}
-        </button>
-        {expandedSections.includes('tools') && (
-          <div className="ml-5 space-y-1">
-            <button className="text-xs text-zinc-600 hover:text-zinc-900 w-full text-left py-1 flex items-center gap-2">
-              <RefreshCw className="w-3 h-3" />
-              Reverse Engineering
-            </button>
-            <button className="text-xs text-zinc-600 hover:text-zinc-900 w-full text-left py-1 flex items-center gap-2">
-              <ArrowRightLeft className="w-3 h-3" />
-              Forward Engineering
-            </button>
-            <button className="text-xs text-zinc-600 hover:text-zinc-900 w-full text-left py-1 flex items-center gap-2">
-              <GitCompare className="w-3 h-3" />
-              Compare Models
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Quick Actions */}
-      <div className="pt-3 border-t border-zinc-200">
-        <p className="text-xs font-medium text-zinc-700 mb-2">Quick Actions</p>
-        <div className="space-y-1">
-          <button className="w-full px-2 py-1.5 text-xs text-left text-zinc-700 hover:bg-zinc-50 rounded flex items-center gap-2">
-            <Plus className="w-3 h-3" />
-            New Model
-          </button>
-          <button className="w-full px-2 py-1.5 text-xs text-left text-zinc-700 hover:bg-zinc-50 rounded flex items-center gap-2">
-            <Upload className="w-3 h-3" />
-            Import
-          </button>
-          <button className="w-full px-2 py-1.5 text-xs text-left text-zinc-700 hover:bg-zinc-50 rounded flex items-center gap-2">
-            <Download className="w-3 h-3" />
-            Export
-          </button>
-        </div>
       </div>
     </div>
   );
