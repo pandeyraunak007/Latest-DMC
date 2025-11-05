@@ -9,6 +9,7 @@ import CompleteCompare from './CompleteCompare';
 import Users from './Users';
 import Settings from './Settings';
 import Diagram from './Diagram';
+import MartCatalog from './MartCatalog';
 import ThemeToggle from './shared/ThemeToggle';
 import {
   LayoutDashboard,
@@ -545,7 +546,7 @@ const CompleteCompareCard = ({ onClick }: { onClick?: () => void }) => {
 
 export default function Dashboard() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [currentPage, setCurrentPage] = useState<'dashboard' | 'model-explorer' | 'reverse-engineering' | 'forward-engineering' | 'complete-compare' | 'users' | 'settings' | 'diagram'>('dashboard');
+  const [currentPage, setCurrentPage] = useState<'dashboard' | 'mart-catalog' | 'model-explorer' | 'reverse-engineering' | 'forward-engineering' | 'complete-compare' | 'users' | 'settings' | 'diagram'>('dashboard');
   const [isDark, setIsDark] = useState(true);
 
   const toggleTheme = () => {
@@ -558,6 +559,12 @@ export default function Dashboard() {
       label: 'Dashboard',
       page: 'dashboard' as const,
       active: currentPage === 'dashboard'
+    },
+    {
+      icon: <FolderOpen className="w-4 h-4" />,
+      label: 'Mart Catalog',
+      page: 'mart-catalog' as const,
+      active: currentPage === 'mart-catalog'
     },
     {
       icon: <Database className="w-4 h-4" />,
@@ -825,6 +832,7 @@ export default function Dashboard() {
               transition={{ duration: 0.3 }}
               className="h-full"
             >
+              {currentPage === 'mart-catalog' && <MartCatalog />}
               {currentPage === 'model-explorer' && <ModelExplorer />}
               {currentPage === 'reverse-engineering' && <ReverseEngineeringNew />}
               {currentPage === 'forward-engineering' && <FabricForwardEngineering />}
