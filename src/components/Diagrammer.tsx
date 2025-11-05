@@ -1301,8 +1301,8 @@ function DiagramView({
           transformOrigin: 'top left',
           width: `${(100 / zoom) * 100}%`,
           height: `${(100 / zoom) * 100}%`,
-          minHeight: '1200px',
-          minWidth: '1600px'
+          minHeight: '100%',
+          minWidth: '100%'
         }}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
