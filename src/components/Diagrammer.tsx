@@ -34,7 +34,30 @@ import {
   Move,
   Type,
   Square,
-  Circle
+  Circle,
+  Component,
+  Workflow,
+  GitBranch,
+  GitMerge,
+  Network,
+  EyeOff,
+  Hash,
+  Key,
+  Zap,
+  Command,
+  Users,
+  User,
+  Crown,
+  UserPlus,
+  KeyRound,
+  Server,
+  Search,
+  Link as LinkIcon,
+  Folder,
+  Globe,
+  Archive,
+  FileCode,
+  MoreHorizontal
 } from 'lucide-react';
 
 // Types
@@ -126,18 +149,18 @@ export default function Diagrammer() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-white">
+    <div className="h-full flex flex-col bg-zinc-950">
       {/* Top Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-200 bg-white">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800 bg-zinc-900">
         <div className="flex items-center gap-4">
           {/* View Mode Tabs */}
-          <div className="flex items-center gap-1 bg-zinc-50 rounded-lg p-0.5">
+          <div className="flex items-center gap-1 bg-zinc-800 rounded-lg p-0.5">
             <button
               onClick={() => setViewMode('diagram')}
               className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 viewMode === 'diagram'
-                  ? 'bg-white text-zinc-900 shadow-sm'
-                  : 'text-zinc-600 hover:text-zinc-900'
+                  ? 'bg-zinc-700 text-gray-100 shadow-sm'
+                  : 'text-gray-400 hover:text-gray-100'
               }`}
             >
               <Eye className="w-3.5 h-3.5 inline mr-1.5" />
@@ -147,8 +170,8 @@ export default function Diagrammer() {
               onClick={() => setViewMode('quick-editor')}
               className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 viewMode === 'quick-editor'
-                  ? 'bg-white text-zinc-900 shadow-sm'
-                  : 'text-zinc-600 hover:text-zinc-900'
+                  ? 'bg-zinc-700 text-gray-100 shadow-sm'
+                  : 'text-gray-400 hover:text-gray-100'
               }`}
             >
               <Table2 className="w-3.5 h-3.5 inline mr-1.5" />
@@ -158,8 +181,8 @@ export default function Diagrammer() {
               onClick={() => setViewMode('properties')}
               className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 viewMode === 'properties'
-                  ? 'bg-white text-zinc-900 shadow-sm'
-                  : 'text-zinc-600 hover:text-zinc-900'
+                  ? 'bg-zinc-700 text-gray-100 shadow-sm'
+                  : 'text-gray-400 hover:text-gray-100'
               }`}
             >
               <Settings className="w-3.5 h-3.5 inline mr-1.5" />
@@ -167,7 +190,7 @@ export default function Diagrammer() {
             </button>
           </div>
 
-          <div className="w-px h-6 bg-zinc-200" />
+          <div className="w-px h-6 bg-zinc-700" />
 
           {/* Tools */}
           {viewMode === 'diagram' && (
@@ -175,7 +198,7 @@ export default function Diagrammer() {
               <button
                 onClick={() => setActiveTool('select')}
                 className={`p-1.5 rounded transition-colors ${
-                  activeTool === 'select' ? 'bg-blue-50 text-blue-600' : 'text-zinc-600 hover:bg-zinc-100'
+                  activeTool === 'select' ? 'bg-indigo-500/20 text-indigo-400' : 'text-gray-400 hover:bg-zinc-800'
                 }`}
                 title="Select"
               >
@@ -184,7 +207,7 @@ export default function Diagrammer() {
               <button
                 onClick={() => setActiveTool('table')}
                 className={`p-1.5 rounded transition-colors ${
-                  activeTool === 'table' ? 'bg-blue-50 text-blue-600' : 'text-zinc-600 hover:bg-zinc-100'
+                  activeTool === 'table' ? 'bg-indigo-500/20 text-indigo-400' : 'text-gray-400 hover:bg-zinc-800'
                 }`}
                 title="Add Table"
               >
@@ -193,7 +216,7 @@ export default function Diagrammer() {
               <button
                 onClick={() => setActiveTool('relationship')}
                 className={`p-1.5 rounded transition-colors ${
-                  activeTool === 'relationship' ? 'bg-blue-50 text-blue-600' : 'text-zinc-600 hover:bg-zinc-100'
+                  activeTool === 'relationship' ? 'bg-indigo-500/20 text-indigo-400' : 'text-gray-400 hover:bg-zinc-800'
                 }`}
                 title="Add Relationship"
               >
@@ -202,7 +225,7 @@ export default function Diagrammer() {
               <button
                 onClick={() => setActiveTool('note')}
                 className={`p-1.5 rounded transition-colors ${
-                  activeTool === 'note' ? 'bg-blue-50 text-blue-600' : 'text-zinc-600 hover:bg-zinc-100'
+                  activeTool === 'note' ? 'bg-indigo-500/20 text-indigo-400' : 'text-gray-400 hover:bg-zinc-800'
                 }`}
                 title="Add Note"
               >
@@ -216,42 +239,42 @@ export default function Diagrammer() {
           {/* Zoom Controls */}
           {viewMode === 'diagram' && (
             <>
-              <div className="flex items-center gap-1 bg-zinc-50 rounded-lg px-2 py-1">
-                <button onClick={handleZoomOut} className="p-1 hover:bg-zinc-200 rounded" title="Zoom Out">
-                  <ZoomOut className="w-3.5 h-3.5 text-zinc-600" />
+              <div className="flex items-center gap-1 bg-zinc-800 rounded-lg px-2 py-1">
+                <button onClick={handleZoomOut} className="p-1 hover:bg-zinc-700 rounded" title="Zoom Out">
+                  <ZoomOut className="w-3.5 h-3.5 text-gray-400" />
                 </button>
-                <span className="text-xs font-medium text-zinc-600 min-w-[3rem] text-center">{zoom}%</span>
-                <button onClick={handleZoomIn} className="p-1 hover:bg-zinc-200 rounded" title="Zoom In">
-                  <ZoomIn className="w-3.5 h-3.5 text-zinc-600" />
+                <span className="text-xs font-medium text-gray-400 min-w-[3rem] text-center">{zoom}%</span>
+                <button onClick={handleZoomIn} className="p-1 hover:bg-zinc-700 rounded" title="Zoom In">
+                  <ZoomIn className="w-3.5 h-3.5 text-gray-400" />
                 </button>
               </div>
-              <div className="w-px h-6 bg-zinc-200" />
+              <div className="w-px h-6 bg-zinc-700" />
             </>
           )}
 
           {/* Actions */}
-          <button className="p-1.5 text-zinc-600 hover:bg-zinc-100 rounded" title="Undo">
+          <button className="p-1.5 text-gray-400 hover:bg-zinc-800 rounded" title="Undo">
             <Undo2 className="w-4 h-4" />
           </button>
-          <button className="p-1.5 text-zinc-600 hover:bg-zinc-100 rounded" title="Redo">
+          <button className="p-1.5 text-gray-400 hover:bg-zinc-800 rounded" title="Redo">
             <Redo2 className="w-4 h-4" />
           </button>
 
-          <div className="w-px h-6 bg-zinc-200" />
+          <div className="w-px h-6 bg-zinc-700" />
 
           <button
             onClick={() => setIsLocked(!isLocked)}
             className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors ${
               isLocked
-                ? 'bg-red-50 text-red-600 hover:bg-red-100'
-                : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+                ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                : 'bg-zinc-800 text-gray-400 hover:bg-zinc-700'
             }`}
           >
             {isLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
             {isLocked ? 'Locked' : 'Unlocked'}
           </button>
 
-          <button className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors">
+          <button className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors">
             <Save className="w-3.5 h-3.5" />
             Save
           </button>
@@ -265,9 +288,9 @@ export default function Diagrammer() {
           {showLeftPanel && (
             <motion.div
               initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 240, opacity: 1 }}
+              animate={{ width: 280, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
-              className="border-r border-zinc-200 bg-white overflow-auto"
+              className="border-r border-zinc-800 bg-zinc-900 overflow-auto"
             >
               <LeftPanel />
             </motion.div>
@@ -303,7 +326,7 @@ export default function Diagrammer() {
               initial={{ width: 0, opacity: 0 }}
               animate={{ width: 280, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
-              className="border-l border-zinc-200 bg-white overflow-auto"
+              className="border-l border-zinc-800 bg-zinc-900 overflow-auto"
             >
               <RightPropertiesPanel table={tables.find(t => t.id === selectedTable)} />
             </motion.div>
@@ -314,49 +337,575 @@ export default function Diagrammer() {
   );
 }
 
-// Left Panel Component
+// Left Panel Component with Model Explorer Tree
 function LeftPanel() {
-  const [expandedSections, setExpandedSections] = useState<string[]>(['models']);
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(['model-root', 'entities-tables', 'relationships']));
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const toggleSection = (section: string) => {
-    setExpandedSections(prev =>
-      prev.includes(section) ? prev.filter(s => s !== section) : [...prev, section]
+  const toggleExpanded = (id: string) => {
+    const newExpanded = new Set(expandedItems);
+    if (newExpanded.has(id)) {
+      newExpanded.delete(id);
+    } else {
+      newExpanded.add(id);
+    }
+    setExpandedItems(newExpanded);
+  };
+
+  const treeData = [
+    {
+      id: 'model-root',
+      label: 'E-Commerce Platform',
+      icon: <Database className="w-4 h-4 text-blue-500" />,
+      type: 'model',
+      children: [
+        {
+          id: 'model-properties',
+          label: 'Model Properties',
+          icon: <Settings className="w-4 h-4 text-gray-500" />,
+          type: 'folder'
+        },
+        {
+          id: 'subject-areas',
+          label: 'Subject Areas',
+          icon: <Component className="w-4 h-4 text-purple-500" />,
+          type: 'folder',
+          children: [
+            {
+              id: 'sa-customer-mgmt',
+              label: 'Customer Management',
+              icon: <Box className="w-4 h-4 text-purple-400" />,
+              type: 'subject-area'
+            },
+            {
+              id: 'sa-order-processing',
+              label: 'Order Processing',
+              icon: <Box className="w-4 h-4 text-purple-400" />,
+              type: 'subject-area'
+            }
+          ]
+        },
+        {
+          id: 'diagrams-root',
+          label: 'Diagrams',
+          icon: <Workflow className="w-4 h-4 text-blue-500" />,
+          type: 'folder',
+          children: [
+            {
+              id: 'logical-diagrams',
+              label: 'Logical Diagram(s)',
+              icon: <FileText className="w-4 h-4 text-green-500" />,
+              type: 'folder',
+              children: [
+                {
+                  id: 'diagram-logical-main',
+                  label: 'Main Logical Model',
+                  icon: <FileText className="w-4 h-4 text-green-400" />,
+                  type: 'diagram'
+                }
+              ]
+            },
+            {
+              id: 'physical-diagrams',
+              label: 'Physical Diagram(s)',
+              icon: <FileText className="w-4 h-4 text-orange-500" />,
+              type: 'folder',
+              children: [
+                {
+                  id: 'diagram-physical-main',
+                  label: 'Main Physical Model',
+                  icon: <FileText className="w-4 h-4 text-orange-400" />,
+                  type: 'diagram'
+                }
+              ]
+            }
+          ]
+        },
+        {
+          id: 'domains',
+          label: 'Domains',
+          icon: <Type className="w-4 h-4 text-blue-500" />,
+          type: 'folder',
+          children: [
+            {
+              id: 'domain-email',
+              label: 'EmailAddress',
+              icon: <Type className="w-4 h-4 text-blue-400" />,
+              type: 'domain'
+            },
+            {
+              id: 'domain-currency',
+              label: 'Currency',
+              icon: <Type className="w-4 h-4 text-blue-400" />,
+              type: 'domain'
+            }
+          ]
+        },
+        {
+          id: 'entities-tables',
+          label: 'Tables',
+          icon: <Database className="w-4 h-4 text-purple-500" />,
+          type: 'folder',
+          children: [
+            {
+              id: 'entity-customer',
+              label: 'Customer',
+              icon: <Box className="w-4 h-4 text-purple-500" />,
+              type: 'entity',
+              children: [
+                {
+                  id: 'customer-attributes',
+                  label: 'Columns',
+                  icon: <Hash className="w-4 h-4 text-gray-500" />,
+                  type: 'folder',
+                  children: [
+                    {
+                      id: 'customer-pk',
+                      label: 'Primary Keys (PK)',
+                      icon: <Key className="w-4 h-4 text-yellow-500" />,
+                      type: 'folder',
+                      children: [
+                        {
+                          id: 'attr-customer-id',
+                          label: 'customer_id',
+                          icon: <Key className="w-3.5 h-3.5 text-yellow-500" />,
+                          type: 'attribute'
+                        }
+                      ]
+                    },
+                    {
+                      id: 'customer-other',
+                      label: 'Other attributes',
+                      icon: <Hash className="w-4 h-4 text-gray-500" />,
+                      type: 'folder',
+                      children: [
+                        {
+                          id: 'attr-first-name',
+                          label: 'first_name',
+                          icon: <Hash className="w-3.5 h-3.5 text-gray-500" />,
+                          type: 'attribute'
+                        },
+                        {
+                          id: 'attr-email',
+                          label: 'email',
+                          icon: <Hash className="w-3.5 h-3.5 text-gray-500" />,
+                          type: 'attribute'
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              id: 'entity-order',
+              label: 'Order',
+              icon: <Box className="w-4 h-4 text-purple-500" />,
+              type: 'entity',
+              children: [
+                {
+                  id: 'order-attributes',
+                  label: 'Columns',
+                  icon: <Hash className="w-4 h-4 text-gray-500" />,
+                  type: 'folder',
+                  children: [
+                    {
+                      id: 'order-pk',
+                      label: 'Primary Keys (PK)',
+                      icon: <Key className="w-4 h-4 text-yellow-500" />,
+                      type: 'folder',
+                      children: [
+                        {
+                          id: 'attr-order-id',
+                          label: 'order_id',
+                          icon: <Key className="w-3.5 h-3.5 text-yellow-500" />,
+                          type: 'attribute'
+                        }
+                      ]
+                    },
+                    {
+                      id: 'order-fk',
+                      label: 'Foreign Keys (FK)',
+                      icon: <LinkIcon className="w-4 h-4 text-blue-500" />,
+                      type: 'folder',
+                      children: [
+                        {
+                          id: 'attr-customer-fk',
+                          label: 'customer_id',
+                          icon: <LinkIcon className="w-3.5 h-3.5 text-blue-500" />,
+                          type: 'attribute'
+                        }
+                      ]
+                    },
+                    {
+                      id: 'order-other',
+                      label: 'Other attributes',
+                      icon: <Hash className="w-4 h-4 text-gray-500" />,
+                      type: 'folder',
+                      children: [
+                        {
+                          id: 'attr-order-date',
+                          label: 'order_date',
+                          icon: <Hash className="w-3.5 h-3.5 text-gray-500" />,
+                          type: 'attribute'
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          id: 'relationships',
+          label: 'Relationships',
+          icon: <GitBranch className="w-4 h-4 text-green-500" />,
+          type: 'folder',
+          children: [
+            {
+              id: 'identifying-rel',
+              label: 'Identifying',
+              icon: <GitBranch className="w-4 h-4 text-green-600" />,
+              type: 'folder',
+              children: [
+                {
+                  id: 'rel-customer-order',
+                  label: 'Customer_Order',
+                  icon: <GitBranch className="w-4 h-4 text-green-500" />,
+                  type: 'relationship'
+                }
+              ]
+            },
+            {
+              id: 'non-identifying-rel',
+              label: 'Non-identifying',
+              icon: <GitMerge className="w-4 h-4 text-green-600" />,
+              type: 'folder',
+              children: [
+                {
+                  id: 'rel-order-product',
+                  label: 'Order_Product',
+                  icon: <GitMerge className="w-4 h-4 text-green-500" />,
+                  type: 'relationship'
+                }
+              ]
+            },
+            {
+              id: 'many-to-many-rel',
+              label: 'Many-to-Many',
+              icon: <Network className="w-4 h-4 text-green-600" />,
+              type: 'folder',
+              children: [
+                {
+                  id: 'rel-product-category',
+                  label: 'Product_Category',
+                  icon: <Network className="w-4 h-4 text-green-500" />,
+                  type: 'relationship'
+                }
+              ]
+            }
+          ]
+        },
+        {
+          id: 'views',
+          label: 'Views',
+          icon: <Eye className="w-4 h-4 text-cyan-500" />,
+          type: 'folder',
+          children: [
+            {
+              id: 'logical-views',
+              label: 'Logical views',
+              icon: <Eye className="w-4 h-4 text-cyan-600" />,
+              type: 'folder',
+              children: [
+                {
+                  id: 'view-customer-summary',
+                  label: 'CustomerSummary',
+                  icon: <Eye className="w-4 h-4 text-cyan-500" />,
+                  type: 'view'
+                }
+              ]
+            },
+            {
+              id: 'physical-views',
+              label: 'Physical views (SQL)',
+              icon: <FileCode className="w-4 h-4 text-cyan-600" />,
+              type: 'folder',
+              children: [
+                {
+                  id: 'view-customer-orders',
+                  label: 'VW_CUSTOMER_ORDERS',
+                  icon: <FileCode className="w-4 h-4 text-cyan-500" />,
+                  type: 'view'
+                }
+              ]
+            }
+          ]
+        },
+        {
+          id: 'sequences-procedures-triggers',
+          label: 'Sequences / Procedures / Triggers',
+          icon: <Zap className="w-4 h-4 text-red-500" />,
+          type: 'folder',
+          children: [
+            {
+              id: 'sequences',
+              label: 'Sequences',
+              icon: <Hash className="w-4 h-4 text-purple-600" />,
+              type: 'folder',
+              children: [
+                {
+                  id: 'seq-customer-id',
+                  label: 'SEQ_CUSTOMER_ID',
+                  icon: <Hash className="w-4 h-4 text-purple-500" />,
+                  type: 'sequence'
+                }
+              ]
+            },
+            {
+              id: 'stored-procedures',
+              label: 'Stored Procedures',
+              icon: <Command className="w-4 h-4 text-red-600" />,
+              type: 'folder',
+              children: [
+                {
+                  id: 'proc-get-orders',
+                  label: 'SP_GET_CUSTOMER_ORDERS',
+                  icon: <Command className="w-4 h-4 text-red-500" />,
+                  type: 'procedure'
+                }
+              ]
+            },
+            {
+              id: 'triggers',
+              label: 'Triggers',
+              icon: <Zap className="w-4 h-4 text-yellow-600" />,
+              type: 'folder',
+              children: [
+                {
+                  id: 'trigger-audit',
+                  label: 'TRG_CUSTOMER_AUDIT',
+                  icon: <Zap className="w-4 h-4 text-yellow-500" />,
+                  type: 'trigger'
+                }
+              ]
+            }
+          ]
+        },
+        {
+          id: 'users-roles',
+          label: 'Users / Roles',
+          icon: <Users className="w-4 h-4 text-indigo-500" />,
+          type: 'folder',
+          children: [
+            {
+              id: 'users',
+              label: 'Users',
+              icon: <User className="w-4 h-4 text-indigo-600" />,
+              type: 'folder',
+              children: [
+                {
+                  id: 'user-admin',
+                  label: 'db_admin',
+                  icon: <Crown className="w-4 h-4 text-indigo-500" />,
+                  type: 'user'
+                }
+              ]
+            },
+            {
+              id: 'roles',
+              label: 'Roles',
+              icon: <UserPlus className="w-4 h-4 text-indigo-600" />,
+              type: 'folder',
+              children: [
+                {
+                  id: 'role-admin',
+                  label: 'ADMIN_ROLE',
+                  icon: <Crown className="w-4 h-4 text-indigo-500" />,
+                  type: 'role'
+                }
+              ]
+            },
+            {
+              id: 'permissions',
+              label: 'Permissions',
+              icon: <KeyRound className="w-4 h-4 text-indigo-600" />,
+              type: 'folder',
+              children: [
+                {
+                  id: 'perm-select',
+                  label: 'SELECT_PERMISSION',
+                  icon: <Eye className="w-4 h-4 text-indigo-500" />,
+                  type: 'permission'
+                }
+              ]
+            }
+          ]
+        },
+        {
+          id: 'other-objects',
+          label: 'Other Objects (depending on DBMS)',
+          icon: <Server className="w-4 h-4 text-gray-500" />,
+          type: 'folder',
+          children: [
+            {
+              id: 'indexes',
+              label: 'Indexes',
+              icon: <Search className="w-4 h-4 text-yellow-600" />,
+              type: 'folder',
+              children: [
+                {
+                  id: 'idx-customer-email',
+                  label: 'IDX_CUSTOMER_EMAIL',
+                  icon: <Search className="w-4 h-4 text-yellow-500" />,
+                  type: 'index'
+                }
+              ]
+            },
+            {
+              id: 'constraints',
+              label: 'Constraints',
+              icon: <Lock className="w-4 h-4 text-red-600" />,
+              type: 'folder',
+              children: [
+                {
+                  id: 'chk-email-format',
+                  label: 'CHK_EMAIL_FORMAT',
+                  icon: <Lock className="w-4 h-4 text-red-500" />,
+                  type: 'constraint'
+                }
+              ]
+            },
+            {
+              id: 'synonyms',
+              label: 'Synonyms',
+              icon: <Link2 className="w-4 h-4 text-purple-600" />,
+              type: 'folder',
+              children: [
+                {
+                  id: 'syn-customer',
+                  label: 'SYN_CUSTOMER',
+                  icon: <Link2 className="w-4 h-4 text-purple-500" />,
+                  type: 'synonym'
+                }
+              ]
+            },
+            {
+              id: 'schemas',
+              label: 'Schemas',
+              icon: <Folder className="w-4 h-4 text-blue-600" />,
+              type: 'folder',
+              children: [
+                {
+                  id: 'schema-public',
+                  label: 'PUBLIC',
+                  icon: <Globe className="w-4 h-4 text-blue-500" />,
+                  type: 'schema'
+                },
+                {
+                  id: 'schema-app',
+                  label: 'APP_SCHEMA',
+                  icon: <Folder className="w-4 h-4 text-blue-500" />,
+                  type: 'schema'
+                }
+              ]
+            },
+            {
+              id: 'tablespaces-storage',
+              label: 'Tablespaces / Storage',
+              icon: <Server className="w-4 h-4 text-gray-600" />,
+              type: 'folder',
+              children: [
+                {
+                  id: 'ts-data',
+                  label: 'DATA_TABLESPACE',
+                  icon: <Server className="w-4 h-4 text-gray-500" />,
+                  type: 'tablespace'
+                },
+                {
+                  id: 'ts-index',
+                  label: 'INDEX_TABLESPACE',
+                  icon: <Archive className="w-4 h-4 text-gray-500" />,
+                  type: 'tablespace'
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ];
+
+  const TreeItem = ({
+    id,
+    label,
+    icon,
+    children,
+    level = 0
+  }: {
+    id: string;
+    label: string;
+    icon: React.ReactNode;
+    children?: any[];
+    level?: number;
+  }) => {
+    const isExpanded = expandedItems.has(id);
+    const hasChildren = children && children.length > 0;
+
+    return (
+      <div>
+        <div
+          className="group flex items-center gap-2 px-2 py-1.5 text-sm rounded-md cursor-pointer transition-all duration-200 text-gray-300 hover:text-gray-100 hover:bg-zinc-800/70"
+          style={{ paddingLeft: `${8 + level * 16}px` }}
+          onClick={() => hasChildren && toggleExpanded(id)}
+        >
+          {hasChildren ? (
+            isExpanded ? (
+              <ChevronDown className="w-3.5 h-3.5 flex-shrink-0" />
+            ) : (
+              <ChevronRight className="w-3.5 h-3.5 flex-shrink-0" />
+            )
+          ) : (
+            <div className="w-3.5 h-3.5 flex-shrink-0" />
+          )}
+          <div className="flex-shrink-0">{icon}</div>
+          <span className="flex-1 truncate">{label}</span>
+        </div>
+        {hasChildren && isExpanded && (
+          <div>
+            {children.map((child) => (
+              <TreeItem key={child.id} {...child} level={level + 1} />
+            ))}
+          </div>
+        )}
+      </div>
     );
   };
 
   return (
-    <div className="p-3">
-      <h3 className="text-xs font-semibold text-zinc-900 mb-3">Diagrammer</h3>
+    <div className="p-4">
+      <h3 className="text-sm font-semibold text-gray-100 mb-4">Model Tree</h3>
 
-      {/* Models Section */}
-      <div className="mb-3">
-        <button
-          onClick={() => toggleSection('models')}
-          className="flex items-center justify-between w-full text-xs font-medium text-zinc-700 hover:text-zinc-900 mb-2"
-        >
-          <span className="flex items-center gap-2">
-            <Database className="w-3.5 h-3.5" />
-            Models
-          </span>
-          {expandedSections.includes('models') ? (
-            <ChevronDown className="w-3.5 h-3.5" />
-          ) : (
-            <ChevronRight className="w-3.5 h-3.5" />
-          )}
-        </button>
-        {expandedSections.includes('models') && (
-          <div className="ml-5 space-y-1">
-            <button className="text-xs text-zinc-600 hover:text-zinc-900 w-full text-left py-1">
-              E-Commerce Model
-            </button>
-            <button className="text-xs text-zinc-600 hover:text-zinc-900 w-full text-left py-1">
-              Customer 360
-            </button>
-            <button className="text-xs text-zinc-600 hover:text-zinc-900 w-full text-left py-1">
-              Financial DW
-            </button>
-          </div>
-        )}
+      {/* Search Box */}
+      <div className="mb-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search tree..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 text-sm rounded-lg border bg-zinc-800 border-zinc-700 text-gray-100 placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200"
+          />
+        </div>
+      </div>
+
+      {/* Tree Items */}
+      <div className="space-y-1">
+        {treeData.map((item) => (
+          <TreeItem key={item.id} {...item} />
+        ))}
       </div>
     </div>
   );
@@ -384,9 +933,9 @@ function DiagramView({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="flex-1 bg-zinc-50 overflow-auto relative"
+      className="flex-1 bg-zinc-950 overflow-auto relative"
       style={{
-        backgroundImage: 'radial-gradient(circle, #e5e7eb 1px, transparent 1px)',
+        backgroundImage: 'radial-gradient(circle, #3A3A3A 1px, transparent 1px)',
         backgroundSize: '20px 20px'
       }}
     >
@@ -404,8 +953,8 @@ function DiagramView({
           <div
             key={table.id}
             onClick={() => onTableSelect(table.id)}
-            className={`absolute bg-white rounded-lg shadow-sm border-2 transition-all cursor-pointer ${
-              selectedTable === table.id ? 'border-blue-500 shadow-lg' : 'border-zinc-200 hover:border-zinc-300'
+            className={`absolute bg-zinc-800 rounded-lg shadow-sm border-2 transition-all cursor-pointer ${
+              selectedTable === table.id ? 'border-indigo-500 shadow-lg' : 'border-zinc-700 hover:border-zinc-600'
             }`}
             style={{
               left: `${table.x}px`,
@@ -414,10 +963,10 @@ function DiagramView({
             }}
           >
             {/* Table Header */}
-            <div className="px-3 py-2 bg-zinc-50 border-b border-zinc-200 rounded-t-lg">
+            <div className="px-3 py-2 bg-zinc-900 border-b border-zinc-700 rounded-t-lg">
               <div className="flex items-center gap-2">
-                <Database className="w-3.5 h-3.5 text-zinc-600" />
-                <span className="text-xs font-semibold text-zinc-900">{table.name}</span>
+                <Database className="w-3.5 h-3.5 text-gray-400" />
+                <span className="text-xs font-semibold text-gray-100">{table.name}</span>
               </div>
             </div>
 
@@ -426,15 +975,15 @@ function DiagramView({
               {table.columns.map(col => (
                 <div
                   key={col.id}
-                  className="flex items-center gap-2 px-2 py-1 text-xs hover:bg-zinc-50 rounded"
+                  className="flex items-center gap-2 px-2 py-1 text-xs hover:bg-zinc-700 rounded"
                 >
                   {col.isPK && (
-                    <span className="w-4 h-4 flex items-center justify-center bg-amber-100 text-amber-700 rounded text-xs font-bold">
+                    <span className="w-4 h-4 flex items-center justify-center bg-amber-500/20 text-amber-400 rounded text-xs font-bold">
                       PK
                     </span>
                   )}
-                  <span className="flex-1 text-zinc-700">{col.name}</span>
-                  <span className="text-zinc-400 text-xs">{col.dataType}</span>
+                  <span className="flex-1 text-gray-300">{col.name}</span>
+                  <span className="text-gray-500 text-xs">{col.dataType}</span>
                 </div>
               ))}
             </div>
@@ -445,12 +994,12 @@ function DiagramView({
         {tables.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">
-              <Database className="w-12 h-12 text-zinc-300 mx-auto mb-3" />
-              <h3 className="text-sm font-medium text-zinc-700 mb-2">No Tables Yet</h3>
-              <p className="text-xs text-zinc-500 mb-4">Start by adding your first table to the diagram</p>
+              <Database className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+              <h3 className="text-sm font-medium text-gray-300 mb-2">No Tables Yet</h3>
+              <p className="text-xs text-gray-500 mb-4">Start by adding your first table to the diagram</p>
               <button
                 onClick={onAddTable}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+                className="px-4 py-2 bg-indigo-600 text-white rounded-md text-xs font-medium hover:bg-indigo-700 transition-colors inline-flex items-center gap-2"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Add Table
@@ -507,17 +1056,17 @@ function QuickEditor({ tables, onTablesUpdate }: { tables: Table[]; onTablesUpda
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="flex-1 bg-white overflow-auto p-6"
+      className="flex-1 bg-zinc-950 overflow-auto p-6"
     >
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-lg font-semibold text-zinc-900">Quick Editor</h2>
-            <p className="text-xs text-zinc-500 mt-1">Add and edit tables in spreadsheet mode</p>
+            <h2 className="text-lg font-semibold text-gray-100">Quick Editor</h2>
+            <p className="text-xs text-gray-500 mt-1">Add and edit tables in spreadsheet mode</p>
           </div>
           <button
             onClick={addNewTable}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+            className="px-4 py-2 bg-indigo-600 text-white rounded-md text-xs font-medium hover:bg-indigo-700 transition-colors inline-flex items-center gap-2"
           >
             <Plus className="w-3.5 h-3.5" />
             Add Table
@@ -526,24 +1075,24 @@ function QuickEditor({ tables, onTablesUpdate }: { tables: Table[]; onTablesUpda
 
         <div className="space-y-6">
           {tables.map(table => (
-            <div key={table.id} className="border border-zinc-200 rounded-lg overflow-hidden">
+            <div key={table.id} className="border border-zinc-800 rounded-lg overflow-hidden">
               {/* Table Header */}
-              <div className="bg-zinc-50 px-4 py-3 border-b border-zinc-200 flex items-center justify-between">
+              <div className="bg-zinc-900 px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
                 <input
                   type="text"
                   defaultValue={table.name}
-                  className="text-sm font-semibold text-zinc-900 bg-transparent border-none focus:outline-none focus:ring-0"
+                  className="text-sm font-semibold text-gray-100 bg-transparent border-none focus:outline-none focus:ring-0"
                   placeholder="Table Name"
                 />
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => addColumn(table.id)}
-                    className="px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded"
+                    className="px-2 py-1 text-xs text-indigo-400 hover:bg-indigo-500/20 rounded"
                   >
                     <Plus className="w-3 h-3 inline mr-1" />
                     Add Column
                   </button>
-                  <button className="p-1 text-zinc-400 hover:text-red-600 rounded">
+                  <button className="p-1 text-gray-400 hover:text-red-400 rounded">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -552,53 +1101,53 @@ function QuickEditor({ tables, onTablesUpdate }: { tables: Table[]; onTablesUpda
               {/* Columns Table */}
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
-                  <thead className="bg-zinc-50 border-b border-zinc-200">
+                  <thead className="bg-zinc-900 border-b border-zinc-800">
                     <tr>
-                      <th className="px-4 py-2 text-left font-medium text-zinc-700">Column Name</th>
-                      <th className="px-4 py-2 text-left font-medium text-zinc-700">Data Type</th>
-                      <th className="px-4 py-2 text-center font-medium text-zinc-700">PK</th>
-                      <th className="px-4 py-2 text-center font-medium text-zinc-700">Nullable</th>
-                      <th className="px-4 py-2 text-left font-medium text-zinc-700">Default</th>
-                      <th className="px-4 py-2 text-center font-medium text-zinc-700">Actions</th>
+                      <th className="px-4 py-2 text-left font-medium text-gray-300">Column Name</th>
+                      <th className="px-4 py-2 text-left font-medium text-gray-300">Data Type</th>
+                      <th className="px-4 py-2 text-center font-medium text-gray-300">PK</th>
+                      <th className="px-4 py-2 text-center font-medium text-gray-300">Nullable</th>
+                      <th className="px-4 py-2 text-left font-medium text-gray-300">Default</th>
+                      <th className="px-4 py-2 text-center font-medium text-gray-300">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {table.columns.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-zinc-400">
+                        <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
                           <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
                           <p className="text-xs">No columns yet. Click "Add Column" to start.</p>
                         </td>
                       </tr>
                     ) : (
                       table.columns.map(col => (
-                        <tr key={col.id} className="border-b border-zinc-100 hover:bg-zinc-50">
+                        <tr key={col.id} className="border-b border-zinc-800 hover:bg-zinc-800/50">
                           <td className="px-4 py-2">
                             <input
                               type="text"
                               defaultValue={col.name}
-                              className="w-full bg-transparent border border-zinc-200 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500"
+                              className="w-full bg-transparent border border-zinc-700 text-gray-100 rounded px-2 py-1 text-xs focus:outline-none focus:border-indigo-500"
                             />
                           </td>
                           <td className="px-4 py-2">
                             <input
                               type="text"
                               defaultValue={col.dataType}
-                              className="w-full bg-transparent border border-zinc-200 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500"
+                              className="w-full bg-transparent border border-zinc-700 text-gray-100 rounded px-2 py-1 text-xs focus:outline-none focus:border-indigo-500"
                             />
                           </td>
                           <td className="px-4 py-2 text-center">
                             <input
                               type="checkbox"
                               checked={col.isPK}
-                              className="rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
+                              className="rounded border-zinc-600 text-indigo-600 focus:ring-indigo-500 bg-zinc-800"
                             />
                           </td>
                           <td className="px-4 py-2 text-center">
                             <input
                               type="checkbox"
                               checked={col.isNullable}
-                              className="rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
+                              className="rounded border-zinc-600 text-indigo-600 focus:ring-indigo-500 bg-zinc-800"
                             />
                           </td>
                           <td className="px-4 py-2">
@@ -606,11 +1155,11 @@ function QuickEditor({ tables, onTablesUpdate }: { tables: Table[]; onTablesUpda
                               type="text"
                               defaultValue={col.defaultValue || ''}
                               placeholder="NULL"
-                              className="w-full bg-transparent border border-zinc-200 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500"
+                              className="w-full bg-transparent border border-zinc-700 text-gray-100 rounded px-2 py-1 text-xs focus:outline-none focus:border-indigo-500"
                             />
                           </td>
                           <td className="px-4 py-2 text-center">
-                            <button className="p-1 text-zinc-400 hover:text-red-600">
+                            <button className="p-1 text-gray-400 hover:text-red-400">
                               <Trash2 className="w-3 h-3" />
                             </button>
                           </td>
@@ -624,13 +1173,13 @@ function QuickEditor({ tables, onTablesUpdate }: { tables: Table[]; onTablesUpda
           ))}
 
           {tables.length === 0 && (
-            <div className="text-center py-12 border-2 border-dashed border-zinc-200 rounded-lg">
-              <Table2 className="w-12 h-12 text-zinc-300 mx-auto mb-3" />
-              <h3 className="text-sm font-medium text-zinc-700 mb-2">No Tables Yet</h3>
-              <p className="text-xs text-zinc-500 mb-4">Start adding tables to build your data model</p>
+            <div className="text-center py-12 border-2 border-dashed border-zinc-700 rounded-lg">
+              <Table2 className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+              <h3 className="text-sm font-medium text-gray-300 mb-2">No Tables Yet</h3>
+              <p className="text-xs text-gray-500 mb-4">Start adding tables to build your data model</p>
               <button
                 onClick={addNewTable}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+                className="px-4 py-2 bg-indigo-600 text-white rounded-md text-xs font-medium hover:bg-indigo-700 transition-colors inline-flex items-center gap-2"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Add First Table
@@ -641,16 +1190,16 @@ function QuickEditor({ tables, onTablesUpdate }: { tables: Table[]; onTablesUpda
 
         {/* Action Bar */}
         {tables.length > 0 && (
-          <div className="mt-6 flex items-center justify-between pt-6 border-t border-zinc-200">
-            <button className="px-4 py-2 text-xs text-zinc-600 hover:text-zinc-900 flex items-center gap-2">
+          <div className="mt-6 flex items-center justify-between pt-6 border-t border-zinc-800">
+            <button className="px-4 py-2 text-xs text-gray-400 hover:text-gray-100 flex items-center gap-2">
               <RefreshCw className="w-3.5 h-3.5" />
               Refresh from Diagram
             </button>
             <div className="flex items-center gap-2">
-              <button className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-md text-xs font-medium transition-colors">
+              <button className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-gray-300 rounded-md text-xs font-medium transition-colors">
                 Cancel
               </button>
-              <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium transition-colors inline-flex items-center gap-2">
+              <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-xs font-medium transition-colors inline-flex items-center gap-2">
                 <Save className="w-3.5 h-3.5" />
                 Save & Update Diagram
               </button>
@@ -670,58 +1219,58 @@ function PropertiesView({ selectedTable }: { selectedTable?: Table }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="flex-1 bg-white overflow-auto p-6"
+      className="flex-1 bg-zinc-950 overflow-auto p-6"
     >
       <div className="max-w-4xl mx-auto">
-        <h2 className="text-lg font-semibold text-zinc-900 mb-6">Model Properties</h2>
+        <h2 className="text-lg font-semibold text-gray-100 mb-6">Model Properties</h2>
 
         <div className="space-y-6">
           {/* General Information */}
-          <div className="border border-zinc-200 rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-zinc-900 mb-4">General Information</h3>
+          <div className="border border-zinc-800 rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-gray-100 mb-4">General Information</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-zinc-600 mb-1">Model Name</label>
+                <label className="block text-xs text-gray-400 mb-1">Model Name</label>
                 <input
                   type="text"
                   defaultValue="E-Commerce Model"
-                  className="w-full px-3 py-2 text-xs border border-zinc-200 rounded-md focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 text-xs border border-zinc-700 bg-zinc-800 text-gray-100 rounded-md focus:outline-none focus:border-indigo-500"
                 />
               </div>
               <div>
-                <label className="block text-xs text-zinc-600 mb-1">Version</label>
+                <label className="block text-xs text-gray-400 mb-1">Version</label>
                 <input
                   type="text"
                   defaultValue="1.0.0"
-                  className="w-full px-3 py-2 text-xs border border-zinc-200 rounded-md focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 text-xs border border-zinc-700 bg-zinc-800 text-gray-100 rounded-md focus:outline-none focus:border-indigo-500"
                 />
               </div>
               <div className="col-span-2">
-                <label className="block text-xs text-zinc-600 mb-1">Description</label>
+                <label className="block text-xs text-gray-400 mb-1">Description</label>
                 <textarea
                   rows={3}
                   defaultValue="Complete e-commerce data model with products, orders, and customer management"
-                  className="w-full px-3 py-2 text-xs border border-zinc-200 rounded-md focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 text-xs border border-zinc-700 bg-zinc-800 text-gray-100 rounded-md focus:outline-none focus:border-indigo-500"
                 />
               </div>
             </div>
           </div>
 
           {/* Statistics */}
-          <div className="border border-zinc-200 rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-zinc-900 mb-4">Statistics</h3>
+          <div className="border border-zinc-800 rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-gray-100 mb-4">Statistics</h3>
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <p className="text-xs text-zinc-600 mb-1">Total Tables</p>
-                <p className="text-lg font-semibold text-zinc-900">12</p>
+                <p className="text-xs text-gray-400 mb-1">Total Tables</p>
+                <p className="text-lg font-semibold text-gray-100">12</p>
               </div>
               <div>
-                <p className="text-xs text-zinc-600 mb-1">Total Columns</p>
-                <p className="text-lg font-semibold text-zinc-900">84</p>
+                <p className="text-xs text-gray-400 mb-1">Total Columns</p>
+                <p className="text-lg font-semibold text-gray-100">84</p>
               </div>
               <div>
-                <p className="text-xs text-zinc-600 mb-1">Relationships</p>
-                <p className="text-lg font-semibold text-zinc-900">15</p>
+                <p className="text-xs text-gray-400 mb-1">Relationships</p>
+                <p className="text-lg font-semibold text-gray-100">15</p>
               </div>
             </div>
           </div>
@@ -737,53 +1286,53 @@ function RightPropertiesPanel({ table }: { table?: Table }) {
 
   return (
     <div className="p-4">
-      <h3 className="text-sm font-semibold text-zinc-900 mb-4">Table Properties</h3>
+      <h3 className="text-sm font-semibold text-gray-100 mb-4">Table Properties</h3>
 
       {/* Table Name */}
       <div className="mb-4">
-        <label className="block text-xs text-zinc-600 mb-1">Table Name</label>
+        <label className="block text-xs text-gray-400 mb-1">Table Name</label>
         <input
           type="text"
           defaultValue={table.name}
-          className="w-full px-3 py-2 text-xs border border-zinc-200 rounded-md focus:outline-none focus:border-blue-500"
+          className="w-full px-3 py-2 text-xs border border-zinc-700 bg-zinc-800 text-gray-100 rounded-md focus:outline-none focus:border-indigo-500"
         />
       </div>
 
       {/* Columns List */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
-          <label className="block text-xs font-medium text-zinc-700">Columns ({table.columns.length})</label>
-          <button className="text-xs text-blue-600 hover:text-blue-700">
+          <label className="block text-xs font-medium text-gray-300">Columns ({table.columns.length})</label>
+          <button className="text-xs text-indigo-400 hover:text-indigo-300">
             <Plus className="w-3 h-3 inline mr-1" />
             Add
           </button>
         </div>
         <div className="space-y-1 max-h-64 overflow-y-auto">
           {table.columns.map(col => (
-            <div key={col.id} className="px-2 py-1.5 bg-zinc-50 rounded text-xs flex items-center justify-between">
+            <div key={col.id} className="px-2 py-1.5 bg-zinc-800 rounded text-xs flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {col.isPK && (
-                  <span className="px-1 py-0.5 bg-amber-100 text-amber-700 rounded text-xs font-bold">PK</span>
+                  <span className="px-1 py-0.5 bg-amber-500/20 text-amber-400 rounded text-xs font-bold">PK</span>
                 )}
-                <span className="text-zinc-700">{col.name}</span>
+                <span className="text-gray-300">{col.name}</span>
               </div>
-              <span className="text-zinc-400 text-xs">{col.dataType}</span>
+              <span className="text-gray-500 text-xs">{col.dataType}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* Actions */}
-      <div className="pt-4 border-t border-zinc-200 space-y-2">
-        <button className="w-full px-3 py-2 text-xs text-left text-zinc-700 hover:bg-zinc-50 rounded flex items-center gap-2">
+      <div className="pt-4 border-t border-zinc-800 space-y-2">
+        <button className="w-full px-3 py-2 text-xs text-left text-gray-300 hover:bg-zinc-800 rounded flex items-center gap-2">
           <Edit3 className="w-3 h-3" />
           Edit Table
         </button>
-        <button className="w-full px-3 py-2 text-xs text-left text-zinc-700 hover:bg-zinc-50 rounded flex items-center gap-2">
+        <button className="w-full px-3 py-2 text-xs text-left text-gray-300 hover:bg-zinc-800 rounded flex items-center gap-2">
           <Copy className="w-3 h-3" />
           Duplicate
         </button>
-        <button className="w-full px-3 py-2 text-xs text-left text-red-600 hover:bg-red-50 rounded flex items-center gap-2">
+        <button className="w-full px-3 py-2 text-xs text-left text-red-400 hover:bg-red-500/20 rounded flex items-center gap-2">
           <Trash2 className="w-3 h-3" />
           Delete Table
         </button>
