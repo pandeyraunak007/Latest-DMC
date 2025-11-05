@@ -305,6 +305,8 @@ interface FolderCardProps {
   onAction?: (action: string, folderId: string) => void;
   activeActionMenu?: string | null;
   setActiveActionMenu?: (id: string | null) => void;
+  onAddSubfolder?: (parentFolder: FolderStructure) => void;
+  onAddModel?: (parentFolder: FolderStructure) => void;
 }
 
 const FolderCard = ({
@@ -316,7 +318,9 @@ const FolderCard = ({
   onToggleExpand,
   onAction,
   activeActionMenu,
-  setActiveActionMenu
+  setActiveActionMenu,
+  onAddSubfolder,
+  onAddModel
 }: FolderCardProps) => {
   if (displayMode === 'list') {
     const hasChildren = folder.children && folder.children.length > 0;
@@ -356,6 +360,33 @@ const FolderCard = ({
         <div className="w-32 px-3 text-zinc-400">--</div>
         <div className="w-20 px-3 text-zinc-400 text-center">
           {folder.children?.length || 0}
+        </div>
+        {/* Quick Action Buttons */}
+        <div className="flex items-center gap-1 mr-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          {onAddSubfolder && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onAddSubfolder(folder);
+              }}
+              className="p-1 hover:bg-violet-600 hover:text-white bg-zinc-700 text-zinc-400 rounded transition-colors"
+              title="Add subfolder"
+            >
+              <FolderPlus className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {onAddModel && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onAddModel(folder);
+              }}
+              className="p-1 hover:bg-emerald-600 hover:text-white bg-zinc-700 text-zinc-400 rounded transition-colors"
+              title="Add new model"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
         <div className="w-10 flex items-center justify-center relative">
           <button
@@ -465,9 +496,10 @@ interface NewFolderModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (folderName: string) => void;
+  parentFolderName?: string;
 }
 
-const NewFolderModal = ({ isOpen, onClose, onConfirm }: NewFolderModalProps) => {
+const NewFolderModal = ({ isOpen, onClose, onConfirm, parentFolderName }: NewFolderModalProps) => {
   const [folderName, setFolderName] = useState('');
 
   const handleSubmit = () => {
@@ -488,7 +520,12 @@ const NewFolderModal = ({ isOpen, onClose, onConfirm }: NewFolderModalProps) => 
         className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 w-full max-w-md"
       >
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-zinc-100">Create New Folder</h3>
+          <div>
+            <h3 className="text-lg font-semibold text-zinc-100">Create New Folder</h3>
+            {parentFolderName && (
+              <p className="text-xs text-zinc-400 mt-1">in "{parentFolderName}"</p>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="p-1 hover:bg-zinc-800 rounded transition-colors"
@@ -545,6 +582,7 @@ export default function MartCatalog() {
   const [folders, setFolders] = useState<FolderStructure[]>(mockFolderStructure);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [activeActionMenu, setActiveActionMenu] = useState<string | null>(null);
+  const [selectedParentFolder, setSelectedParentFolder] = useState<FolderStructure | null>(null);
 
   const handleOpenModel = (model: MartModel) => {
     console.log('Opening model:', model.name);
@@ -637,20 +675,21 @@ export default function MartCatalog() {
   };
 
   const handleCreateFolder = (folderName: string) => {
+    const parentFolder = selectedParentFolder || currentFolder;
     const newFolder: FolderStructure = {
       id: `folder-${Date.now()}`,
       name: folderName,
-      path: currentFolder ? `${currentFolder.path}/${folderName.toLowerCase()}` : `/mart/${folderName.toLowerCase()}`,
+      path: parentFolder ? `${parentFolder.path}/${folderName.toLowerCase()}` : `/mart/${folderName.toLowerCase()}`,
       type: 'folder',
       children: []
     };
 
-    if (currentFolder) {
-      // Add to current folder
+    if (parentFolder) {
+      // Add to parent folder
       setFolders((prev) => {
         const updateFolders = (items: FolderStructure[]): FolderStructure[] => {
           return items.map((item) => {
-            if (item.path === currentFolder.path) {
+            if (item.id === parentFolder.id) {
               return {
                 ...item,
                 children: [...(item.children || []), newFolder]
@@ -664,10 +703,73 @@ export default function MartCatalog() {
         };
         return updateFolders(prev);
       });
+      // Auto-expand the parent folder
+      setExpandedFolders((prev) => new Set([...prev, parentFolder.id]));
     } else {
       // Add to root
       setFolders((prev) => [...prev, newFolder]);
     }
+    setSelectedParentFolder(null);
+  };
+
+  const handleAddSubfolder = (parentFolder: FolderStructure) => {
+    setSelectedParentFolder(parentFolder);
+    setShowNewFolderModal(true);
+  };
+
+  const handleAddModel = (parentFolder: FolderStructure) => {
+    const modelName = prompt(`Enter model name for folder "${parentFolder.name}":`);
+    if (!modelName) return;
+
+    const newModel: MartModel = {
+      id: `model-${Date.now()}`,
+      name: modelName,
+      path: `${parentFolder.path}/${modelName.toLowerCase().replace(/\s+/g, '-')}`,
+      folder: parentFolder.name,
+      description: 'New model',
+      entityCount: 0,
+      lastModified: 'Just now',
+      status: 'active',
+      version: 'v1.0.0',
+      author: 'Current User',
+      size: '0 KB',
+      tags: ['new'],
+      isFavorite: false
+    };
+
+    // Add model to models list
+    setModels((prev) => [...prev, newModel]);
+
+    // Add model to folder structure
+    setFolders((prev) => {
+      const updateFolders = (items: FolderStructure[]): FolderStructure[] => {
+        return items.map((item) => {
+          if (item.id === parentFolder.id) {
+            return {
+              ...item,
+              children: [
+                ...(item.children || []),
+                {
+                  id: newModel.id,
+                  name: newModel.name,
+                  path: newModel.path,
+                  type: 'model',
+                  modelData: newModel
+                }
+              ]
+            };
+          }
+          if (item.children) {
+            return { ...item, children: updateFolders(item.children) };
+          }
+          return item;
+        });
+      };
+      return updateFolders(prev);
+    });
+
+    // Auto-expand the parent folder
+    setExpandedFolders((prev) => new Set([...prev, parentFolder.id]));
   };
 
   const handleGoBack = () => {
@@ -744,6 +846,8 @@ export default function MartCatalog() {
           onAction={handleFolderAction}
           activeActionMenu={activeActionMenu}
           setActiveActionMenu={setActiveActionMenu}
+          onAddSubfolder={handleAddSubfolder}
+          onAddModel={handleAddModel}
         />
       );
 
@@ -1081,8 +1185,12 @@ export default function MartCatalog() {
       {/* New Folder Modal */}
       <NewFolderModal
         isOpen={showNewFolderModal}
-        onClose={() => setShowNewFolderModal(false)}
+        onClose={() => {
+          setShowNewFolderModal(false);
+          setSelectedParentFolder(null);
+        }}
         onConfirm={handleCreateFolder}
+        parentFolderName={selectedParentFolder?.name || currentFolder?.name}
       />
     </div>
   );
