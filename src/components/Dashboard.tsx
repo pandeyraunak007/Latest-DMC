@@ -1,12 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import ReverseEngineering from './ReverseEngineering';
+import { motion, AnimatePresence } from 'framer-motion';
+import ReverseEngineeringNew from './ReverseEngineeringNew';
+import FabricForwardEngineering from './FabricForwardEngineering';
 import ModelExplorer from './ModelExplorer';
 import CompleteCompare from './CompleteCompare';
 import Users from './Users';
 import Settings from './Settings';
 import Diagram from './Diagram';
+import ThemeToggle from './shared/ThemeToggle';
 import {
   LayoutDashboard,
   Database,
@@ -16,6 +19,7 @@ import {
   BarChart3,
   Settings as SettingsIcon,
   UserPlus,
+  ArrowRightLeft,
   Upload,
   HelpCircle,
   ChevronLeft,
@@ -541,7 +545,7 @@ const CompleteCompareCard = ({ onClick }: { onClick?: () => void }) => {
 
 export default function Dashboard() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [currentPage, setCurrentPage] = useState<'dashboard' | 'model-explorer' | 'reverse-engineering' | 'complete-compare' | 'users' | 'settings' | 'diagram'>('dashboard');
+  const [currentPage, setCurrentPage] = useState<'dashboard' | 'model-explorer' | 'reverse-engineering' | 'forward-engineering' | 'complete-compare' | 'users' | 'settings' | 'diagram'>('dashboard');
   const [isDark, setIsDark] = useState(true);
 
   const toggleTheme = () => {
@@ -566,6 +570,12 @@ export default function Dashboard() {
       label: 'Reverse Engineering',
       page: 'reverse-engineering' as const,
       active: currentPage === 'reverse-engineering'
+    },
+    {
+      icon: <ArrowRightLeft className="w-4 h-4" />,
+      label: 'Forward Engineering',
+      page: 'forward-engineering' as const,
+      active: currentPage === 'forward-engineering'
     },
     {
       icon: <Scale className="w-4 h-4" />,
@@ -655,9 +665,12 @@ export default function Dashboard() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
 
-        {/* No toolbar needed for new layout */}
+        {/* Header with Theme Toggle */}
+        <div className="flex items-center justify-end p-4 border-b border-zinc-800">
+          <ThemeToggle />
+        </div>
 
-        {/* Page Content */}
+        {/* Page Content with Transitions */}
         <div className="flex-1 overflow-auto">
           {currentPage === 'dashboard' && (
             <div className="p-6">
@@ -803,17 +816,24 @@ export default function Dashboard() {
             </div>
           )}
 
-          {currentPage === 'model-explorer' && <ModelExplorer />}
-
-          {currentPage === 'reverse-engineering' && <ReverseEngineering />}
-
-          {currentPage === 'complete-compare' && <CompleteCompare />}
-
-          {currentPage === 'users' && <Users />}
-
-          {currentPage === 'settings' && <Settings isDark={isDark} toggleTheme={toggleTheme} />}
-
-          {currentPage === 'diagram' && <Diagram isDark={isDark} toggleTheme={toggleTheme} />}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentPage}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="h-full"
+            >
+              {currentPage === 'model-explorer' && <ModelExplorer />}
+              {currentPage === 'reverse-engineering' && <ReverseEngineeringNew />}
+              {currentPage === 'forward-engineering' && <FabricForwardEngineering />}
+              {currentPage === 'complete-compare' && <CompleteCompare />}
+              {currentPage === 'users' && <Users />}
+              {currentPage === 'settings' && <Settings isDark={isDark} toggleTheme={toggleTheme} />}
+              {currentPage === 'diagram' && <Diagram isDark={isDark} toggleTheme={toggleTheme} />}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
     </div>

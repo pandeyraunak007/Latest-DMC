@@ -40,7 +40,20 @@
       "WebSearch",
       "Bash(netstat:*)",
       "Bash(findstr:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(git clone:*)",
+      "Read(//c/Users/pande/OneDrive/Documents/Raunak/forGit/DMPro-fresh/data-modeling-dashboard/**)",
+      "Bash(\"C:\\Program Files\\nodejs\\node.exe\" node_modules.binnext dev -p 3002)",
+      "Bash(\"C:\\Program Files\\nodejs\\node.exe\" \"C:\\Users\\pande\\OneDrive\\Documents\\Raunak\\forGit\\DMPro-fresh\\data-modeling-dashboard\\node_modules\\next\\dist\\bin\\next\" dev -p 3002)",
+      "Read(//c/Users/pande/OneDrive/Documents/Raunak/forGit/DMPro-fresh/**)",
+      "Bash(powershell:*)",
+      "WebFetch(domain:dm-pro.vercel.app)",
+      "Bash(\"C:\\Program Files\\nodejs\\node.exe\" \"node_modules\\next\\dist\\bin\\next\" dev -p 3001)",
+      "WebFetch(domain:vercel.com)",
+      "Bash(cp:*)",
+      "Bash(git log:*)",
+      "Bash(cat:*)",
+      "Bash(\"C:\\Program Files\\nodejs\\node.exe\" \"node_modules\\.bin\\next\" build)"
     ],
     "deny": [],
     "ask": []
