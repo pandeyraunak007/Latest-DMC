@@ -672,10 +672,12 @@ export default function Dashboard() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
 
-        {/* Header with Theme Toggle */}
-        <div className="flex items-center justify-end p-4 border-b border-zinc-800">
-          <ThemeToggle />
-        </div>
+        {/* Header with Theme Toggle - Hidden for Diagrammer */}
+        {currentPage !== 'diagrammer' && (
+          <div className="flex items-center justify-end p-4 border-b border-zinc-800">
+            <ThemeToggle />
+          </div>
+        )}
 
         {/* Page Content with Transitions */}
         <div className="flex-1 overflow-auto">
