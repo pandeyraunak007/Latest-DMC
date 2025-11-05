@@ -337,7 +337,7 @@ export default function Diagrammer() {
           {showLeftPanel && (
             <motion.div
               initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 280, opacity: 1 }}
+              animate={{ width: 240, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               className={`border-r overflow-auto ${
                 isDark ? 'border-zinc-800 bg-zinc-900' : 'border-gray-200 bg-white'
@@ -377,7 +377,7 @@ export default function Diagrammer() {
           {showPropertiesPanel && selectedTable && viewMode === 'diagram' && (
             <motion.div
               initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 280, opacity: 1 }}
+              animate={{ width: 240, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               className={`border-l overflow-auto ${
                 isDark ? 'border-zinc-800 bg-zinc-900' : 'border-gray-200 bg-white'
@@ -1177,29 +1177,29 @@ function LeftPanel({ isDark }: { isDark: boolean }) {
   };
 
   return (
-    <div className="p-4">
-      <h3 className={`text-sm font-semibold mb-4 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Model Tree</h3>
+    <div className="p-3">
+      <h3 className={`text-xs font-semibold mb-3 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Model Tree</h3>
 
       {/* Search Box */}
-      <div className="mb-4">
+      <div className="mb-3">
         <div className="relative">
-          <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+          <Search className={`absolute left-2 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
           <input
             type="text"
-            placeholder="Search tree..."
+            placeholder="Search..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className={`w-full pl-10 pr-4 py-2 text-sm rounded-lg border transition-all duration-200 ${
+            className={`w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border transition-all duration-200 ${
               isDark
                 ? 'bg-zinc-800 border-zinc-700 text-gray-100 placeholder-gray-500 focus:border-indigo-500'
                 : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-indigo-500'
-            } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+            } focus:outline-none focus:ring-1 focus:ring-indigo-500/20`}
           />
         </div>
       </div>
 
       {/* Tree Items */}
-      <div className="space-y-1">
+      <div className="space-y-0.5">
         {treeData.map((item) => (
           <TreeItem key={item.id} {...item} />
         ))}
@@ -1676,58 +1676,77 @@ function PropertiesView({ selectedTable }: { selectedTable?: Table }) {
 }
 
 // Right Properties Panel Component
-function RightPropertiesPanel({ table }: { table?: Table }) {
+function RightPropertiesPanel({ table, isDark }: { table?: Table; isDark: boolean }) {
   if (!table) return null;
 
   return (
-    <div className="p-4">
-      <h3 className="text-sm font-semibold text-gray-100 mb-4">Table Properties</h3>
+    <div className="p-3">
+      <h3 className={`text-sm font-semibold mb-3 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Table Properties</h3>
 
       {/* Table Name */}
-      <div className="mb-4">
-        <label className="block text-xs text-gray-400 mb-1">Table Name</label>
+      <div className="mb-3">
+        <label className={`block text-xs mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Table Name</label>
         <input
           type="text"
           defaultValue={table.name}
-          className="w-full px-3 py-2 text-xs border border-zinc-700 bg-zinc-800 text-gray-100 rounded-md focus:outline-none focus:border-indigo-500"
+          className={`w-full px-2 py-1.5 text-xs border rounded-md focus:outline-none focus:border-indigo-500 ${
+            isDark
+              ? 'border-zinc-700 bg-zinc-800 text-gray-100'
+              : 'border-gray-300 bg-white text-gray-900'
+          }`}
         />
       </div>
 
       {/* Columns List */}
-      <div className="mb-4">
+      <div className="mb-3">
         <div className="flex items-center justify-between mb-2">
-          <label className="block text-xs font-medium text-gray-300">Columns ({table.columns.length})</label>
+          <label className={`block text-xs font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+            Columns ({table.columns.length})
+          </label>
           <button className="text-xs text-indigo-400 hover:text-indigo-300">
             <Plus className="w-3 h-3 inline mr-1" />
             Add
           </button>
         </div>
-        <div className="space-y-1 max-h-64 overflow-y-auto">
+        <div className="space-y-1 max-h-48 overflow-y-auto">
           {table.columns.map(col => (
-            <div key={col.id} className="px-2 py-1.5 bg-zinc-800 rounded text-xs flex items-center justify-between">
-              <div className="flex items-center gap-2">
+            <div
+              key={col.id}
+              className={`px-2 py-1 rounded text-xs flex items-center justify-between ${
+                isDark ? 'bg-zinc-800' : 'bg-gray-100'
+              }`}
+            >
+              <div className="flex items-center gap-1.5">
                 {col.isPK && (
                   <span className="px-1 py-0.5 bg-amber-500/20 text-amber-400 rounded text-xs font-bold">PK</span>
                 )}
-                <span className="text-gray-300">{col.name}</span>
+                <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>{col.name}</span>
               </div>
-              <span className="text-gray-500 text-xs">{col.dataType}</span>
+              <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{col.dataType}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* Actions */}
-      <div className="pt-4 border-t border-zinc-800 space-y-2">
-        <button className="w-full px-3 py-2 text-xs text-left text-gray-300 hover:bg-zinc-800 rounded flex items-center gap-2">
+      <div className={`pt-3 border-t space-y-1.5 ${isDark ? 'border-zinc-800' : 'border-gray-200'}`}>
+        <button
+          className={`w-full px-2 py-1.5 text-xs text-left rounded flex items-center gap-2 ${
+            isDark ? 'text-gray-300 hover:bg-zinc-800' : 'text-gray-700 hover:bg-gray-100'
+          }`}
+        >
           <Edit3 className="w-3 h-3" />
           Edit Table
         </button>
-        <button className="w-full px-3 py-2 text-xs text-left text-gray-300 hover:bg-zinc-800 rounded flex items-center gap-2">
+        <button
+          className={`w-full px-2 py-1.5 text-xs text-left rounded flex items-center gap-2 ${
+            isDark ? 'text-gray-300 hover:bg-zinc-800' : 'text-gray-700 hover:bg-gray-100'
+          }`}
+        >
           <Copy className="w-3 h-3" />
           Duplicate
         </button>
-        <button className="w-full px-3 py-2 text-xs text-left text-red-400 hover:bg-red-500/20 rounded flex items-center gap-2">
+        <button className="w-full px-2 py-1.5 text-xs text-left text-red-400 hover:bg-red-500/20 rounded flex items-center gap-2">
           <Trash2 className="w-3 h-3" />
           Delete Table
         </button>
