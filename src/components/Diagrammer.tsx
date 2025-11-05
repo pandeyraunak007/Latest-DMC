@@ -12,7 +12,6 @@ import {
   Save,
   Lock,
   Unlock,
-  Grid3x3,
   Table2,
   Edit3,
   Eye,
