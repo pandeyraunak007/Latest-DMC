@@ -704,7 +704,7 @@ export default function MartCatalog() {
         return updateFolders(prev);
       });
       // Auto-expand the parent folder
-      setExpandedFolders((prev) => new Set([...prev, parentFolder.id]));
+      setExpandedFolders((prev) => new Set(Array.from(prev).concat(parentFolder.id)));
     } else {
       // Add to root
       setFolders((prev) => [...prev, newFolder]);
@@ -769,7 +769,7 @@ export default function MartCatalog() {
     });
 
     // Auto-expand the parent folder
-    setExpandedFolders((prev) => new Set([...prev, parentFolder.id]));
+    setExpandedFolders((prev) => new Set(Array.from(prev).concat(parentFolder.id)));
   };
 
   const handleGoBack = () => {

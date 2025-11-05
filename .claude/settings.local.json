@@ -53,7 +53,8 @@
       "Bash(cp:*)",
       "Bash(git log:*)",
       "Bash(cat:*)",
-      "Bash(\"C:\\Program Files\\nodejs\\node.exe\" \"node_modules\\.bin\\next\" build)"
+      "Bash(\"C:\\Program Files\\nodejs\\node.exe\" \"node_modules\\.bin\\next\" build)",
+      "Bash(tasklist:*)"
     ],
     "deny": [],
     "ask": []

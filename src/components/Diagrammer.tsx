@@ -1407,7 +1407,7 @@ function DiagramView({
 }
 
 // Quick Editor Component
-function QuickEditor({ tables, onTablesUpdate }: { tables: Table[]; onTablesUpdate: (tables: Table[]) => void }) {
+function QuickEditor({ tables, onTablesUpdate, isDark }: { tables: Table[]; onTablesUpdate: (tables: Table[]) => void; isDark: boolean }) {
   const [editingTable, setEditingTable] = useState<string | null>(null);
 
   const addNewTable = () => {
@@ -1606,7 +1606,7 @@ function QuickEditor({ tables, onTablesUpdate }: { tables: Table[]; onTablesUpda
 }
 
 // Properties View Component
-function PropertiesView({ selectedTable }: { selectedTable?: Table }) {
+function PropertiesView({ selectedTable, isDark }: { selectedTable?: Table; isDark: boolean }) {
   return (
     <motion.div
       key="properties"
