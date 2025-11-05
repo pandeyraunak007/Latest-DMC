@@ -1605,70 +1605,372 @@ function QuickEditor({ tables, onTablesUpdate, isDark }: { tables: Table[]; onTa
   );
 }
 
-// Properties View Component
+// Properties View Component - Model Explorer + Context Properties
 function PropertiesView({ selectedTable, isDark }: { selectedTable?: Table; isDark: boolean }) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(['model', 'tables', 'relationships']));
+  const [selectedItem, setSelectedItem] = useState<{type: 'model' | 'table' | 'relationship', id?: string} | null>({ type: 'model' });
+  const [activeTab, setActiveTab] = useState('general');
+
+  // Tree data structure matching LeftPanel
+  const treeData = [
+    {
+      id: 'model',
+      label: 'Data Model',
+      icon: Database,
+      children: [
+        { id: 'model-general', label: 'General', icon: FileText, type: 'model' as const },
+        { id: 'model-settings', label: 'Settings', icon: Settings, type: 'model' as const }
+      ]
+    },
+    {
+      id: 'tables',
+      label: 'Tables',
+      icon: Table2,
+      children: [
+        { id: 'table-users', label: 'Users', icon: Database, type: 'table' as const },
+        { id: 'table-orders', label: 'Orders', icon: Database, type: 'table' as const }
+      ]
+    },
+    {
+      id: 'relationships',
+      label: 'Relationships',
+      icon: GitBranch,
+      children: [
+        { id: 'rel-1', label: 'Users → Orders', icon: ArrowRight, type: 'relationship' as const }
+      ]
+    }
+  ];
+
+  const TreeItem = ({ item, level = 0 }: { item: any; level?: number }) => {
+    const isExpanded = expandedItems.has(item.id);
+    const hasChildren = item.children && item.children.length > 0;
+    const isSelected = selectedItem?.type === item.type && (item.type === 'model' || selectedItem?.id === item.id);
+
+    return (
+      <div>
+        <div
+          className={`flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors ${
+            isSelected
+              ? isDark ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-100 text-indigo-700'
+              : isDark ? 'hover:bg-zinc-800 text-gray-300' : 'hover:bg-gray-100 text-gray-700'
+          }`}
+          style={{ paddingLeft: `${(level * 12) + 8}px` }}
+          onClick={() => {
+            if (hasChildren) {
+              setExpandedItems(prev => {
+                const next = new Set(prev);
+                if (next.has(item.id)) {
+                  next.delete(item.id);
+                } else {
+                  next.add(item.id);
+                }
+                return next;
+              });
+            }
+            if (item.type) {
+              setSelectedItem({ type: item.type, id: item.id });
+              setActiveTab('general');
+            }
+          }}
+        >
+          {hasChildren && (
+            isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />
+          )}
+          {!hasChildren && <div className="w-3" />}
+          <item.icon className="w-3.5 h-3.5" />
+          <span className="text-xs">{item.label}</span>
+        </div>
+        {hasChildren && isExpanded && (
+          <div>
+            {item.children.map((child: any) => (
+              <TreeItem key={child.id} item={child} level={level + 1} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderPropertiesContent = () => {
+    if (!selectedItem) return null;
+
+    // Tabs configuration
+    const modelTabs = [
+      { id: 'general', label: 'General', icon: FileText },
+      { id: 'settings', label: 'Settings', icon: Settings }
+    ];
+
+    const tableTabs = [
+      { id: 'general', label: 'General', icon: FileText },
+      { id: 'columns', label: 'Columns', icon: Table2 },
+      { id: 'keys', label: 'Keys', icon: KeyRound },
+      { id: 'display', label: 'Display', icon: Eye }
+    ];
+
+    const relationshipTabs = [
+      { id: 'general', label: 'General', icon: FileText },
+      { id: 'cardinality', label: 'Cardinality', icon: GitBranch }
+    ];
+
+    const tabs = selectedItem.type === 'model' ? modelTabs : selectedItem.type === 'table' ? tableTabs : relationshipTabs;
+
+    return (
+      <div className="flex h-full flex-col">
+        {/* Left Icon Strip */}
+        <div className="flex h-full">
+          <div className={`w-6 border-r transition-colors flex flex-col ${
+            isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200'
+          }`}>
+            {tabs.map((tab) => (
+              <div
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`h-8 flex items-center justify-center cursor-pointer transition-all duration-200 ${
+                  activeTab === tab.id
+                    ? `${isDark ? 'bg-indigo-500 text-white' : 'bg-indigo-600 text-white'} shadow-sm`
+                    : `${isDark ? 'text-gray-400 hover:text-gray-100 hover:bg-zinc-800/50' : 'text-gray-600 hover:text-gray-900 hover:bg-indigo-50/50'}`
+                }`}
+                title={tab.label}
+                style={{ marginBottom: '1px' }}
+              >
+                <tab.icon className="w-3.5 h-3.5" />
+              </div>
+            ))}
+          </div>
+
+          {/* Main Content Area */}
+          <div className={`flex-1 overflow-y-auto transition-colors ${
+            isDark ? 'bg-zinc-900' : 'bg-white'
+          }`}>
+            {/* Context Header */}
+            <div className={`p-2 border-b transition-colors ${
+              isDark ? 'border-zinc-800 bg-zinc-900' : 'border-gray-200 bg-gray-50'
+            }`}>
+              <div className="flex items-center gap-2">
+                {React.createElement(tabs.find(tab => tab.id === activeTab)!.icon, {
+                  className: `w-4 h-4 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`
+                })}
+                <h2 className={`text-xs font-semibold ${
+                  isDark ? 'text-gray-100' : 'text-gray-900'
+                }`}>
+                  {tabs.find(t => t.id === activeTab)?.label} Properties
+                </h2>
+              </div>
+              <p className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                {selectedItem.type === 'model' ? 'Data Model' : selectedItem.type === 'table' ? 'Users Table' : 'Users → Orders'}
+              </p>
+            </div>
+
+            {/* Content */}
+            <div className="p-3 space-y-3">
+              {/* Model Properties */}
+              {selectedItem.type === 'model' && activeTab === 'general' && (
+                <div className="space-y-2">
+                  <div>
+                    <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Model Name
+                    </label>
+                    <input
+                      type="text"
+                      defaultValue="Data Model"
+                      className={`w-full px-2 py-1.5 text-xs rounded border ${
+                        isDark ? 'bg-zinc-800 border-zinc-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                      }`}
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Description
+                    </label>
+                    <textarea
+                      rows={3}
+                      className={`w-full px-2 py-1.5 text-xs rounded border ${
+                        isDark ? 'bg-zinc-800 border-zinc-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                      }`}
+                      placeholder="Model description..."
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Version
+                    </label>
+                    <input
+                      type="text"
+                      defaultValue="1.0.0"
+                      className={`w-full px-2 py-1.5 text-xs rounded border ${
+                        isDark ? 'bg-zinc-800 border-zinc-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                      }`}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {selectedItem.type === 'model' && activeTab === 'settings' && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" id="autoLayout" className="rounded" />
+                    <label htmlFor="autoLayout" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Auto Layout
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" id="showGrid" defaultChecked className="rounded" />
+                    <label htmlFor="showGrid" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Show Grid
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" id="snapToGrid" className="rounded" />
+                    <label htmlFor="snapToGrid" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Snap to Grid
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Table Properties */}
+              {selectedItem.type === 'table' && activeTab === 'general' && (
+                <div className="space-y-2">
+                  <div>
+                    <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Table Name
+                    </label>
+                    <input
+                      type="text"
+                      defaultValue="Users"
+                      className={`w-full px-2 py-1.5 text-xs rounded border ${
+                        isDark ? 'bg-zinc-800 border-zinc-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                      }`}
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Definition
+                    </label>
+                    <textarea
+                      rows={2}
+                      className={`w-full px-2 py-1.5 text-xs rounded border ${
+                        isDark ? 'bg-zinc-800 border-zinc-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                      }`}
+                      placeholder="Table definition..."
+                    />
+                  </div>
+                </div>
+              )}
+
+              {selectedItem.type === 'table' && activeTab === 'columns' && (
+                <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                  <p>Columns list would appear here with add/edit functionality</p>
+                </div>
+              )}
+
+              {selectedItem.type === 'table' && activeTab === 'keys' && (
+                <div className="space-y-2">
+                  <div>
+                    <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Primary Key
+                    </label>
+                    <div className={`px-2 py-1.5 rounded text-xs ${isDark ? 'bg-zinc-800 text-gray-300' : 'bg-gray-100 text-gray-700'}`}>
+                      user_id
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedItem.type === 'table' && activeTab === 'display' && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" id="showInDiagram" defaultChecked className="rounded" />
+                    <label htmlFor="showInDiagram" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Show in Diagram
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" id="expandColumns" className="rounded" />
+                    <label htmlFor="expandColumns" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Expand Columns
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Relationship Properties */}
+              {selectedItem.type === 'relationship' && activeTab === 'general' && (
+                <div className="space-y-2">
+                  <div>
+                    <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Relationship Type
+                    </label>
+                    <select
+                      className={`w-full px-2 py-1.5 text-xs rounded border ${
+                        isDark ? 'bg-zinc-800 border-zinc-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                      }`}
+                    >
+                      <option value="1:N">One to Many</option>
+                      <option value="1:1">One to One</option>
+                      <option value="N:M">Many to Many</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {selectedItem.type === 'relationship' && activeTab === 'cardinality' && (
+                <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                  <p>Cardinality: 1:N (One to Many)</p>
+                  <p className="mt-2">Source: Users (1)</p>
+                  <p>Target: Orders (N)</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <motion.div
       key="properties"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="flex-1 bg-zinc-950 overflow-auto p-6"
+      className={`flex-1 flex overflow-hidden ${isDark ? 'bg-zinc-950' : 'bg-gray-50'}`}
     >
-      <div className="max-w-4xl mx-auto">
-        <h2 className="text-lg font-semibold text-gray-100 mb-6">Model Properties</h2>
+      {/* Left: Model Explorer Tree */}
+      <div className={`w-64 border-r overflow-y-auto ${
+        isDark ? 'border-zinc-800 bg-zinc-900' : 'border-gray-200 bg-white'
+      }`}>
+        <div className="p-3">
+          <h3 className={`text-xs font-semibold mb-3 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Model Explorer</h3>
 
-        <div className="space-y-6">
-          {/* General Information */}
-          <div className="border border-zinc-800 rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-gray-100 mb-4">General Information</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Model Name</label>
-                <input
-                  type="text"
-                  defaultValue="E-Commerce Model"
-                  className="w-full px-3 py-2 text-xs border border-zinc-700 bg-zinc-800 text-gray-100 rounded-md focus:outline-none focus:border-indigo-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Version</label>
-                <input
-                  type="text"
-                  defaultValue="1.0.0"
-                  className="w-full px-3 py-2 text-xs border border-zinc-700 bg-zinc-800 text-gray-100 rounded-md focus:outline-none focus:border-indigo-500"
-                />
-              </div>
-              <div className="col-span-2">
-                <label className="block text-xs text-gray-400 mb-1">Description</label>
-                <textarea
-                  rows={3}
-                  defaultValue="Complete e-commerce data model with products, orders, and customer management"
-                  className="w-full px-3 py-2 text-xs border border-zinc-700 bg-zinc-800 text-gray-100 rounded-md focus:outline-none focus:border-indigo-500"
-                />
-              </div>
+          <div className="mb-3">
+            <div className="relative">
+              <Search className={`absolute left-2 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={`w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border transition-all duration-200 ${
+                  isDark ? 'bg-zinc-800 border-zinc-700 text-gray-100 placeholder-gray-500 focus:border-indigo-500'
+                         : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-indigo-500'
+                } focus:outline-none focus:ring-1 focus:ring-indigo-500/20`}
+              />
             </div>
           </div>
 
-          {/* Statistics */}
-          <div className="border border-zinc-800 rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-gray-100 mb-4">Statistics</h3>
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <p className="text-xs text-gray-400 mb-1">Total Tables</p>
-                <p className="text-lg font-semibold text-gray-100">12</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 mb-1">Total Columns</p>
-                <p className="text-lg font-semibold text-gray-100">84</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 mb-1">Relationships</p>
-                <p className="text-lg font-semibold text-gray-100">15</p>
-              </div>
-            </div>
+          <div className="space-y-0.5">
+            {treeData.map((item) => (
+              <TreeItem key={item.id} item={item} />
+            ))}
           </div>
         </div>
+      </div>
+
+      {/* Right: Context-aware Properties */}
+      <div className={`flex-1 overflow-hidden ${isDark ? 'bg-zinc-900' : 'bg-white'}`}>
+        {renderPropertiesContent()}
       </div>
     </motion.div>
   );
