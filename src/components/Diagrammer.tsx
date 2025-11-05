@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Box,
@@ -145,10 +145,31 @@ export default function Diagrammer() {
   const [showLeftPanel, setShowLeftPanel] = useState(true);
   const [showPropertiesPanel, setShowPropertiesPanel] = useState(true);
   const [isDark, setIsDark] = useState(true);
+  const [showGrid, setShowGrid] = useState(true);
+  const [snapToGrid, setSnapToGrid] = useState(false);
+  const [showMinimap, setShowMinimap] = useState(false);
+  const [isPanMode, setIsPanMode] = useState(false);
 
   const handleZoomIn = () => setZoom(prev => Math.min(prev + 10, 200));
   const handleZoomOut = () => setZoom(prev => Math.max(prev - 10, 50));
   const handleResetZoom = () => setZoom(100);
+  const handleFitToScreen = () => {
+    // Calculate bounds of all tables and fit zoom to show them all
+    if (tables.length === 0) return;
+    // For now, just reset to 100%
+    setZoom(100);
+  };
+  const handleAutoLayout = () => {
+    // Auto-arrange tables in a grid layout
+    const gridCols = Math.ceil(Math.sqrt(tables.length));
+    const spacing = 300;
+    const layoutTables = tables.map((table, index) => ({
+      ...table,
+      x: (index % gridCols) * spacing + 100,
+      y: Math.floor(index / gridCols) * spacing + 100
+    }));
+    setTables(layoutTables);
+  };
 
   const handleAddTable = () => {
     const newTable: Table = {
@@ -333,7 +354,7 @@ export default function Diagrammer() {
       <div className="flex-1 flex overflow-hidden">
         {/* Left Panel */}
         <AnimatePresence>
-          {showLeftPanel && (
+          {showLeftPanel && viewMode !== 'properties' && (
             <motion.div
               initial={{ width: 0, opacity: 0 }}
               animate={{ width: 240, opacity: 1 }}
@@ -360,6 +381,18 @@ export default function Diagrammer() {
                 onAddTable={handleAddTable}
                 onTablesUpdate={setTables}
                 isDark={isDark}
+                showGrid={showGrid}
+                snapToGrid={snapToGrid}
+                isPanMode={isPanMode}
+                onZoomIn={handleZoomIn}
+                onZoomOut={handleZoomOut}
+                onFitToScreen={handleFitToScreen}
+                onAutoLayout={handleAutoLayout}
+                onToggleGrid={() => setShowGrid(!showGrid)}
+                onToggleSnap={() => setSnapToGrid(!snapToGrid)}
+                onToggleMinimap={() => setShowMinimap(!showMinimap)}
+                onTogglePan={() => setIsPanMode(!isPanMode)}
+                showMinimap={showMinimap}
               />
             )}
             {viewMode === 'quick-editor' && (
@@ -599,28 +632,48 @@ const ViewControlsToolbar = ({
   isDark,
   onZoomIn,
   onZoomOut,
-  zoomLevel
+  onFitToScreen,
+  onAutoLayout,
+  zoomLevel,
+  showGrid,
+  onToggleGrid,
+  snapToGrid,
+  onToggleSnap,
+  showMinimap,
+  onToggleMinimap,
+  isPanMode,
+  onTogglePan
 }: {
   isDark: boolean;
   onZoomIn: () => void;
   onZoomOut: () => void;
+  onFitToScreen: () => void;
+  onAutoLayout: () => void;
   zoomLevel: number;
+  showGrid: boolean;
+  onToggleGrid: () => void;
+  snapToGrid: boolean;
+  onToggleSnap: () => void;
+  showMinimap: boolean;
+  onToggleMinimap: () => void;
+  isPanMode: boolean;
+  onTogglePan: () => void;
 }) => {
   return (
     <div className={`absolute bottom-6 left-1/2 transform -translate-x-1/2 flex items-center gap-1 p-1.5 rounded-xl shadow-lg backdrop-blur-sm border z-50 ${
       isDark ? 'bg-zinc-800/95 border-zinc-700' : 'bg-white/95 border-gray-200'
     }`} style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-      <ViewToolbarButton icon={ZoomIn} tooltip="Zoom In" isDark={isDark} onClick={onZoomIn} />
-      <ViewToolbarButton icon={ZoomOut} tooltip="Zoom Out" isDark={isDark} onClick={onZoomOut} />
-      <ViewToolbarButton icon={Maximize2} tooltip="Fit to Screen" isDark={isDark} />
+      <ViewToolbarButton icon={ZoomIn} tooltip={`Zoom In (${zoomLevel}%)`} isDark={isDark} onClick={onZoomIn} />
+      <ViewToolbarButton icon={ZoomOut} tooltip={`Zoom Out (${zoomLevel}%)`} isDark={isDark} onClick={onZoomOut} />
+      <ViewToolbarButton icon={Maximize2} tooltip="Fit to Screen" isDark={isDark} onClick={onFitToScreen} />
       <div className={`w-px h-6 mx-1 ${isDark ? 'bg-zinc-700' : 'bg-gray-300'}`} />
-      <ViewToolbarButton icon={Hand} tooltip="Pan/Hand Tool" isDark={isDark} />
+      <ViewToolbarButton icon={Hand} tooltip="Pan/Hand Tool" isDark={isDark} onClick={onTogglePan} isActive={isPanMode} />
       <div className={`w-px h-6 mx-1 ${isDark ? 'bg-zinc-700' : 'bg-gray-300'}`} />
-      <ViewToolbarButton icon={Grid} tooltip="Toggle Grid" isDark={isDark} />
-      <ViewToolbarButton icon={Target} tooltip="Snap to Grid/Alignment" isDark={isDark} />
+      <ViewToolbarButton icon={Grid} tooltip="Toggle Grid" isDark={isDark} onClick={onToggleGrid} isActive={showGrid} />
+      <ViewToolbarButton icon={Target} tooltip="Snap to Grid/Alignment" isDark={isDark} onClick={onToggleSnap} isActive={snapToGrid} />
       <div className={`w-px h-6 mx-1 ${isDark ? 'bg-zinc-700' : 'bg-gray-300'}`} />
-      <ViewToolbarButton icon={Sparkles} tooltip="Auto-layout" isDark={isDark} />
-      <ViewToolbarButton icon={Map} tooltip="Toggle Minimap" isDark={isDark} />
+      <ViewToolbarButton icon={Sparkles} tooltip="Auto-layout" isDark={isDark} onClick={onAutoLayout} />
+      <ViewToolbarButton icon={Map} tooltip="Toggle Minimap" isDark={isDark} onClick={onToggleMinimap} isActive={showMinimap} />
     </div>
   );
 };
@@ -1216,7 +1269,19 @@ function DiagramView({
   onTableSelect,
   onAddTable,
   onTablesUpdate,
-  isDark
+  isDark,
+  showGrid,
+  snapToGrid,
+  isPanMode,
+  onZoomIn,
+  onZoomOut,
+  onFitToScreen,
+  onAutoLayout,
+  onToggleGrid,
+  onToggleSnap,
+  onToggleMinimap,
+  onTogglePan,
+  showMinimap
 }: {
   tables: Table[];
   relationships: Relationship[];
@@ -1226,6 +1291,18 @@ function DiagramView({
   onAddTable: () => void;
   onTablesUpdate: (tables: Table[]) => void;
   isDark: boolean;
+  showGrid: boolean;
+  snapToGrid: boolean;
+  isPanMode: boolean;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onFitToScreen: () => void;
+  onAutoLayout: () => void;
+  onToggleGrid: () => void;
+  onToggleSnap: () => void;
+  onToggleMinimap: () => void;
+  onTogglePan: () => void;
+  showMinimap: boolean;
 }) {
   const [draggingTable, setDraggingTable] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -1263,8 +1340,15 @@ function DiagramView({
     const rect = container.getBoundingClientRect();
 
     // Calculate new position accounting for zoom
-    const newX = (e.clientX - rect.left) / (zoom / 100) - dragOffset.x;
-    const newY = (e.clientY - rect.top) / (zoom / 100) - dragOffset.y;
+    let newX = (e.clientX - rect.left) / (zoom / 100) - dragOffset.x;
+    let newY = (e.clientY - rect.top) / (zoom / 100) - dragOffset.y;
+
+    // Snap to grid if enabled
+    if (snapToGrid) {
+      const gridSize = 20;
+      newX = Math.round(newX / gridSize) * gridSize;
+      newY = Math.round(newY / gridSize) * gridSize;
+    }
 
     // Update table position
     const updatedTables = tables.map(table =>
@@ -1287,10 +1371,13 @@ function DiagramView({
       exit={{ opacity: 0 }}
       className={`flex-1 overflow-auto relative ${isDark ? 'bg-zinc-950' : 'bg-gray-50'}`}
       style={{
-        backgroundImage: isDark
-          ? 'radial-gradient(circle, #3A3A3A 1px, transparent 1px)'
-          : 'radial-gradient(circle, #D1D5DB 1px, transparent 1px)',
-        backgroundSize: '20px 20px'
+        backgroundImage: showGrid
+          ? isDark
+            ? 'radial-gradient(circle, #3A3A3A 1px, transparent 1px)'
+            : 'radial-gradient(circle, #D1D5DB 1px, transparent 1px)'
+          : 'none',
+        backgroundSize: '20px 20px',
+        cursor: isPanMode ? 'grab' : 'default'
       }}
     >
       <div
@@ -1398,10 +1485,53 @@ function DiagramView({
       />
       <ViewControlsToolbar
         isDark={isDark}
-        onZoomIn={() => {}}
-        onZoomOut={() => {}}
+        onZoomIn={onZoomIn}
+        onZoomOut={onZoomOut}
+        onFitToScreen={onFitToScreen}
+        onAutoLayout={onAutoLayout}
         zoomLevel={zoom}
+        showGrid={showGrid}
+        onToggleGrid={onToggleGrid}
+        snapToGrid={snapToGrid}
+        onToggleSnap={onToggleSnap}
+        showMinimap={showMinimap}
+        onToggleMinimap={onToggleMinimap}
+        isPanMode={isPanMode}
+        onTogglePan={onTogglePan}
       />
+
+      {/* Minimap */}
+      {showMinimap && (
+        <div className={`absolute bottom-6 right-6 w-48 h-32 rounded-lg border overflow-hidden z-50 shadow-lg ${
+          isDark ? 'bg-zinc-800/95 border-zinc-700' : 'bg-white/95 border-gray-200'
+        }`}>
+          <div className="w-full h-full relative" style={{
+            backgroundImage: showGrid
+              ? isDark
+                ? 'radial-gradient(circle, #3A3A3A 1px, transparent 1px)'
+                : 'radial-gradient(circle, #D1D5DB 1px, transparent 1px)'
+              : 'none',
+            backgroundSize: '4px 4px'
+          }}>
+            {tables.map(table => (
+              <div
+                key={table.id}
+                className={`absolute rounded ${
+                  selectedTable === table.id
+                    ? 'bg-indigo-500'
+                    : isDark ? 'bg-zinc-600' : 'bg-gray-400'
+                }`}
+                style={{
+                  left: `${(table.x / 2000) * 100}%`,
+                  top: `${(table.y / 2000) * 100}%`,
+                  width: '8px',
+                  height: '8px'
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }
@@ -1409,6 +1539,8 @@ function DiagramView({
 // Quick Editor Component
 function QuickEditor({ tables, onTablesUpdate, isDark }: { tables: Table[]; onTablesUpdate: (tables: Table[]) => void; isDark: boolean }) {
   const [editingTable, setEditingTable] = useState<string | null>(null);
+  const [collapsedTables, setCollapsedTables] = useState<Set<string>>(new Set());
+  const [allCollapsed, setAllCollapsed] = useState(false);
 
   const addNewTable = () => {
     const newTable: Table = {
@@ -1420,6 +1552,12 @@ function QuickEditor({ tables, onTablesUpdate, isDark }: { tables: Table[]; onTa
     };
     onTablesUpdate([...tables, newTable]);
     setEditingTable(newTable.id);
+    // Automatically expand the new table
+    setCollapsedTables(prev => {
+      const next = new Set(prev);
+      next.delete(newTable.id);
+      return next;
+    });
   };
 
   const addColumn = (tableId: string) => {
@@ -1444,6 +1582,30 @@ function QuickEditor({ tables, onTablesUpdate, isDark }: { tables: Table[]; onTa
     onTablesUpdate(updatedTables);
   };
 
+  const toggleTableCollapse = (tableId: string) => {
+    setCollapsedTables(prev => {
+      const next = new Set(prev);
+      if (next.has(tableId)) {
+        next.delete(tableId);
+      } else {
+        next.add(tableId);
+      }
+      return next;
+    });
+  };
+
+  const toggleCollapseAll = () => {
+    if (allCollapsed) {
+      // Expand all
+      setCollapsedTables(new Set());
+      setAllCollapsed(false);
+    } else {
+      // Collapse all
+      setCollapsedTables(new Set(tables.map(t => t.id)));
+      setAllCollapsed(true);
+    }
+  };
+
   return (
     <motion.div
       key="quick-editor"
@@ -1455,116 +1617,210 @@ function QuickEditor({ tables, onTablesUpdate, isDark }: { tables: Table[]; onTa
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-lg font-semibold text-gray-100">Quick Editor</h2>
-            <p className="text-xs text-gray-500 mt-1">Add and edit tables in spreadsheet mode</p>
+            <h2 className={`text-lg font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Quick Editor</h2>
+            <p className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
+              Add and edit tables in spreadsheet mode • {tables.length} {tables.length === 1 ? 'table' : 'tables'}
+            </p>
           </div>
-          <button
-            onClick={addNewTable}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-md text-xs font-medium hover:bg-indigo-700 transition-colors inline-flex items-center gap-2"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Add Table
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleCollapseAll}
+              className={`px-3 py-2 rounded-md text-xs font-medium transition-all inline-flex items-center gap-2 ${
+                isDark
+                  ? 'bg-zinc-800 hover:bg-zinc-700 text-gray-300 border border-zinc-700'
+                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300'
+              }`}
+              title={allCollapsed ? 'Expand all tables' : 'Collapse all tables'}
+            >
+              {allCollapsed ? (
+                <>
+                  <Expand className="w-3.5 h-3.5" />
+                  Expand All
+                </>
+              ) : (
+                <>
+                  <Minimize2 className="w-3.5 h-3.5" />
+                  Collapse All
+                </>
+              )}
+            </button>
+            <button
+              onClick={addNewTable}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-md text-xs font-medium hover:bg-indigo-700 transition-colors inline-flex items-center gap-2"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Add Table
+            </button>
+          </div>
         </div>
 
-        <div className="space-y-6">
-          {tables.map(table => (
-            <div key={table.id} className="border border-zinc-800 rounded-lg overflow-hidden">
-              {/* Table Header */}
-              <div className="bg-zinc-900 px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
-                <input
-                  type="text"
-                  defaultValue={table.name}
-                  className="text-sm font-semibold text-gray-100 bg-transparent border-none focus:outline-none focus:ring-0"
-                  placeholder="Table Name"
-                />
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => addColumn(table.id)}
-                    className="px-2 py-1 text-xs text-indigo-400 hover:bg-indigo-500/20 rounded"
-                  >
-                    <Plus className="w-3 h-3 inline mr-1" />
-                    Add Column
-                  </button>
-                  <button className="p-1 text-gray-400 hover:text-red-400 rounded">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
+        <div className="space-y-4">
+          {tables.map(table => {
+            const isCollapsed = collapsedTables.has(table.id);
+            return (
+              <motion.div
+                key={table.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`border rounded-lg overflow-hidden transition-all ${
+                  isDark ? 'border-zinc-800 bg-zinc-900/50' : 'border-gray-200 bg-white'
+                }`}
+              >
+                {/* Table Header */}
+                <div className={`px-4 py-3 border-b flex items-center justify-between ${
+                  isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-gray-50 border-gray-200'
+                }`}>
+                  <div className="flex items-center gap-3 flex-1">
+                    {/* Collapse/Expand Button */}
+                    <button
+                      onClick={() => toggleTableCollapse(table.id)}
+                      className={`p-1 rounded transition-all ${
+                        isDark ? 'hover:bg-zinc-800 text-gray-400 hover:text-gray-200' : 'hover:bg-gray-200 text-gray-600 hover:text-gray-900'
+                      }`}
+                      title={isCollapsed ? 'Expand table' : 'Collapse table'}
+                    >
+                      <motion.div
+                        animate={{ rotate: isCollapsed ? -90 : 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </motion.div>
+                    </button>
 
-              {/* Columns Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead className="bg-zinc-900 border-b border-zinc-800">
-                    <tr>
-                      <th className="px-4 py-2 text-left font-medium text-gray-300">Column Name</th>
-                      <th className="px-4 py-2 text-left font-medium text-gray-300">Data Type</th>
-                      <th className="px-4 py-2 text-center font-medium text-gray-300">PK</th>
-                      <th className="px-4 py-2 text-center font-medium text-gray-300">Nullable</th>
-                      <th className="px-4 py-2 text-left font-medium text-gray-300">Default</th>
-                      <th className="px-4 py-2 text-center font-medium text-gray-300">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {table.columns.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
-                          <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                          <p className="text-xs">No columns yet. Click "Add Column" to start.</p>
-                        </td>
-                      </tr>
-                    ) : (
-                      table.columns.map(col => (
-                        <tr key={col.id} className="border-b border-zinc-800 hover:bg-zinc-800/50">
-                          <td className="px-4 py-2">
-                            <input
-                              type="text"
-                              defaultValue={col.name}
-                              className="w-full bg-transparent border border-zinc-700 text-gray-100 rounded px-2 py-1 text-xs focus:outline-none focus:border-indigo-500"
-                            />
-                          </td>
-                          <td className="px-4 py-2">
-                            <input
-                              type="text"
-                              defaultValue={col.dataType}
-                              className="w-full bg-transparent border border-zinc-700 text-gray-100 rounded px-2 py-1 text-xs focus:outline-none focus:border-indigo-500"
-                            />
-                          </td>
-                          <td className="px-4 py-2 text-center">
-                            <input
-                              type="checkbox"
-                              checked={col.isPK}
-                              className="rounded border-zinc-600 text-indigo-600 focus:ring-indigo-500 bg-zinc-800"
-                            />
-                          </td>
-                          <td className="px-4 py-2 text-center">
-                            <input
-                              type="checkbox"
-                              checked={col.isNullable}
-                              className="rounded border-zinc-600 text-indigo-600 focus:ring-indigo-500 bg-zinc-800"
-                            />
-                          </td>
-                          <td className="px-4 py-2">
-                            <input
-                              type="text"
-                              defaultValue={col.defaultValue || ''}
-                              placeholder="NULL"
-                              className="w-full bg-transparent border border-zinc-700 text-gray-100 rounded px-2 py-1 text-xs focus:outline-none focus:border-indigo-500"
-                            />
-                          </td>
-                          <td className="px-4 py-2 text-center">
-                            <button className="p-1 text-gray-400 hover:text-red-400">
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))
+                    <Table2 className={`w-4 h-4 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`} />
+
+                    <input
+                      type="text"
+                      defaultValue={table.name}
+                      className={`text-sm font-semibold bg-transparent border-none focus:outline-none focus:ring-0 ${
+                        isDark ? 'text-gray-100' : 'text-gray-900'
+                      }`}
+                      placeholder="Table Name"
+                    />
+
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      isDark ? 'bg-zinc-800 text-gray-400' : 'bg-gray-200 text-gray-600'
+                    }`}>
+                      {table.columns.length} {table.columns.length === 1 ? 'column' : 'columns'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {!isCollapsed && (
+                      <button
+                        onClick={() => addColumn(table.id)}
+                        className={`px-2.5 py-1.5 text-xs font-medium rounded transition-all inline-flex items-center gap-1.5 ${
+                          isDark ? 'text-indigo-400 hover:bg-indigo-500/20' : 'text-indigo-600 hover:bg-indigo-50'
+                        }`}
+                      >
+                        <Plus className="w-3 h-3" />
+                        Add Column
+                      </button>
                     )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ))}
+                    <button className={`p-1.5 rounded transition-colors ${
+                      isDark ? 'text-gray-400 hover:text-red-400 hover:bg-red-500/10' : 'text-gray-600 hover:text-red-600 hover:bg-red-50'
+                    }`}>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Columns Table - Collapsible */}
+                <AnimatePresence initial={false}>
+                  {!isCollapsed && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3, ease: 'easeInOut' }}
+                      className="overflow-hidden"
+                    >
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead className={isDark ? 'bg-zinc-900 border-b border-zinc-800' : 'bg-gray-50 border-b border-gray-200'}>
+                            <tr>
+                              <th className={`px-4 py-2 text-left font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Column Name</th>
+                              <th className={`px-4 py-2 text-left font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Data Type</th>
+                              <th className={`px-4 py-2 text-center font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>PK</th>
+                              <th className={`px-4 py-2 text-center font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Nullable</th>
+                              <th className={`px-4 py-2 text-left font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Default</th>
+                              <th className={`px-4 py-2 text-center font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {table.columns.length === 0 ? (
+                              <tr>
+                                <td colSpan={6} className={`px-4 py-8 text-center ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                  <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                                  <p className="text-xs">No columns yet. Click "Add Column" to start.</p>
+                                </td>
+                              </tr>
+                            ) : (
+                              table.columns.map(col => (
+                                <tr key={col.id} className={`border-b transition-colors ${
+                                  isDark ? 'border-zinc-800 hover:bg-zinc-800/50' : 'border-gray-200 hover:bg-gray-50'
+                                }`}>
+                                  <td className="px-4 py-2">
+                                    <input
+                                      type="text"
+                                      defaultValue={col.name}
+                                      className={`w-full bg-transparent border rounded px-2 py-1 text-xs focus:outline-none ${
+                                        isDark ? 'border-zinc-700 text-gray-100 focus:border-indigo-500' : 'border-gray-300 text-gray-900 focus:border-indigo-500'
+                                      }`}
+                                    />
+                                  </td>
+                                  <td className="px-4 py-2">
+                                    <input
+                                      type="text"
+                                      defaultValue={col.dataType}
+                                      className={`w-full bg-transparent border rounded px-2 py-1 text-xs focus:outline-none ${
+                                        isDark ? 'border-zinc-700 text-gray-100 focus:border-indigo-500' : 'border-gray-300 text-gray-900 focus:border-indigo-500'
+                                      }`}
+                                    />
+                                  </td>
+                                  <td className="px-4 py-2 text-center">
+                                    <input
+                                      type="checkbox"
+                                      checked={col.isPK}
+                                      className={`rounded text-indigo-600 focus:ring-indigo-500 ${isDark ? 'border-zinc-600 bg-zinc-800' : 'border-gray-300 bg-white'}`}
+                                    />
+                                  </td>
+                                  <td className="px-4 py-2 text-center">
+                                    <input
+                                      type="checkbox"
+                                      checked={col.isNullable}
+                                      className={`rounded text-indigo-600 focus:ring-indigo-500 ${isDark ? 'border-zinc-600 bg-zinc-800' : 'border-gray-300 bg-white'}`}
+                                    />
+                                  </td>
+                                  <td className="px-4 py-2">
+                                    <input
+                                      type="text"
+                                      defaultValue={col.defaultValue || ''}
+                                      placeholder="NULL"
+                                      className={`w-full bg-transparent border rounded px-2 py-1 text-xs focus:outline-none ${
+                                        isDark ? 'border-zinc-700 text-gray-100 focus:border-indigo-500' : 'border-gray-300 text-gray-900 focus:border-indigo-500'
+                                      }`}
+                                    />
+                                  </td>
+                                  <td className="px-4 py-2 text-center">
+                                    <button className={`p-1 rounded transition-colors ${
+                                      isDark ? 'text-gray-400 hover:text-red-400 hover:bg-red-500/10' : 'text-gray-600 hover:text-red-600 hover:bg-red-50'
+                                    }`}>
+                                      <Trash2 className="w-3 h-3" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            );
+          })}
 
           {tables.length === 0 && (
             <div className="text-center py-12 border-2 border-dashed border-zinc-700 rounded-lg">
@@ -1608,39 +1864,286 @@ function QuickEditor({ tables, onTablesUpdate, isDark }: { tables: Table[]; onTa
 // Properties View Component - Model Explorer + Context Properties
 function PropertiesView({ selectedTable, isDark }: { selectedTable?: Table; isDark: boolean }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(['model', 'tables', 'relationships']));
-  const [selectedItem, setSelectedItem] = useState<{type: 'model' | 'table' | 'relationship', id?: string} | null>({ type: 'model' });
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(['model', 'tables', 'relationships', 'table-users', 'table-orders']));
+  const [selectedItem, setSelectedItem] = useState<{type: 'model' | 'table' | 'relationship' | 'column' | 'index' | 'constraint' | 'view', id?: string} | null>({ type: 'model' });
   const [activeTab, setActiveTab] = useState('general');
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'unsaved' | 'saving'>('saved');
+  const [filterType, setFilterType] = useState<'all' | 'tables' | 'columns' | 'relationships'>('all');
 
-  // Tree data structure matching LeftPanel
-  const treeData = [
+  // Property values state - This makes properties editable and persistent
+  const [properties, setProperties] = useState({
+    modelName: 'E-Commerce Model',
+    modelDescription: 'A comprehensive e-commerce data model supporting products, orders, and customers.',
+    modelVersion: '1.0.0',
+    modelAuthor: 'Data Team',
+    modelSubjectArea: 'E-Commerce',
+    modelDomain: 'Sales & Customer Management',
+    modelOwner: 'Data Architecture Team',
+    modelStatus: 'Active',
+    tableName: 'Users',
+    tableSchema: 'public',
+    tableDescription: 'Stores user account information...',
+  });
+
+  // Columns state for the selected table
+  const [columns, setColumns] = useState([
+    { id: 'col-1', name: 'user_id', dataType: 'INTEGER', isPK: true, isFK: false, isNullable: false, defaultValue: '' },
+    { id: 'col-2', name: 'username', dataType: 'VARCHAR(50)', isPK: false, isFK: false, isNullable: false, defaultValue: '' },
+    { id: 'col-3', name: 'email', dataType: 'VARCHAR(100)', isPK: false, isFK: false, isNullable: false, defaultValue: '' },
+    { id: 'col-4', name: 'created_at', dataType: 'TIMESTAMP', isPK: false, isFK: false, isNullable: false, defaultValue: 'CURRENT_TIMESTAMP' },
+  ]);
+
+  // Indexes state
+  const [indexes, setIndexes] = useState([
+    { id: 'idx-1', name: 'idx_users_email', table: 'Users', columns: ['email'], isUnique: true, type: 'BTREE' },
+    { id: 'idx-2', name: 'idx_users_username', table: 'Users', columns: ['username'], isUnique: false, type: 'BTREE' },
+  ]);
+
+  // Constraints state
+  const [constraints, setConstraints] = useState([
+    { id: 'const-1', name: 'fk_orders_user', type: 'Foreign Key', table: 'Orders', referencedTable: 'Users', columns: 'user_id' },
+    { id: 'const-2', name: 'chk_order_total', type: 'Check', table: 'Orders', condition: 'total_amount > 0', columns: 'total_amount' },
+  ]);
+
+  // Editing state
+  const [editingColumn, setEditingColumn] = useState<any>(null);
+  const [editingIndex, setEditingIndex] = useState<any>(null);
+  const [editingConstraint, setEditingConstraint] = useState<any>(null);
+  const [showColumnForm, setShowColumnForm] = useState(false);
+  const [showIndexForm, setShowIndexForm] = useState(false);
+  const [showConstraintForm, setShowConstraintForm] = useState(false);
+
+  const handlePropertyChange = (key: string, value: string) => {
+    setProperties(prev => ({ ...prev, [key]: value }));
+    setSaveStatus('unsaved');
+  };
+
+  // Column CRUD operations
+  const handleAddColumn = () => {
+    setEditingColumn({
+      id: `col-${Date.now()}`,
+      name: '',
+      dataType: 'VARCHAR(50)',
+      isPK: false,
+      isFK: false,
+      isNullable: true,
+      defaultValue: ''
+    });
+    setShowColumnForm(true);
+  };
+
+  const handleEditColumn = (column: any) => {
+    setEditingColumn({ ...column });
+    setShowColumnForm(true);
+  };
+
+  const handleSaveColumn = () => {
+    if (editingColumn) {
+      const existingIndex = columns.findIndex(c => c.id === editingColumn.id);
+      if (existingIndex >= 0) {
+        setColumns(prev => prev.map(c => c.id === editingColumn.id ? editingColumn : c));
+      } else {
+        setColumns(prev => [...prev, editingColumn]);
+      }
+      setShowColumnForm(false);
+      setEditingColumn(null);
+      setSaveStatus('unsaved');
+    }
+  };
+
+  const handleDeleteColumn = (id: string) => {
+    if (confirm('Are you sure you want to delete this column?')) {
+      setColumns(prev => prev.filter(c => c.id !== id));
+      setSaveStatus('unsaved');
+    }
+  };
+
+  // Index CRUD operations
+  const handleAddIndex = () => {
+    setEditingIndex({
+      id: `idx-${Date.now()}`,
+      name: '',
+      table: properties.tableName,
+      columns: [],
+      isUnique: false,
+      type: 'BTREE'
+    });
+    setShowIndexForm(true);
+  };
+
+  const handleEditIndex = (index: any) => {
+    setEditingIndex({ ...index });
+    setShowIndexForm(true);
+  };
+
+  const handleSaveIndex = () => {
+    if (editingIndex) {
+      const existingIndex = indexes.findIndex(i => i.id === editingIndex.id);
+      if (existingIndex >= 0) {
+        setIndexes(prev => prev.map(i => i.id === editingIndex.id ? editingIndex : i));
+      } else {
+        setIndexes(prev => [...prev, editingIndex]);
+      }
+      setShowIndexForm(false);
+      setEditingIndex(null);
+      setSaveStatus('unsaved');
+    }
+  };
+
+  const handleDeleteIndex = (id: string) => {
+    if (confirm('Are you sure you want to delete this index?')) {
+      setIndexes(prev => prev.filter(i => i.id !== id));
+      setSaveStatus('unsaved');
+    }
+  };
+
+  // Constraint CRUD operations
+  const handleAddConstraint = () => {
+    setEditingConstraint({
+      id: `const-${Date.now()}`,
+      name: '',
+      type: 'Foreign Key',
+      table: properties.tableName,
+      referencedTable: '',
+      columns: '',
+      condition: ''
+    });
+    setShowConstraintForm(true);
+  };
+
+  const handleEditConstraint = (constraint: any) => {
+    setEditingConstraint({ ...constraint });
+    setShowConstraintForm(true);
+  };
+
+  const handleSaveConstraint = () => {
+    if (editingConstraint) {
+      const existingIndex = constraints.findIndex(c => c.id === editingConstraint.id);
+      if (existingIndex >= 0) {
+        setConstraints(prev => prev.map(c => c.id === editingConstraint.id ? editingConstraint : c));
+      } else {
+        setConstraints(prev => [...prev, editingConstraint]);
+      }
+      setShowConstraintForm(false);
+      setEditingConstraint(null);
+      setSaveStatus('unsaved');
+    }
+  };
+
+  const handleDeleteConstraint = (id: string) => {
+    if (confirm('Are you sure you want to delete this constraint?')) {
+      setConstraints(prev => prev.filter(c => c.id !== id));
+      setSaveStatus('unsaved');
+    }
+  };
+
+  // Keyboard navigation and auto-save
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + S to save
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        if (saveStatus === 'unsaved') {
+          setSaveStatus('saving');
+          setTimeout(() => setSaveStatus('saved'), 1000);
+        }
+      }
+      // Escape to cancel/close
+      if (e.key === 'Escape') {
+        // Could add cancel edit logic here
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [saveStatus]);
+
+  // Auto-save with debounce
+  React.useEffect(() => {
+    if (saveStatus === 'unsaved') {
+      const timer = setTimeout(() => {
+        setSaveStatus('saving');
+        setTimeout(() => setSaveStatus('saved'), 800);
+      }, 2000); // Auto-save after 2 seconds of inactivity
+
+      return () => clearTimeout(timer);
+    }
+  }, [saveStatus]);
+
+  // Dynamic tree data structure based on actual state
+  const treeData = React.useMemo(() => [
     {
       id: 'model',
-      label: 'Data Model',
+      label: properties.modelName,
       icon: Database,
       children: [
         { id: 'model-general', label: 'General', icon: FileText, type: 'model' as const },
-        { id: 'model-settings', label: 'Settings', icon: Settings, type: 'model' as const }
+        { id: 'model-settings', label: 'Settings', icon: Settings, type: 'model' as const },
+        { id: 'model-metadata', label: 'Metadata', icon: FileCode, type: 'model' as const },
+        { id: 'model-subject', label: 'Subject Area', icon: Folder, type: 'model' as const },
+        { id: 'model-domain', label: 'Domain', icon: Globe, type: 'model' as const }
       ]
     },
     {
       id: 'tables',
-      label: 'Tables',
+      label: `Tables (1)`,
       icon: Table2,
       children: [
-        { id: 'table-users', label: 'Users', icon: Database, type: 'table' as const },
-        { id: 'table-orders', label: 'Orders', icon: Database, type: 'table' as const }
+        {
+          id: 'table-users',
+          label: properties.tableName,
+          icon: Users,
+          type: 'table' as const,
+          children: columns.map(col => ({
+            id: col.id,
+            label: `${col.name}${col.isPK ? ' (PK)' : col.isFK ? ' (FK)' : ''}`,
+            icon: col.isPK ? Key : col.isFK ? LinkIcon : Type,
+            type: 'column' as const
+          }))
+        }
       ]
     },
     {
       id: 'relationships',
-      label: 'Relationships',
+      label: `Relationships (2)`,
       icon: GitBranch,
       children: [
-        { id: 'rel-1', label: 'Users → Orders', icon: ArrowRight, type: 'relationship' as const }
+        { id: 'rel-1', label: 'Users → Orders', icon: ArrowRight, type: 'relationship' as const },
+        { id: 'rel-2', label: 'Orders → Products', icon: ArrowRight, type: 'relationship' as const }
+      ]
+    },
+    {
+      id: 'indexes',
+      label: `Indexes (${indexes.length})`,
+      icon: Zap,
+      children: indexes.map(idx => ({
+        id: idx.id,
+        label: idx.name,
+        icon: idx.isUnique ? KeyRound : Hash,
+        type: 'index' as const
+      }))
+    },
+    {
+      id: 'constraints',
+      label: `Constraints (${constraints.length})`,
+      icon: Lock,
+      children: constraints.map(con => ({
+        id: con.id,
+        label: con.name,
+        icon: con.type === 'Foreign Key' ? LinkIcon : Settings,
+        type: 'constraint' as const
+      }))
+    },
+    {
+      id: 'views',
+      label: 'Views (2)',
+      icon: Eye,
+      children: [
+        { id: 'view-1', label: 'vw_order_summary', icon: FileText, type: 'view' as const },
+        { id: 'view-2', label: 'vw_user_stats', icon: FileText, type: 'view' as const }
       ]
     }
-  ];
+  ], [properties.modelName, properties.tableName, columns, indexes, constraints]);
 
   const TreeItem = ({ item, level = 0 }: { item: any; level?: number }) => {
     const isExpanded = expandedItems.has(item.id);
@@ -1648,12 +2151,16 @@ function PropertiesView({ selectedTable, isDark }: { selectedTable?: Table; isDa
     const isSelected = selectedItem?.type === item.type && (item.type === 'model' || selectedItem?.id === item.id);
 
     return (
-      <div>
+      <div className="relative">
+        {/* Active highlight line */}
+        {isSelected && (
+          <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-indigo-500 rounded-r" />
+        )}
         <div
-          className={`flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors ${
+          className={`flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-all duration-200 group ${
             isSelected
-              ? isDark ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-100 text-indigo-700'
-              : isDark ? 'hover:bg-zinc-800 text-gray-300' : 'hover:bg-gray-100 text-gray-700'
+              ? isDark ? 'bg-indigo-500/20 text-indigo-400 shadow-sm' : 'bg-indigo-100 text-indigo-700 shadow-sm'
+              : isDark ? 'hover:bg-zinc-800/80 text-gray-300' : 'hover:bg-gray-100 text-gray-700'
           }`}
           style={{ paddingLeft: `${(level * 12) + 8}px` }}
           onClick={() => {
@@ -1673,16 +2180,30 @@ function PropertiesView({ selectedTable, isDark }: { selectedTable?: Table; isDa
               setActiveTab('general');
             }
           }}
+          title={item.label}
         >
           {hasChildren && (
-            isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />
+            <div className={`transition-transform duration-200 ${isExpanded ? 'rotate-0' : '-rotate-90'}`}>
+              <ChevronDown className="w-3 h-3" />
+            </div>
           )}
           {!hasChildren && <div className="w-3" />}
-          <item.icon className="w-3.5 h-3.5" />
-          <span className="text-xs">{item.label}</span>
+          <item.icon className={`w-3.5 h-3.5 transition-colors ${
+            isSelected
+              ? isDark ? 'text-indigo-400' : 'text-indigo-600'
+              : isDark ? 'text-gray-400' : 'text-gray-500'
+          }`} />
+          <span className="text-xs font-medium">{item.label}</span>
+          {hasChildren && level === 0 && (
+            <div className={`ml-auto opacity-0 group-hover:opacity-100 transition-opacity ${
+              isDark ? 'text-gray-500' : 'text-gray-400'
+            }`}>
+              <Plus className="w-3 h-3" />
+            </div>
+          )}
         </div>
         {hasChildren && isExpanded && (
-          <div>
+          <div className="mt-0.5">
             {item.children.map((child: any) => (
               <TreeItem key={child.id} item={child} level={level + 1} />
             ))}
@@ -1695,16 +2216,26 @@ function PropertiesView({ selectedTable, isDark }: { selectedTable?: Table; isDa
   const renderPropertiesContent = () => {
     if (!selectedItem) return null;
 
-    // Tabs configuration
+    // Tabs configuration - Context-sensitive
     const modelTabs = [
       { id: 'general', label: 'General', icon: FileText },
-      { id: 'settings', label: 'Settings', icon: Settings }
+      { id: 'settings', label: 'Settings', icon: Settings },
+      { id: 'metadata', label: 'Metadata', icon: FileCode },
+      { id: 'subject', label: 'Subject', icon: Folder },
+      { id: 'domain', label: 'Domain', icon: Globe }
     ];
 
     const tableTabs = [
       { id: 'general', label: 'General', icon: FileText },
       { id: 'columns', label: 'Columns', icon: Table2 },
       { id: 'keys', label: 'Keys', icon: KeyRound },
+      { id: 'indexes', label: 'Indexes', icon: Zap },
+      { id: 'display', label: 'Display', icon: Eye }
+    ];
+
+    const columnTabs = [
+      { id: 'general', label: 'General', icon: FileText },
+      { id: 'constraints', label: 'Constraints', icon: Lock },
       { id: 'display', label: 'Display', icon: Eye }
     ];
 
@@ -1713,7 +2244,22 @@ function PropertiesView({ selectedTable, isDark }: { selectedTable?: Table; isDa
       { id: 'cardinality', label: 'Cardinality', icon: GitBranch }
     ];
 
-    const tabs = selectedItem.type === 'model' ? modelTabs : selectedItem.type === 'table' ? tableTabs : relationshipTabs;
+    const indexTabs = [
+      { id: 'general', label: 'General', icon: FileText },
+      { id: 'columns', label: 'Columns', icon: Table2 }
+    ];
+
+    const viewTabs = [
+      { id: 'general', label: 'General', icon: FileText },
+      { id: 'sql', label: 'SQL', icon: FileCode }
+    ];
+
+    const tabs = selectedItem.type === 'model' ? modelTabs
+                : selectedItem.type === 'table' ? tableTabs
+                : selectedItem.type === 'column' ? columnTabs
+                : selectedItem.type === 'index' ? indexTabs
+                : selectedItem.type === 'view' ? viewTabs
+                : relationshipTabs;
 
     return (
       <div className="flex h-full flex-col">
@@ -1743,138 +2289,957 @@ function PropertiesView({ selectedTable, isDark }: { selectedTable?: Table; isDa
           <div className={`flex-1 overflow-y-auto transition-colors ${
             isDark ? 'bg-zinc-900' : 'bg-white'
           }`}>
-            {/* Context Header */}
-            <div className={`p-2 border-b transition-colors ${
-              isDark ? 'border-zinc-800 bg-zinc-900' : 'border-gray-200 bg-gray-50'
+            {/* Enhanced Context Header with Breadcrumb */}
+            <div className={`p-3 border-b transition-colors ${
+              isDark ? 'border-zinc-800 bg-zinc-900/50' : 'border-gray-200 bg-gray-50'
             }`}>
-              <div className="flex items-center gap-2">
-                {React.createElement(tabs.find(tab => tab.id === activeTab)!.icon, {
-                  className: `w-4 h-4 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`
-                })}
-                <h2 className={`text-xs font-semibold ${
-                  isDark ? 'text-gray-100' : 'text-gray-900'
-                }`}>
-                  {tabs.find(t => t.id === activeTab)?.label} Properties
-                </h2>
+              {/* Breadcrumb Trail */}
+              <div className="flex items-center gap-1.5 mb-2">
+                <Database className={`w-3 h-3 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`} />
+                <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>E-Commerce Model</span>
+                {selectedItem.type !== 'model' && (
+                  <>
+                    <ChevronRight className={`w-3 h-3 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} />
+                    <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {selectedItem.type === 'table' ? 'Tables' : selectedItem.type === 'relationship' ? 'Relationships' : selectedItem.type === 'column' ? 'Columns' : selectedItem.type === 'index' ? 'Indexes' : selectedItem.type === 'constraint' ? 'Constraints' : 'Views'}
+                    </span>
+                    <ChevronRight className={`w-3 h-3 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} />
+                    <span className={`text-xs font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
+                      {selectedItem.type === 'table' ? 'Users' : selectedItem.type === 'column' ? 'user_id' : selectedItem.type === 'relationship' ? 'Users → Orders' : 'Properties'}
+                    </span>
+                  </>
+                )}
               </div>
-              <p className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                {selectedItem.type === 'model' ? 'Data Model' : selectedItem.type === 'table' ? 'Users Table' : 'Users → Orders'}
-              </p>
+
+              {/* Title with inline editing and status */}
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 flex-1">
+                  {React.createElement(tabs.find(tab => tab.id === activeTab)!.icon, {
+                    className: `w-4 h-4 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`
+                  })}
+                  <h2 className={`text-sm font-semibold ${
+                    isDark ? 'text-gray-100' : 'text-gray-900'
+                  }`}>
+                    {tabs.find(t => t.id === activeTab)?.label} Properties
+                  </h2>
+                </div>
+
+                {/* Status Tag */}
+                <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${
+                  saveStatus === 'saved'
+                    ? isDark ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700'
+                    : saveStatus === 'saving'
+                    ? isDark ? 'bg-yellow-500/20 text-yellow-400' : 'bg-yellow-100 text-yellow-700'
+                    : isDark ? 'bg-orange-500/20 text-orange-400' : 'bg-orange-100 text-orange-700'
+                }`}>
+                  {saveStatus === 'saved' && '✓ Saved'}
+                  {saveStatus === 'saving' && '↻ Saving...'}
+                  {saveStatus === 'unsaved' && '• Unsaved'}
+                </div>
+              </div>
             </div>
 
-            {/* Content */}
-            <div className="p-3 space-y-3">
+            {/* Content with Section Cards */}
+            <div className="p-4 space-y-4">
               {/* Model Properties */}
               {selectedItem.type === 'model' && activeTab === 'general' && (
-                <div className="space-y-2">
-                  <div>
-                    <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                      Model Name
-                    </label>
-                    <input
-                      type="text"
-                      defaultValue="Data Model"
-                      className={`w-full px-2 py-1.5 text-xs rounded border ${
-                        isDark ? 'bg-zinc-800 border-zinc-600 text-white' : 'bg-white border-gray-300 text-gray-900'
-                      }`}
-                    />
+                <div className="space-y-4">
+                  {/* General Info Card */}
+                  <div className={`rounded-lg border p-3 shadow-sm ${
+                    isDark ? 'bg-zinc-900/50 border-zinc-800' : 'bg-white border-gray-200'
+                  }`}>
+                    <h3 className={`text-xs font-semibold mb-3 flex items-center gap-1.5 ${
+                      isDark ? 'text-gray-200' : 'text-gray-800'
+                    }`}>
+                      <FileText className="w-3.5 h-3.5" />
+                      General Information
+                    </h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Model Name <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={properties.modelName}
+                          onChange={(e) => handlePropertyChange('modelName', e.target.value)}
+                          className={`w-full px-3 py-2 text-xs rounded-md border transition-all ${
+                            isDark ? 'bg-zinc-800 border-zinc-700 text-white focus:border-indigo-500 focus:bg-zinc-800/80'
+                                   : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500 focus:bg-gray-50'
+                          } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+                        />
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Description
+                        </label>
+                        <textarea
+                          rows={3}
+                          value={properties.modelDescription}
+                          onChange={(e) => handlePropertyChange('modelDescription', e.target.value)}
+                          className={`w-full px-3 py-2 text-xs rounded-md border transition-all resize-none ${
+                            isDark ? 'bg-zinc-800 border-zinc-700 text-white focus:border-indigo-500 focus:bg-zinc-800/80'
+                                   : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500 focus:bg-gray-50'
+                          } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+                          placeholder="Describe your data model..."
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                      Description
-                    </label>
-                    <textarea
-                      rows={3}
-                      className={`w-full px-2 py-1.5 text-xs rounded border ${
-                        isDark ? 'bg-zinc-800 border-zinc-600 text-white' : 'bg-white border-gray-300 text-gray-900'
-                      }`}
-                      placeholder="Model description..."
-                    />
-                  </div>
-                  <div>
-                    <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                      Version
-                    </label>
-                    <input
-                      type="text"
-                      defaultValue="1.0.0"
-                      className={`w-full px-2 py-1.5 text-xs rounded border ${
-                        isDark ? 'bg-zinc-800 border-zinc-600 text-white' : 'bg-white border-gray-300 text-gray-900'
-                      }`}
-                    />
+
+                  {/* Metadata Card - Two Column Layout */}
+                  <div className={`rounded-lg border p-3 shadow-sm ${
+                    isDark ? 'bg-zinc-900/50 border-zinc-800' : 'bg-white border-gray-200'
+                  }`}>
+                    <h3 className={`text-xs font-semibold mb-3 flex items-center gap-1.5 ${
+                      isDark ? 'text-gray-200' : 'text-gray-800'
+                    }`}>
+                      <FileCode className="w-3.5 h-3.5" />
+                      Metadata
+                    </h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Version
+                        </label>
+                        <input
+                          type="text"
+                          value={properties.modelVersion}
+                          onChange={(e) => handlePropertyChange('modelVersion', e.target.value)}
+                          className={`w-full px-3 py-2 text-xs rounded-md border transition-all ${
+                            isDark ? 'bg-zinc-800 border-zinc-700 text-white focus:border-indigo-500'
+                                   : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500'
+                          } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+                        />
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Author
+                        </label>
+                        <input
+                          type="text"
+                          value={properties.modelAuthor}
+                          onChange={(e) => handlePropertyChange('modelAuthor', e.target.value)}
+                          className={`w-full px-3 py-2 text-xs rounded-md border transition-all ${
+                            isDark ? 'bg-zinc-800 border-zinc-700 text-white focus:border-indigo-500'
+                                   : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500'
+                          } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+                        />
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Created Date
+                        </label>
+                        <input
+                          type="date"
+                          defaultValue="2024-01-15"
+                          onChange={() => setSaveStatus('unsaved')}
+                          className={`w-full px-3 py-2 text-xs rounded-md border transition-all ${
+                            isDark ? 'bg-zinc-800 border-zinc-700 text-white focus:border-indigo-500'
+                                   : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500'
+                          } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+                        />
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Last Modified
+                        </label>
+                        <input
+                          type="date"
+                          defaultValue="2024-02-10"
+                          disabled
+                          className={`w-full px-3 py-2 text-xs rounded-md border transition-all opacity-60 cursor-not-allowed ${
+                            isDark ? 'bg-zinc-800/50 border-zinc-700 text-white'
+                                   : 'bg-gray-100 border-gray-300 text-gray-900'
+                          }`}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
 
               {selectedItem.type === 'model' && activeTab === 'settings' && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <input type="checkbox" id="autoLayout" className="rounded" />
-                    <label htmlFor="autoLayout" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                      Auto Layout
-                    </label>
+                <div className="space-y-4">
+                  <div className={`rounded-lg border p-3 shadow-sm ${
+                    isDark ? 'bg-zinc-900/50 border-zinc-800' : 'bg-white border-gray-200'
+                  }`}>
+                    <h3 className={`text-xs font-semibold mb-3 flex items-center gap-1.5 ${
+                      isDark ? 'text-gray-200' : 'text-gray-800'
+                    }`}>
+                      <Settings className="w-3.5 h-3.5" />
+                      Display Settings
+                    </h3>
+                    <div className="space-y-2.5">
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" id="autoLayout" className="rounded w-4 h-4" />
+                        <label htmlFor="autoLayout" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                          Enable Auto Layout
+                        </label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" id="showGrid" defaultChecked className="rounded w-4 h-4" />
+                        <label htmlFor="showGrid" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                          Show Grid Lines
+                        </label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" id="snapToGrid" className="rounded w-4 h-4" />
+                        <label htmlFor="snapToGrid" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                          Snap Elements to Grid
+                        </label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" id="showRelLabels" defaultChecked className="rounded w-4 h-4" />
+                        <label htmlFor="showRelLabels" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                          Show Relationship Labels
+                        </label>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <input type="checkbox" id="showGrid" defaultChecked className="rounded" />
-                    <label htmlFor="showGrid" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                      Show Grid
-                    </label>
+                </div>
+              )}
+
+              {selectedItem.type === 'model' && activeTab === 'metadata' && (
+                <div className="space-y-4">
+                  <div className={`rounded-lg border p-3 shadow-sm ${
+                    isDark ? 'bg-zinc-900/50 border-zinc-800' : 'bg-white border-gray-200'
+                  }`}>
+                    <h3 className={`text-xs font-semibold mb-3 flex items-center gap-1.5 ${
+                      isDark ? 'text-gray-200' : 'text-gray-800'
+                    }`}>
+                      <FileCode className="w-3.5 h-3.5" />
+                      Business Metadata
+                    </h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Model Owner
+                        </label>
+                        <input
+                          type="text"
+                          value={properties.modelOwner}
+                          onChange={(e) => handlePropertyChange('modelOwner', e.target.value)}
+                          className={`w-full px-3 py-2 text-xs rounded-md border transition-all ${
+                            isDark ? 'bg-zinc-800 border-zinc-700 text-white focus:border-indigo-500'
+                                   : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500'
+                          } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+                        />
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Status
+                        </label>
+                        <select
+                          value={properties.modelStatus}
+                          onChange={(e) => handlePropertyChange('modelStatus', e.target.value)}
+                          className={`w-full px-3 py-2 text-xs rounded-md border transition-all ${
+                            isDark ? 'bg-zinc-800 border-zinc-700 text-white focus:border-indigo-500'
+                                   : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500'
+                          } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+                        >
+                          <option>Active</option>
+                          <option>Draft</option>
+                          <option>Deprecated</option>
+                          <option>Archived</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Tags
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="production, customer-data, pii"
+                          className={`w-full px-3 py-2 text-xs rounded-md border transition-all ${
+                            isDark ? 'bg-zinc-800 border-zinc-700 text-white focus:border-indigo-500'
+                                   : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500'
+                          } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <input type="checkbox" id="snapToGrid" className="rounded" />
-                    <label htmlFor="snapToGrid" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                      Snap to Grid
-                    </label>
+                </div>
+              )}
+
+              {selectedItem.type === 'model' && activeTab === 'subject' && (
+                <div className="space-y-4">
+                  <div className={`rounded-lg border p-3 shadow-sm ${
+                    isDark ? 'bg-zinc-900/50 border-zinc-800' : 'bg-white border-gray-200'
+                  }`}>
+                    <h3 className={`text-xs font-semibold mb-3 flex items-center gap-1.5 ${
+                      isDark ? 'text-gray-200' : 'text-gray-800'
+                    }`}>
+                      <Folder className="w-3.5 h-3.5" />
+                      Subject Area
+                    </h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Subject Area <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={properties.modelSubjectArea}
+                          onChange={(e) => handlePropertyChange('modelSubjectArea', e.target.value)}
+                          className={`w-full px-3 py-2 text-xs rounded-md border transition-all ${
+                            isDark ? 'bg-zinc-800 border-zinc-700 text-white focus:border-indigo-500'
+                                   : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500'
+                          } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+                        >
+                          <option>E-Commerce</option>
+                          <option>Finance</option>
+                          <option>Healthcare</option>
+                          <option>Marketing</option>
+                          <option>Human Resources</option>
+                          <option>Supply Chain</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Description
+                        </label>
+                        <textarea
+                          rows={3}
+                          placeholder="Describe the subject area scope and purpose..."
+                          className={`w-full px-3 py-2 text-xs rounded-md border transition-all resize-none ${
+                            isDark ? 'bg-zinc-800 border-zinc-700 text-white focus:border-indigo-500'
+                                   : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500'
+                          } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+                          defaultValue="Covers all aspects of online commerce including product catalog, order management, and customer transactions."
+                        />
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Business Owner
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Enter business owner name"
+                          defaultValue="Product Management Team"
+                          className={`w-full px-3 py-2 text-xs rounded-md border transition-all ${
+                            isDark ? 'bg-zinc-800 border-zinc-700 text-white focus:border-indigo-500'
+                                   : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500'
+                          } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedItem.type === 'model' && activeTab === 'domain' && (
+                <div className="space-y-4">
+                  <div className={`rounded-lg border p-3 shadow-sm ${
+                    isDark ? 'bg-zinc-900/50 border-zinc-800' : 'bg-white border-gray-200'
+                  }`}>
+                    <h3 className={`text-xs font-semibold mb-3 flex items-center gap-1.5 ${
+                      isDark ? 'text-gray-200' : 'text-gray-800'
+                    }`}>
+                      <Globe className="w-3.5 h-3.5" />
+                      Domain
+                    </h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Business Domain <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={properties.modelDomain}
+                          onChange={(e) => handlePropertyChange('modelDomain', e.target.value)}
+                          className={`w-full px-3 py-2 text-xs rounded-md border transition-all ${
+                            isDark ? 'bg-zinc-800 border-zinc-700 text-white focus:border-indigo-500'
+                                   : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500'
+                          } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+                        />
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Domain Category
+                        </label>
+                        <select
+                          className={`w-full px-3 py-2 text-xs rounded-md border transition-all ${
+                            isDark ? 'bg-zinc-800 border-zinc-700 text-white focus:border-indigo-500'
+                                   : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500'
+                          } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+                        >
+                          <option>Operational</option>
+                          <option>Analytical</option>
+                          <option>Master Data</option>
+                          <option>Reference Data</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Domain Description
+                        </label>
+                        <textarea
+                          rows={3}
+                          placeholder="Describe the business domain..."
+                          className={`w-full px-3 py-2 text-xs rounded-md border transition-all resize-none ${
+                            isDark ? 'bg-zinc-800 border-zinc-700 text-white focus:border-indigo-500'
+                                   : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500'
+                          } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+                          defaultValue="Manages all sales-related activities and customer relationship management within the e-commerce platform."
+                        />
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Data Steward
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Enter data steward name"
+                          defaultValue="John Doe"
+                          className={`w-full px-3 py-2 text-xs rounded-md border transition-all ${
+                            isDark ? 'bg-zinc-800 border-zinc-700 text-white focus:border-indigo-500'
+                                   : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500'
+                          } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
 
               {/* Table Properties */}
               {selectedItem.type === 'table' && activeTab === 'general' && (
-                <div className="space-y-2">
-                  <div>
-                    <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                      Table Name
-                    </label>
-                    <input
-                      type="text"
-                      defaultValue="Users"
-                      className={`w-full px-2 py-1.5 text-xs rounded border ${
-                        isDark ? 'bg-zinc-800 border-zinc-600 text-white' : 'bg-white border-gray-300 text-gray-900'
-                      }`}
-                    />
-                  </div>
-                  <div>
-                    <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                      Definition
-                    </label>
-                    <textarea
-                      rows={2}
-                      className={`w-full px-2 py-1.5 text-xs rounded border ${
-                        isDark ? 'bg-zinc-800 border-zinc-600 text-white' : 'bg-white border-gray-300 text-gray-900'
-                      }`}
-                      placeholder="Table definition..."
-                    />
+                <div className="space-y-4">
+                  {/* Basic Info Card */}
+                  <div className={`rounded-lg border p-3 shadow-sm ${
+                    isDark ? 'bg-zinc-900/50 border-zinc-800' : 'bg-white border-gray-200'
+                  }`}>
+                    <h3 className={`text-xs font-semibold mb-3 flex items-center gap-1.5 ${
+                      isDark ? 'text-gray-200' : 'text-gray-800'
+                    }`}>
+                      <Table2 className="w-3.5 h-3.5" />
+                      Table Information
+                    </h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="col-span-2">
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Table Name <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={properties.tableName}
+                          onChange={(e) => handlePropertyChange('tableName', e.target.value)}
+                          className={`w-full px-3 py-2 text-xs rounded-md border transition-all ${
+                            isDark ? 'bg-zinc-800 border-zinc-700 text-white focus:border-indigo-500'
+                                   : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500'
+                          } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+                        />
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Schema
+                        </label>
+                        <input
+                          type="text"
+                          value={properties.tableSchema}
+                          onChange={(e) => handlePropertyChange('tableSchema', e.target.value)}
+                          className={`w-full px-3 py-2 text-xs rounded-md border transition-all ${
+                            isDark ? 'bg-zinc-800 border-zinc-700 text-white focus:border-indigo-500'
+                                   : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500'
+                          } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+                        />
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 flex items-center gap-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Type
+                          <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`} title="Table type">ℹ️</span>
+                        </label>
+                        <select
+                          onChange={() => setSaveStatus('unsaved')}
+                          className={`w-full px-3 py-2 text-xs rounded-md border transition-all ${
+                            isDark ? 'bg-zinc-800 border-zinc-700 text-white focus:border-indigo-500'
+                                   : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500'
+                          } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+                        >
+                          <option>Standard Table</option>
+                          <option>View</option>
+                          <option>Materialized View</option>
+                        </select>
+                      </div>
+                      <div className="col-span-2">
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Description
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={properties.tableDescription}
+                          onChange={(e) => handlePropertyChange('tableDescription', e.target.value)}
+                          className={`w-full px-3 py-2 text-xs rounded-md border transition-all resize-none ${
+                            isDark ? 'bg-zinc-800 border-zinc-700 text-white focus:border-indigo-500'
+                                   : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500'
+                          } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+                          placeholder="Stores user account information..."
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
 
               {selectedItem.type === 'table' && activeTab === 'columns' && (
-                <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                  <p>Columns list would appear here with add/edit functionality</p>
+                <div className="space-y-4">
+                  {/* Columns Table Card */}
+                  <div className={`rounded-lg border shadow-sm ${
+                    isDark ? 'bg-zinc-900/50 border-zinc-800' : 'bg-white border-gray-200'
+                  }`}>
+                    <div className={`p-3 border-b flex items-center justify-between ${
+                      isDark ? 'border-zinc-800' : 'border-gray-200'
+                    }`}>
+                      <h3 className={`text-xs font-semibold flex items-center gap-1.5 ${
+                        isDark ? 'text-gray-200' : 'text-gray-800'
+                      }`}>
+                        <Table2 className="w-3.5 h-3.5" />
+                        Columns ({columns.length})
+                      </h3>
+                      <button
+                        onClick={handleAddColumn}
+                        className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all ${
+                          isDark ? 'bg-indigo-500 hover:bg-indigo-600 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                        }`}
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Add Column
+                      </button>
+                    </div>
+
+                    {/* Columns Table */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead className={isDark ? 'bg-zinc-800/50' : 'bg-gray-50'}>
+                          <tr>
+                            <th className={`px-3 py-2 text-left font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Name</th>
+                            <th className={`px-3 py-2 text-left font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Data Type</th>
+                            <th className={`px-3 py-2 text-center font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>PK</th>
+                            <th className={`px-3 py-2 text-center font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>FK</th>
+                            <th className={`px-3 py-2 text-center font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Nullable</th>
+                            <th className={`px-3 py-2 text-left font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Default</th>
+                            <th className={`px-3 py-2 text-right font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {columns.map((col, idx) => (
+                            <tr key={col.id} className={`border-t transition-colors ${
+                              isDark ? 'border-zinc-800 hover:bg-zinc-800/30' : 'border-gray-200 hover:bg-gray-50'
+                            }`}>
+                              <td className={`px-3 py-2.5 font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
+                                {col.name}
+                              </td>
+                              <td className={`px-3 py-2.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                                {col.dataType}
+                              </td>
+                              <td className="px-3 py-2.5 text-center">
+                                {col.isPK && <Key className={`w-3.5 h-3.5 inline ${isDark ? 'text-yellow-400' : 'text-yellow-600'}`} />}
+                              </td>
+                              <td className="px-3 py-2.5 text-center">
+                                {col.isFK && <LinkIcon className={`w-3.5 h-3.5 inline ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />}
+                              </td>
+                              <td className="px-3 py-2.5 text-center">
+                                {col.isNullable ? '✓' : ''}
+                              </td>
+                              <td className={`px-3 py-2.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                                {col.defaultValue || '-'}
+                              </td>
+                              <td className="px-3 py-2.5 text-right">
+                                <div className="flex items-center justify-end gap-1">
+                                  <button
+                                    onClick={() => handleEditColumn(col)}
+                                    className={`p-1 rounded transition-colors ${
+                                      isDark ? 'hover:bg-zinc-700 text-gray-400 hover:text-gray-200' : 'hover:bg-gray-200 text-gray-600 hover:text-gray-900'
+                                    }`}
+                                    title="Edit column"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteColumn(col.id)}
+                                    className={`p-1 rounded transition-colors ${
+                                      isDark ? 'hover:bg-red-500/20 text-gray-400 hover:text-red-400' : 'hover:bg-red-50 text-gray-600 hover:text-red-600'
+                                    }`}
+                                    title="Delete column"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Column Edit Form Modal */}
+                  <AnimatePresence>
+                    {showColumnForm && editingColumn && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+                        onClick={() => setShowColumnForm(false)}
+                      >
+                        <motion.div
+                          initial={{ scale: 0.95, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          exit={{ scale: 0.95, opacity: 0 }}
+                          onClick={(e) => e.stopPropagation()}
+                          className={`w-full max-w-md rounded-lg shadow-xl ${
+                            isDark ? 'bg-zinc-900 border border-zinc-800' : 'bg-white border border-gray-200'
+                          }`}
+                        >
+                          <div className={`p-4 border-b ${isDark ? 'border-zinc-800' : 'border-gray-200'}`}>
+                            <h3 className={`text-sm font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+                              {columns.some(c => c.id === editingColumn.id) ? 'Edit Column' : 'Add New Column'}
+                            </h3>
+                          </div>
+                          <div className="p-4 space-y-3">
+                            <div>
+                              <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                                Column Name <span className="text-red-500">*</span>
+                              </label>
+                              <input
+                                type="text"
+                                value={editingColumn.name}
+                                onChange={(e) => setEditingColumn({ ...editingColumn, name: e.target.value })}
+                                className={`w-full px-3 py-2 text-xs rounded-md border ${
+                                  isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-gray-300 text-gray-900'
+                                } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+                                placeholder="column_name"
+                              />
+                            </div>
+                            <div>
+                              <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                                Data Type <span className="text-red-500">*</span>
+                              </label>
+                              <select
+                                value={editingColumn.dataType}
+                                onChange={(e) => setEditingColumn({ ...editingColumn, dataType: e.target.value })}
+                                className={`w-full px-3 py-2 text-xs rounded-md border ${
+                                  isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-gray-300 text-gray-900'
+                                } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+                              >
+                                <option>VARCHAR(50)</option>
+                                <option>VARCHAR(100)</option>
+                                <option>VARCHAR(255)</option>
+                                <option>INTEGER</option>
+                                <option>BIGINT</option>
+                                <option>DECIMAL(10,2)</option>
+                                <option>BOOLEAN</option>
+                                <option>DATE</option>
+                                <option>TIMESTAMP</option>
+                                <option>TEXT</option>
+                                <option>JSON</option>
+                              </select>
+                            </div>
+                            <div className="grid grid-cols-3 gap-3">
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  id="isPK"
+                                  checked={editingColumn.isPK}
+                                  onChange={(e) => setEditingColumn({ ...editingColumn, isPK: e.target.checked })}
+                                  className="rounded w-4 h-4"
+                                />
+                                <label htmlFor="isPK" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                                  Primary Key
+                                </label>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  id="isFK"
+                                  checked={editingColumn.isFK}
+                                  onChange={(e) => setEditingColumn({ ...editingColumn, isFK: e.target.checked })}
+                                  className="rounded w-4 h-4"
+                                />
+                                <label htmlFor="isFK" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                                  Foreign Key
+                                </label>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  id="isNullable"
+                                  checked={editingColumn.isNullable}
+                                  onChange={(e) => setEditingColumn({ ...editingColumn, isNullable: e.target.checked })}
+                                  className="rounded w-4 h-4"
+                                />
+                                <label htmlFor="isNullable" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                                  Nullable
+                                </label>
+                              </div>
+                            </div>
+                            <div>
+                              <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                                Default Value
+                              </label>
+                              <input
+                                type="text"
+                                value={editingColumn.defaultValue}
+                                onChange={(e) => setEditingColumn({ ...editingColumn, defaultValue: e.target.value })}
+                                className={`w-full px-3 py-2 text-xs rounded-md border ${
+                                  isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-gray-300 text-gray-900'
+                                } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+                                placeholder="NULL, CURRENT_TIMESTAMP, etc."
+                              />
+                            </div>
+                          </div>
+                          <div className={`p-4 border-t flex justify-end gap-2 ${isDark ? 'border-zinc-800' : 'border-gray-200'}`}>
+                            <button
+                              onClick={() => setShowColumnForm(false)}
+                              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                                isDark ? 'bg-zinc-800 hover:bg-zinc-700 text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                              }`}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={handleSaveColumn}
+                              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                                isDark ? 'bg-indigo-500 hover:bg-indigo-600 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                              }`}
+                            >
+                              Save Column
+                            </button>
+                          </div>
+                        </motion.div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               )}
 
               {selectedItem.type === 'table' && activeTab === 'keys' && (
-                <div className="space-y-2">
-                  <div>
-                    <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                      Primary Key
-                    </label>
-                    <div className={`px-2 py-1.5 rounded text-xs ${isDark ? 'bg-zinc-800 text-gray-300' : 'bg-gray-100 text-gray-700'}`}>
-                      user_id
+                <div className="space-y-4">
+                  <div className={`rounded-lg border p-3 shadow-sm ${
+                    isDark ? 'bg-zinc-900/50 border-zinc-800' : 'bg-white border-gray-200'
+                  }`}>
+                    <h3 className={`text-xs font-semibold mb-3 flex items-center gap-1.5 ${
+                      isDark ? 'text-gray-200' : 'text-gray-800'
+                    }`}>
+                      <KeyRound className="w-3.5 h-3.5" />
+                      Keys
+                    </h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Primary Key
+                        </label>
+                        <div className={`px-3 py-2 rounded-md text-xs font-mono ${isDark ? 'bg-zinc-800 text-gray-300' : 'bg-gray-100 text-gray-700'}`}>
+                          {columns.filter(c => c.isPK).map(c => c.name).join(', ') || 'No primary key defined'}
+                        </div>
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Foreign Keys
+                        </label>
+                        <div className={`px-3 py-2 rounded-md text-xs font-mono ${isDark ? 'bg-zinc-800 text-gray-300' : 'bg-gray-100 text-gray-700'}`}>
+                          {columns.filter(c => c.isFK).map(c => c.name).join(', ') || 'No foreign keys defined'}
+                        </div>
+                      </div>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {selectedItem.type === 'table' && activeTab === 'indexes' && (
+                <div className="space-y-4">
+                  {/* Indexes Table Card */}
+                  <div className={`rounded-lg border shadow-sm ${
+                    isDark ? 'bg-zinc-900/50 border-zinc-800' : 'bg-white border-gray-200'
+                  }`}>
+                    <div className={`p-3 border-b flex items-center justify-between ${
+                      isDark ? 'border-zinc-800' : 'border-gray-200'
+                    }`}>
+                      <h3 className={`text-xs font-semibold flex items-center gap-1.5 ${
+                        isDark ? 'text-gray-200' : 'text-gray-800'
+                      }`}>
+                        <Zap className="w-3.5 h-3.5" />
+                        Indexes ({indexes.length})
+                      </h3>
+                      <button
+                        onClick={handleAddIndex}
+                        className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all ${
+                          isDark ? 'bg-indigo-500 hover:bg-indigo-600 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                        }`}
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Add Index
+                      </button>
+                    </div>
+
+                    {/* Indexes Table */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead className={isDark ? 'bg-zinc-800/50' : 'bg-gray-50'}>
+                          <tr>
+                            <th className={`px-3 py-2 text-left font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Name</th>
+                            <th className={`px-3 py-2 text-left font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Columns</th>
+                            <th className={`px-3 py-2 text-center font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Unique</th>
+                            <th className={`px-3 py-2 text-left font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Type</th>
+                            <th className={`px-3 py-2 text-right font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {indexes.filter(idx => idx.table === properties.tableName).map((idx) => (
+                            <tr key={idx.id} className={`border-t transition-colors ${
+                              isDark ? 'border-zinc-800 hover:bg-zinc-800/30' : 'border-gray-200 hover:bg-gray-50'
+                            }`}>
+                              <td className={`px-3 py-2.5 font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
+                                {idx.name}
+                              </td>
+                              <td className={`px-3 py-2.5 font-mono ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                                {Array.isArray(idx.columns) ? idx.columns.join(', ') : idx.columns}
+                              </td>
+                              <td className="px-3 py-2.5 text-center">
+                                {idx.isUnique ? '✓' : ''}
+                              </td>
+                              <td className={`px-3 py-2.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                                {idx.type}
+                              </td>
+                              <td className="px-3 py-2.5 text-right">
+                                <div className="flex items-center justify-end gap-1">
+                                  <button
+                                    onClick={() => handleEditIndex(idx)}
+                                    className={`p-1 rounded transition-colors ${
+                                      isDark ? 'hover:bg-zinc-700 text-gray-400 hover:text-gray-200' : 'hover:bg-gray-200 text-gray-600 hover:text-gray-900'
+                                    }`}
+                                    title="Edit index"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteIndex(idx.id)}
+                                    className={`p-1 rounded transition-colors ${
+                                      isDark ? 'hover:bg-red-500/20 text-gray-400 hover:text-red-400' : 'hover:bg-red-50 text-gray-600 hover:text-red-600'
+                                    }`}
+                                    title="Delete index"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Index Edit Form Modal */}
+                  <AnimatePresence>
+                    {showIndexForm && editingIndex && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+                        onClick={() => setShowIndexForm(false)}
+                      >
+                        <motion.div
+                          initial={{ scale: 0.95, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          exit={{ scale: 0.95, opacity: 0 }}
+                          onClick={(e) => e.stopPropagation()}
+                          className={`w-full max-w-md rounded-lg shadow-xl ${
+                            isDark ? 'bg-zinc-900 border border-zinc-800' : 'bg-white border border-gray-200'
+                          }`}
+                        >
+                          <div className={`p-4 border-b ${isDark ? 'border-zinc-800' : 'border-gray-200'}`}>
+                            <h3 className={`text-sm font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+                              {indexes.some(i => i.id === editingIndex.id) ? 'Edit Index' : 'Add New Index'}
+                            </h3>
+                          </div>
+                          <div className="p-4 space-y-3">
+                            <div>
+                              <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                                Index Name <span className="text-red-500">*</span>
+                              </label>
+                              <input
+                                type="text"
+                                value={editingIndex.name}
+                                onChange={(e) => setEditingIndex({ ...editingIndex, name: e.target.value })}
+                                className={`w-full px-3 py-2 text-xs rounded-md border ${
+                                  isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-gray-300 text-gray-900'
+                                } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+                                placeholder="idx_table_column"
+                              />
+                            </div>
+                            <div>
+                              <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                                Columns <span className="text-red-500">*</span>
+                              </label>
+                              <input
+                                type="text"
+                                value={Array.isArray(editingIndex.columns) ? editingIndex.columns.join(', ') : editingIndex.columns}
+                                onChange={(e) => setEditingIndex({ ...editingIndex, columns: e.target.value.split(',').map((s: string) => s.trim()) })}
+                                className={`w-full px-3 py-2 text-xs rounded-md border ${
+                                  isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-gray-300 text-gray-900'
+                                } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+                                placeholder="column1, column2"
+                              />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                                  Index Type
+                                </label>
+                                <select
+                                  value={editingIndex.type}
+                                  onChange={(e) => setEditingIndex({ ...editingIndex, type: e.target.value })}
+                                  className={`w-full px-3 py-2 text-xs rounded-md border ${
+                                    isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-gray-300 text-gray-900'
+                                  } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+                                >
+                                  <option>BTREE</option>
+                                  <option>HASH</option>
+                                  <option>GIST</option>
+                                  <option>GIN</option>
+                                </select>
+                              </div>
+                              <div className="flex items-end">
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="checkbox"
+                                    id="isUnique"
+                                    checked={editingIndex.isUnique}
+                                    onChange={(e) => setEditingIndex({ ...editingIndex, isUnique: e.target.checked })}
+                                    className="rounded w-4 h-4"
+                                  />
+                                  <label htmlFor="isUnique" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                                    Unique
+                                  </label>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className={`p-4 border-t flex justify-end gap-2 ${isDark ? 'border-zinc-800' : 'border-gray-200'}`}>
+                            <button
+                              onClick={() => setShowIndexForm(false)}
+                              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                                isDark ? 'bg-zinc-800 hover:bg-zinc-700 text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                              }`}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={handleSaveIndex}
+                              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                                isDark ? 'bg-indigo-500 hover:bg-indigo-600 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                              }`}
+                            >
+                              Save Index
+                            </button>
+                          </div>
+                        </motion.div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               )}
 
@@ -1935,31 +3300,65 @@ function PropertiesView({ selectedTable, isDark }: { selectedTable?: Table; isDa
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className={`flex-1 flex overflow-hidden ${isDark ? 'bg-zinc-950' : 'bg-gray-50'}`}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className={`flex-1 flex overflow-hidden ${isDark ? 'bg-zinc-950' : 'bg-gray-100'}`}
     >
-      {/* Left: Model Explorer Tree */}
-      <div className={`w-64 border-r overflow-y-auto ${
-        isDark ? 'border-zinc-800 bg-zinc-900' : 'border-gray-200 bg-white'
+      {/* Left: Enhanced Model Explorer Tree */}
+      <div className={`w-64 border-r overflow-hidden flex flex-col ${
+        isDark ? 'border-zinc-800 bg-zinc-950' : 'border-gray-200 bg-white'
       }`}>
-        <div className="p-3">
-          <h3 className={`text-xs font-semibold mb-3 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Model Explorer</h3>
+        {/* Header with title */}
+        <div className={`px-3 py-2.5 border-b ${isDark ? 'border-zinc-800 bg-zinc-900/50' : 'border-gray-200 bg-gray-50'}`}>
+          <div className="flex items-center justify-between">
+            <h3 className={`text-xs font-bold tracking-wide ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+              MODEL EXPLORER
+            </h3>
+            <button
+              className={`p-1 rounded transition-colors ${
+                isDark ? 'hover:bg-zinc-800 text-gray-400' : 'hover:bg-gray-200 text-gray-600'
+              }`}
+              title="Add New"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
 
-          <div className="mb-3">
-            <div className="relative">
-              <Search className={`absolute left-2 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
-              <input
-                type="text"
-                placeholder="Search..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className={`w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border transition-all duration-200 ${
-                  isDark ? 'bg-zinc-800 border-zinc-700 text-gray-100 placeholder-gray-500 focus:border-indigo-500'
-                         : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-indigo-500'
-                } focus:outline-none focus:ring-1 focus:ring-indigo-500/20`}
-              />
-            </div>
+        {/* Search and Filter */}
+        <div className="p-3 space-y-2">
+          {/* Search */}
+          <div className="relative">
+            <Search className={`absolute left-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+            <input
+              type="text"
+              placeholder="Search model..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={`w-full pl-8 pr-3 py-1.5 text-xs rounded-md border transition-all duration-200 ${
+                isDark ? 'bg-zinc-800 border-zinc-700 text-gray-100 placeholder-gray-500 focus:border-indigo-500 focus:bg-zinc-800/80'
+                       : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:bg-gray-50'
+              } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+            />
           </div>
 
+          {/* Filter Dropdown */}
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value as any)}
+            className={`w-full px-2.5 py-1.5 text-xs rounded-md border transition-all ${
+              isDark ? 'bg-zinc-800 border-zinc-700 text-gray-100 focus:border-indigo-500'
+                     : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500'
+            } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+          >
+            <option value="all">Show: All</option>
+            <option value="tables">Show: Tables Only</option>
+            <option value="columns">Show: Columns Only</option>
+            <option value="relationships">Show: Relationships Only</option>
+          </select>
+        </div>
+
+        {/* Tree Items - Scrollable */}
+        <div className="flex-1 overflow-y-auto px-3 pb-3">
           <div className="space-y-0.5">
             {treeData.map((item) => (
               <TreeItem key={item.id} item={item} />

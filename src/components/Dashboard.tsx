@@ -547,7 +547,7 @@ const CompleteCompareCard = ({ onClick }: { onClick?: () => void }) => {
 
 export default function Dashboard() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [currentPage, setCurrentPage] = useState<'dashboard' | 'mart-catalog' | 'model-explorer' | 'reverse-engineering' | 'forward-engineering' | 'complete-compare' | 'settings' | 'diagram' | 'diagrammer'>('dashboard');
+  const [currentPage, setCurrentPage] = useState<'dashboard' | 'mart-catalog' | 'model-explorer' | 'reverse-engineering' | 'forward-engineering' | 'complete-compare' | 'settings' | 'diagram' | 'diagrammer' | 'property-editor'>('dashboard');
   const [isDark, setIsDark] = useState(true);
 
   const toggleTheme = () => {
