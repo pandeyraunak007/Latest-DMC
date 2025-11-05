@@ -374,7 +374,7 @@ export default function Diagrammer() {
 
         {/* Right Properties Panel */}
         <AnimatePresence>
-          {showPropertiesPanel && selectedTable && viewMode === 'diagram' && (
+          {showPropertiesPanel && viewMode === 'diagram' && (
             <motion.div
               initial={{ width: 0, opacity: 0 }}
               animate={{ width: 240, opacity: 1 }}
@@ -1677,7 +1677,21 @@ function PropertiesView({ selectedTable }: { selectedTable?: Table }) {
 
 // Right Properties Panel Component
 function RightPropertiesPanel({ table, isDark }: { table?: Table; isDark: boolean }) {
-  if (!table) return null;
+  if (!table) {
+    return (
+      <div className="p-3 h-full flex items-center justify-center">
+        <div className="text-center">
+          <Database className={`w-12 h-12 mx-auto mb-3 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} />
+          <p className={`text-sm font-medium mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+            No Table Selected
+          </p>
+          <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+            Select a table to view its properties
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-3">
