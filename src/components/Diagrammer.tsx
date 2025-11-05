@@ -1295,14 +1295,14 @@ function DiagramView({
       }}
     >
       <div
-        className="relative min-h-full"
+        className="relative"
         style={{
           transform: `scale(${zoom / 100})`,
           transformOrigin: 'top left',
           width: `${(100 / zoom) * 100}%`,
           height: `${(100 / zoom) * 100}%`,
-          minHeight: '2000px',
-          minWidth: '2000px'
+          minHeight: '1200px',
+          minWidth: '1600px'
         }}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
