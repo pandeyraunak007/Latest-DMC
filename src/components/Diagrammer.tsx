@@ -59,7 +59,20 @@ import {
   FileCode,
   MoreHorizontal,
   Sun,
-  Moon
+  Moon,
+  MousePointer,
+  StickyNote,
+  Group,
+  Ungroup,
+  Shapes,
+  ArrowRight,
+  Hand,
+  Grid,
+  Target,
+  Sparkles,
+  Map,
+  Expand,
+  Minimize2
 } from 'lucide-react';
 
 // Types
@@ -378,6 +391,240 @@ export default function Diagrammer() {
     </div>
   );
 }
+
+// Toolbar Button Component
+const ToolbarButton = ({
+  icon: Icon,
+  tooltip,
+  isDark,
+  isActive = false,
+  onClick
+}: {
+  icon: any;
+  tooltip: string;
+  isDark: boolean;
+  isActive?: boolean;
+  onClick?: () => void;
+}) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  return (
+    <div className="relative">
+      <button
+        className={`p-2.5 rounded-lg hover:scale-105 transition-all duration-200 cursor-pointer ${
+          isActive
+            ? isDark
+              ? 'bg-indigo-600 text-white shadow-md'
+              : 'bg-indigo-500 text-white shadow-md'
+            : isDark
+            ? 'hover:bg-zinc-700 text-gray-300'
+            : 'hover:bg-gray-100 text-gray-600'
+        }`}
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+        onClick={onClick}
+        style={{ pointerEvents: 'auto', zIndex: 10000 }}
+      >
+        <Icon className="w-4 h-4" />
+      </button>
+      {showTooltip && (
+        <div className={`absolute left-full ml-2 top-1/2 -translate-y-1/2 px-2 py-1 rounded-lg text-xs whitespace-nowrap z-50 ${
+          isDark ? 'bg-zinc-700 text-white' : 'bg-gray-800 text-white'
+        }`}>
+          {tooltip}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Shape Dropdown Component
+const ShapeDropdown = ({ isDark }: { isDark: boolean }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  return (
+    <div className="relative">
+      <button
+        className={`p-2.5 rounded-lg hover:scale-105 transition-all duration-200 cursor-pointer ${
+          isDark ? 'hover:bg-zinc-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'
+        }`}
+        onMouseEnter={() => !isOpen && setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+        onClick={() => {
+          setIsOpen(!isOpen);
+          setShowTooltip(false);
+        }}
+        style={{ pointerEvents: 'auto', zIndex: 10000 }}
+      >
+        <Shapes className="w-4 h-4" />
+      </button>
+      {showTooltip && !isOpen && (
+        <div className={`absolute left-full ml-2 top-1/2 -translate-y-1/2 px-2 py-1 rounded-lg text-xs whitespace-nowrap z-50 ${
+          isDark ? 'bg-zinc-700 text-white' : 'bg-gray-800 text-white'
+        }`}>
+          Shapes
+        </div>
+      )}
+      {isOpen && (
+        <div className={`absolute left-full ml-2 top-0 rounded-lg shadow-lg border p-1.5 flex flex-col gap-1 ${
+          isDark ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-gray-200'
+        }`} style={{ zIndex: 10001 }}>
+          <button
+            className={`p-2 rounded-lg hover:scale-105 transition-all duration-200 cursor-pointer flex items-center gap-2 ${
+              isDark ? 'hover:bg-zinc-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'
+            }`}
+            onClick={() => setIsOpen(false)}
+          >
+            <Square className="w-4 h-4" />
+            <span className="text-xs whitespace-nowrap">Rectangle</span>
+          </button>
+          <button
+            className={`p-2 rounded-lg hover:scale-105 transition-all duration-200 cursor-pointer flex items-center gap-2 ${
+              isDark ? 'hover:bg-zinc-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'
+            }`}
+            onClick={() => setIsOpen(false)}
+          >
+            <Circle className="w-4 h-4" />
+            <span className="text-xs whitespace-nowrap">Ellipse</span>
+          </button>
+          <button
+            className={`p-2 rounded-lg hover:scale-105 transition-all duration-200 cursor-pointer flex items-center gap-2 ${
+              isDark ? 'hover:bg-zinc-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'
+            }`}
+            onClick={() => setIsOpen(false)}
+          >
+            <ArrowRight className="w-4 h-4" />
+            <span className="text-xs whitespace-nowrap">Line</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Object Toolbar Component
+const ObjectToolbar = ({
+  isDark,
+  isDrawingMode,
+  onSelectTool
+}: {
+  isDark: boolean;
+  isDrawingMode: 'table' | 'annotation' | 'relationship' | null;
+  onSelectTool: (mode: 'table' | 'annotation' | 'relationship' | null) => void;
+}) => {
+  return (
+    <div className={`absolute top-6 left-6 flex flex-col gap-1 p-1.5 rounded-xl shadow-lg backdrop-blur-sm border z-50 ${
+      isDark ? 'bg-zinc-800/90 border-zinc-700' : 'bg-white/90 border-gray-200'
+    }`} style={{ fontFamily: 'Inter, system-ui, sans-serif', zIndex: 9999, pointerEvents: 'auto' }}>
+      <ToolbarButton
+        icon={MousePointer}
+        tooltip="Pointer/Select Tool"
+        isDark={isDark}
+        isActive={isDrawingMode === null}
+        onClick={() => onSelectTool(null)}
+      />
+      <ToolbarButton
+        icon={Database}
+        tooltip="Add Entity/Table"
+        isDark={isDark}
+        isActive={isDrawingMode === 'table'}
+        onClick={() => onSelectTool('table')}
+      />
+      <ToolbarButton
+        icon={GitBranch}
+        tooltip="Add Relationship"
+        isDark={isDark}
+        isActive={isDrawingMode === 'relationship'}
+        onClick={() => onSelectTool('relationship')}
+      />
+      <ToolbarButton
+        icon={StickyNote}
+        tooltip="Add Note/Annotation"
+        isDark={isDark}
+        isActive={isDrawingMode === 'annotation'}
+        onClick={() => onSelectTool('annotation')}
+      />
+      <div className={`h-px w-6 my-1 ${isDark ? 'bg-zinc-700' : 'bg-gray-300'}`} />
+      <ToolbarButton icon={Group} tooltip="Group Entities" isDark={isDark} />
+      <ToolbarButton icon={Ungroup} tooltip="Ungroup Entities" isDark={isDark} />
+      <div className={`h-px w-6 my-1 ${isDark ? 'bg-zinc-700' : 'bg-gray-300'}`} />
+      <ShapeDropdown isDark={isDark} />
+    </div>
+  );
+};
+
+// View Toolbar Button Component
+const ViewToolbarButton = ({
+  icon: Icon,
+  tooltip,
+  isDark,
+  onClick,
+  isActive = false
+}: {
+  icon: any;
+  tooltip: string;
+  isDark: boolean;
+  onClick?: () => void;
+  isActive?: boolean
+}) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  return (
+    <div className="relative">
+      <button
+        className={`p-2.5 rounded-lg hover:scale-105 transition-all duration-200 ${
+          isActive
+            ? isDark ? 'bg-indigo-600 text-white' : 'bg-indigo-500 text-white'
+            : isDark ? 'hover:bg-zinc-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'
+        }`}
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+        onClick={onClick}
+      >
+        <Icon className="w-4 h-4" />
+      </button>
+      {showTooltip && (
+        <div className={`absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2 py-1 rounded-lg text-xs whitespace-nowrap z-50 ${
+          isDark ? 'bg-zinc-700 text-white' : 'bg-gray-800 text-white'
+        }`}>
+          {tooltip}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// View Controls Toolbar Component
+const ViewControlsToolbar = ({
+  isDark,
+  onZoomIn,
+  onZoomOut,
+  zoomLevel
+}: {
+  isDark: boolean;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  zoomLevel: number;
+}) => {
+  return (
+    <div className={`absolute bottom-6 left-1/2 transform -translate-x-1/2 flex items-center gap-1 p-1.5 rounded-xl shadow-lg backdrop-blur-sm border z-50 ${
+      isDark ? 'bg-zinc-800/95 border-zinc-700' : 'bg-white/95 border-gray-200'
+    }`} style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <ViewToolbarButton icon={ZoomIn} tooltip="Zoom In" isDark={isDark} onClick={onZoomIn} />
+      <ViewToolbarButton icon={ZoomOut} tooltip="Zoom Out" isDark={isDark} onClick={onZoomOut} />
+      <ViewToolbarButton icon={Maximize2} tooltip="Fit to Screen" isDark={isDark} />
+      <div className={`w-px h-6 mx-1 ${isDark ? 'bg-zinc-700' : 'bg-gray-300'}`} />
+      <ViewToolbarButton icon={Hand} tooltip="Pan/Hand Tool" isDark={isDark} />
+      <div className={`w-px h-6 mx-1 ${isDark ? 'bg-zinc-700' : 'bg-gray-300'}`} />
+      <ViewToolbarButton icon={Grid} tooltip="Toggle Grid" isDark={isDark} />
+      <ViewToolbarButton icon={Target} tooltip="Snap to Grid/Alignment" isDark={isDark} />
+      <div className={`w-px h-6 mx-1 ${isDark ? 'bg-zinc-700' : 'bg-gray-300'}`} />
+      <ViewToolbarButton icon={Sparkles} tooltip="Auto-layout" isDark={isDark} />
+      <ViewToolbarButton icon={Map} tooltip="Toggle Minimap" isDark={isDark} />
+    </div>
+  );
+};
 
 // Left Panel Component with Model Explorer Tree
 function LeftPanel({ isDark }: { isDark: boolean }) {
@@ -983,6 +1230,15 @@ function DiagramView({
 }) {
   const [draggingTable, setDraggingTable] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [isDrawingMode, setIsDrawingMode] = useState<'table' | 'annotation' | 'relationship' | null>(null);
+
+  const handleToolSelection = (mode: 'table' | 'annotation' | 'relationship' | null) => {
+    setIsDrawingMode(mode);
+    if (mode === 'table') {
+      onAddTable();
+      setIsDrawingMode(null); // Reset to select mode after adding
+    }
+  };
 
   const handleMouseDown = (e: React.MouseEvent, tableId: string, table: Table) => {
     e.stopPropagation();
@@ -1134,6 +1390,19 @@ function DiagramView({
           </div>
         )}
       </div>
+
+      {/* Floating Toolbars */}
+      <ObjectToolbar
+        isDark={isDark}
+        isDrawingMode={isDrawingMode}
+        onSelectTool={handleToolSelection}
+      />
+      <ViewControlsToolbar
+        isDark={isDark}
+        onZoomIn={() => {}}
+        onZoomOut={() => {}}
+        zoomLevel={zoom}
+      />
     </motion.div>
   );
 }
