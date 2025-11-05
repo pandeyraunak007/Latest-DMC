@@ -8,6 +8,7 @@ import ModelExplorer from './ModelExplorer';
 import CompleteCompare from './CompleteCompare';
 import Settings from './Settings';
 import Diagram from './Diagram';
+import Diagrammer from './Diagrammer';
 import MartCatalog from './MartCatalog';
 import ThemeToggle from './shared/ThemeToggle';
 import {
@@ -545,7 +546,7 @@ const CompleteCompareCard = ({ onClick }: { onClick?: () => void }) => {
 
 export default function Dashboard() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [currentPage, setCurrentPage] = useState<'dashboard' | 'mart-catalog' | 'model-explorer' | 'reverse-engineering' | 'forward-engineering' | 'complete-compare' | 'settings' | 'diagram'>('dashboard');
+  const [currentPage, setCurrentPage] = useState<'dashboard' | 'mart-catalog' | 'model-explorer' | 'reverse-engineering' | 'forward-engineering' | 'complete-compare' | 'settings' | 'diagram' | 'diagrammer'>('dashboard');
   const [isDark, setIsDark] = useState(true);
 
   const toggleTheme = () => {
@@ -600,6 +601,12 @@ export default function Dashboard() {
       label: 'Diagram',
       page: 'diagram' as const,
       active: currentPage === 'diagram'
+    },
+    {
+      icon: <Boxes className="w-4 h-4" />,
+      label: 'Diagrammer',
+      page: 'diagrammer' as const,
+      active: currentPage === 'diagrammer'
     }
   ];
 
@@ -832,6 +839,7 @@ export default function Dashboard() {
               {currentPage === 'complete-compare' && <CompleteCompare />}
               {currentPage === 'settings' && <Settings isDark={isDark} toggleTheme={toggleTheme} />}
               {currentPage === 'diagram' && <Diagram isDark={isDark} toggleTheme={toggleTheme} />}
+              {currentPage === 'diagrammer' && <Diagrammer />}
             </motion.div>
           </AnimatePresence>
         </div>
