@@ -317,7 +317,7 @@ export default function MartCatalogManager() {
       children: []
     };
     setCatalogData(prev => addChildToNode(prev, contextMenu.node!.id, newLibrary));
-    setExpandedNodes(prev => new Set([...prev, contextMenu.node!.id]));
+    setExpandedNodes(prev => new Set(Array.from(prev).concat(contextMenu.node!.id)));
     setContextMenu({ visible: false, x: 0, y: 0, node: null });
   };
 
@@ -334,7 +334,7 @@ export default function MartCatalogManager() {
       author: 'Current User'
     };
     setCatalogData(prev => addChildToNode(prev, contextMenu.node!.id, newVersion));
-    setExpandedNodes(prev => new Set([...prev, contextMenu.node!.id]));
+    setExpandedNodes(prev => new Set(Array.from(prev).concat(contextMenu.node!.id)));
     setContextMenu({ visible: false, x: 0, y: 0, node: null });
   };
 
@@ -352,7 +352,7 @@ export default function MartCatalogManager() {
       author: 'Current User'
     };
     setCatalogData(prev => addChildToNode(prev, contextMenu.node!.id, newVersion));
-    setExpandedNodes(prev => new Set([...prev, contextMenu.node!.id]));
+    setExpandedNodes(prev => new Set(Array.from(prev).concat(contextMenu.node!.id)));
     setContextMenu({ visible: false, x: 0, y: 0, node: null });
   };
 
@@ -555,8 +555,11 @@ export default function MartCatalogManager() {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
+                  e.preventDefault();
+                  console.log('Theme toggle clicked, current isDark:', isDark);
                   setIsDark(!isDark);
                 }}
+                type="button"
                 className={`p-1.5 rounded-md transition-all duration-200 ${
                   isDark
                     ? 'hover:bg-zinc-800/80 text-zinc-400 hover:text-zinc-300'
