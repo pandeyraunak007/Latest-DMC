@@ -406,7 +406,7 @@ export default function Diagrammer() {
       <div className="flex-1 flex overflow-hidden">
         {/* Left Panel */}
         <AnimatePresence>
-          {showLeftPanel && viewMode !== 'properties' && (
+          {showLeftPanel && viewMode !== 'properties' && viewMode !== 'quick-editor' && (
             <motion.div
               initial={{ width: 0, opacity: 0 }}
               animate={{ width: 240, opacity: 1 }}
