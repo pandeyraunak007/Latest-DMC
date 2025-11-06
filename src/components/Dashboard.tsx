@@ -9,7 +9,7 @@ import CompleteCompare from './CompleteCompare';
 import Settings from './Settings';
 import Diagram from './Diagram';
 import Diagrammer from './Diagrammer';
-import MartCatalog from './MartCatalog';
+import MartCatalog from './MartCatalogNew';
 import PropertyEditor from './PropertyEditor';
 import ThemeToggle from './shared/ThemeToggle';
 import {
