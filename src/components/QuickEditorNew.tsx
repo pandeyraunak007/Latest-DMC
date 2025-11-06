@@ -26,7 +26,8 @@ import {
   List,
   ArrowUpDown,
   Copy,
-  Clock
+  Clock,
+  GripVertical
 } from 'lucide-react';
 
 // Import types from parent component
@@ -774,6 +775,54 @@ function TableListView({
   onSortChange
 }: TableListViewProps) {
   const [editingTableId, setEditingTableId] = useState<string | null>(null);
+  const [columnWidths, setColumnWidths] = useState({
+    tableName: 250,
+    schema: 100,
+    columns: 100,
+    pks: 80,
+    fks: 80,
+    indexes: 100,
+    actions: 100
+  });
+  const [resizingColumn, setResizingColumn] = useState<string | null>(null);
+  const [startX, setStartX] = useState(0);
+  const [startWidth, setStartWidth] = useState(0);
+
+  const handleMouseDown = (e: React.MouseEvent, column: string) => {
+    setResizingColumn(column);
+    setStartX(e.clientX);
+    setStartWidth(columnWidths[column as keyof typeof columnWidths]);
+    e.preventDefault();
+  };
+
+  React.useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!resizingColumn) return;
+
+      const diff = e.clientX - startX;
+      const newWidth = Math.max(50, startWidth + diff);
+
+      setColumnWidths(prev => ({
+        ...prev,
+        [resizingColumn]: newWidth
+      }));
+    };
+
+    const handleMouseUp = () => {
+      setResizingColumn(null);
+    };
+
+    if (resizingColumn) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [resizingColumn, startX, startWidth]);
+
   return (
     <motion.div
       key="table-list"
@@ -870,32 +919,91 @@ function TableListView({
           <p className="text-sm">Click "Add Table" to create your first table</p>
         </div>
       ) : viewMode === 'list' ? (
-        /* List View - Compact */
-        <div className={`border rounded-lg overflow-hidden ${
+        /* List View - Compact with Resizable Columns */
+        <div className={`border rounded-lg overflow-x-auto ${
           isDark ? 'border-zinc-800 bg-zinc-900/50' : 'border-gray-200 bg-white'
         }`}>
-          <table className="w-full">
+          <table className="w-full" style={{ tableLayout: 'fixed' }}>
             <thead className={`${isDark ? 'bg-zinc-900 border-b border-zinc-800' : 'bg-gray-50 border-b border-gray-200'}`}>
               <tr>
-                <th className={`px-4 py-3 text-left text-xs font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Table Name
+                <th
+                  className={`px-4 py-3 text-left text-xs font-semibold relative ${isDark ? 'text-gray-300' : 'text-gray-700'}`}
+                  style={{ width: `${columnWidths.tableName}px` }}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>Table Name</span>
+                    <div
+                      className={`absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-indigo-500 ${resizingColumn === 'tableName' ? 'bg-indigo-500' : ''}`}
+                      onMouseDown={(e) => handleMouseDown(e, 'tableName')}
+                    >
+                      <GripVertical className="w-3 h-3 absolute top-1/2 -translate-y-1/2 -translate-x-1/2 opacity-0 hover:opacity-100" />
+                    </div>
+                  </div>
                 </th>
-                <th className={`px-4 py-3 text-left text-xs font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Schema
+                <th
+                  className={`px-4 py-3 text-left text-xs font-semibold relative ${isDark ? 'text-gray-300' : 'text-gray-700'}`}
+                  style={{ width: `${columnWidths.schema}px` }}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>Schema</span>
+                    <div
+                      className={`absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-indigo-500 ${resizingColumn === 'schema' ? 'bg-indigo-500' : ''}`}
+                      onMouseDown={(e) => handleMouseDown(e, 'schema')}
+                    />
+                  </div>
                 </th>
-                <th className={`px-4 py-3 text-center text-xs font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Columns
+                <th
+                  className={`px-4 py-3 text-center text-xs font-semibold relative ${isDark ? 'text-gray-300' : 'text-gray-700'}`}
+                  style={{ width: `${columnWidths.columns}px` }}
+                >
+                  <div className="flex items-center justify-center">
+                    <span>Columns</span>
+                    <div
+                      className={`absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-indigo-500 ${resizingColumn === 'columns' ? 'bg-indigo-500' : ''}`}
+                      onMouseDown={(e) => handleMouseDown(e, 'columns')}
+                    />
+                  </div>
                 </th>
-                <th className={`px-4 py-3 text-center text-xs font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                  PKs
+                <th
+                  className={`px-4 py-3 text-center text-xs font-semibold relative ${isDark ? 'text-gray-300' : 'text-gray-700'}`}
+                  style={{ width: `${columnWidths.pks}px` }}
+                >
+                  <div className="flex items-center justify-center">
+                    <span>PKs</span>
+                    <div
+                      className={`absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-indigo-500 ${resizingColumn === 'pks' ? 'bg-indigo-500' : ''}`}
+                      onMouseDown={(e) => handleMouseDown(e, 'pks')}
+                    />
+                  </div>
                 </th>
-                <th className={`px-4 py-3 text-center text-xs font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                  FKs
+                <th
+                  className={`px-4 py-3 text-center text-xs font-semibold relative ${isDark ? 'text-gray-300' : 'text-gray-700'}`}
+                  style={{ width: `${columnWidths.fks}px` }}
+                >
+                  <div className="flex items-center justify-center">
+                    <span>FKs</span>
+                    <div
+                      className={`absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-indigo-500 ${resizingColumn === 'fks' ? 'bg-indigo-500' : ''}`}
+                      onMouseDown={(e) => handleMouseDown(e, 'fks')}
+                    />
+                  </div>
                 </th>
-                <th className={`px-4 py-3 text-center text-xs font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Indexes
+                <th
+                  className={`px-4 py-3 text-center text-xs font-semibold relative ${isDark ? 'text-gray-300' : 'text-gray-700'}`}
+                  style={{ width: `${columnWidths.indexes}px` }}
+                >
+                  <div className="flex items-center justify-center">
+                    <span>Indexes</span>
+                    <div
+                      className={`absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-indigo-500 ${resizingColumn === 'indexes' ? 'bg-indigo-500' : ''}`}
+                      onMouseDown={(e) => handleMouseDown(e, 'indexes')}
+                    />
+                  </div>
                 </th>
-                <th className={`px-4 py-3 text-right text-xs font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                <th
+                  className={`px-4 py-3 text-right text-xs font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}
+                  style={{ width: `${columnWidths.actions}px` }}
+                >
                   Actions
                 </th>
               </tr>
