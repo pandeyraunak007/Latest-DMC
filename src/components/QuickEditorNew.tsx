@@ -24,7 +24,9 @@ import {
   MoreHorizontal,
   LayoutGrid,
   List,
-  ArrowUpDown
+  ArrowUpDown,
+  Copy,
+  Clock
 } from 'lucide-react';
 
 // Import types from parent component
@@ -235,6 +237,130 @@ export function QuickEditor({ tables, onTablesUpdate, isDark }: QuickEditorProps
               description: ''
             }
           ]
+        };
+      }
+      return table;
+    });
+    setLocalTables(updatedTables);
+    setHasUnsavedChanges(true);
+  };
+
+  const addPrimaryKeyColumn = () => {
+    if (!selectedTableId) return;
+
+    const updatedTables = localTables.map(table => {
+      if (table.id === selectedTableId) {
+        // Generate a smart PK name based on table name
+        const pkName = `${table.name}_id`;
+        return {
+          ...table,
+          columns: [
+            {
+              id: `col-${Date.now()}`,
+              name: pkName,
+              dataType: 'INT',
+              isPK: true,
+              isNullable: false,
+              isFK: false,
+              description: 'Primary key'
+            },
+            ...table.columns
+          ]
+        };
+      }
+      return table;
+    });
+    setLocalTables(updatedTables);
+    setHasUnsavedChanges(true);
+  };
+
+  const addForeignKeyColumn = () => {
+    if (!selectedTableId) return;
+
+    const updatedTables = localTables.map(table => {
+      if (table.id === selectedTableId) {
+        return {
+          ...table,
+          columns: [
+            ...table.columns,
+            {
+              id: `col-${Date.now()}`,
+              name: 'foreign_key_id',
+              dataType: 'INT',
+              isPK: false,
+              isNullable: true,
+              isFK: true,
+              description: 'Foreign key reference'
+            }
+          ]
+        };
+      }
+      return table;
+    });
+    setLocalTables(updatedTables);
+    setHasUnsavedChanges(true);
+  };
+
+  const addTimestampColumns = () => {
+    if (!selectedTableId) return;
+
+    const updatedTables = localTables.map(table => {
+      if (table.id === selectedTableId) {
+        return {
+          ...table,
+          columns: [
+            ...table.columns,
+            {
+              id: `col-created-${Date.now()}`,
+              name: 'created_at',
+              dataType: 'DATETIME2',
+              isPK: false,
+              isNullable: false,
+              isFK: false,
+              defaultValue: 'GETDATE()',
+              description: 'Record creation timestamp'
+            },
+            {
+              id: `col-updated-${Date.now()}`,
+              name: 'updated_at',
+              dataType: 'DATETIME2',
+              isPK: false,
+              isNullable: false,
+              isFK: false,
+              defaultValue: 'GETDATE()',
+              description: 'Record last update timestamp'
+            }
+          ]
+        };
+      }
+      return table;
+    });
+    setLocalTables(updatedTables);
+    setHasUnsavedChanges(true);
+  };
+
+  const duplicateColumn = (columnId: string) => {
+    if (!selectedTableId) return;
+
+    const updatedTables = localTables.map(table => {
+      if (table.id === selectedTableId) {
+        const columnToDuplicate = table.columns.find(c => c.id === columnId);
+        if (!columnToDuplicate) return table;
+
+        const duplicatedColumn = {
+          ...columnToDuplicate,
+          id: `col-${Date.now()}`,
+          name: `${columnToDuplicate.name}_copy`,
+          isPK: false // Don't duplicate PK
+        };
+
+        const columnIndex = table.columns.findIndex(c => c.id === columnId);
+        const newColumns = [...table.columns];
+        newColumns.splice(columnIndex + 1, 0, duplicatedColumn);
+
+        return {
+          ...table,
+          columns: newColumns
         };
       }
       return table;
@@ -544,6 +670,7 @@ export function QuickEditor({ tables, onTablesUpdate, isDark }: QuickEditorProps
 
               {hasUnsavedChanges && (
                 <>
+                  <div className={`h-6 w-px ${isDark ? 'bg-zinc-700' : 'bg-gray-300'}`} />
                   <button
                     onClick={handleCancel}
                     className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -556,7 +683,7 @@ export function QuickEditor({ tables, onTablesUpdate, isDark }: QuickEditorProps
                   </button>
                   <button
                     onClick={handleSave}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors inline-flex items-center gap-2"
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm font-medium transition-colors inline-flex items-center gap-2"
                   >
                     <Save className="w-4 h-4" />
                     Save & Update Diagram
@@ -591,6 +718,10 @@ export function QuickEditor({ tables, onTablesUpdate, isDark }: QuickEditorProps
                 onTabChange={setActiveTab}
                 onUpdateProperty={updateTableProperty}
                 onAddColumn={addColumn}
+                onAddPrimaryKeyColumn={addPrimaryKeyColumn}
+                onAddForeignKeyColumn={addForeignKeyColumn}
+                onAddTimestampColumns={addTimestampColumns}
+                onDuplicateColumn={duplicateColumn}
                 onUpdateColumn={updateColumn}
                 onDeleteColumn={deleteColumn}
                 onAddIndex={addIndex}
@@ -1033,6 +1164,10 @@ interface TableEditorViewProps {
   onTabChange: (tab: TableEditorTab) => void;
   onUpdateProperty: (field: string, value: any) => void;
   onAddColumn: () => void;
+  onAddPrimaryKeyColumn: () => void;
+  onAddForeignKeyColumn: () => void;
+  onAddTimestampColumns: () => void;
+  onDuplicateColumn: (columnId: string) => void;
   onUpdateColumn: (columnId: string, field: string, value: any) => void;
   onDeleteColumn: (columnId: string) => void;
   onAddIndex: () => void;
@@ -1055,6 +1190,10 @@ function TableEditorView({
   onTabChange,
   onUpdateProperty,
   onAddColumn,
+  onAddPrimaryKeyColumn,
+  onAddForeignKeyColumn,
+  onAddTimestampColumns,
+  onDuplicateColumn,
   onUpdateColumn,
   onDeleteColumn,
   onAddIndex,
@@ -1186,6 +1325,11 @@ function TableEditorView({
           <ColumnsTab
             table={table}
             onAddColumn={onAddColumn}
+            onAddPrimaryKeyColumn={onAddPrimaryKeyColumn}
+            onAddForeignKeyColumn={onAddForeignKeyColumn}
+            onAddTimestampColumns={onAddTimestampColumns}
+            onAddIndex={onAddIndex}
+            onDuplicateColumn={onDuplicateColumn}
             onUpdateColumn={onUpdateColumn}
             onDeleteColumn={onDeleteColumn}
             isDark={isDark}
@@ -1235,6 +1379,11 @@ function TableEditorView({
 function ColumnsTab({
   table,
   onAddColumn,
+  onAddPrimaryKeyColumn,
+  onAddForeignKeyColumn,
+  onAddTimestampColumns,
+  onAddIndex,
+  onDuplicateColumn,
   onUpdateColumn,
   onDeleteColumn,
   isDark,
@@ -1242,19 +1391,16 @@ function ColumnsTab({
 }: {
   table: Table;
   onAddColumn: () => void;
+  onAddPrimaryKeyColumn: () => void;
+  onAddForeignKeyColumn: () => void;
+  onAddTimestampColumns: () => void;
+  onAddIndex: () => void;
+  onDuplicateColumn: (columnId: string) => void;
   onUpdateColumn: (columnId: string, field: string, value: any) => void;
   onDeleteColumn: (columnId: string) => void;
   isDark: boolean;
   sqlServerDataTypes: string[];
 }) {
-  const handleSetPrimaryKey = (columnId: string) => {
-    onUpdateColumn(columnId, 'isPK', true);
-  };
-
-  const handleSetForeignKey = (columnId: string) => {
-    onUpdateColumn(columnId, 'isFK', true);
-  };
-
   return (
     <motion.div
       key="columns-tab"
@@ -1275,6 +1421,54 @@ function ColumnsTab({
           >
             <Plus className="w-3.5 h-3.5" />
             Add Column
+          </button>
+          <button
+            onClick={onAddPrimaryKeyColumn}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors inline-flex items-center gap-1.5 ${
+              isDark
+                ? 'bg-amber-600/20 hover:bg-amber-600/30 text-amber-400 border border-amber-600/30'
+                : 'bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200'
+            }`}
+            title="Add a primary key column"
+          >
+            <Key className="w-3.5 h-3.5" />
+            Add PK
+          </button>
+          <button
+            onClick={onAddForeignKeyColumn}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors inline-flex items-center gap-1.5 ${
+              isDark
+                ? 'bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 border border-purple-600/30'
+                : 'bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200'
+            }`}
+            title="Add a foreign key column"
+          >
+            <Link2 className="w-3.5 h-3.5" />
+            Add FK
+          </button>
+          <button
+            onClick={onAddIndex}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors inline-flex items-center gap-1.5 ${
+              isDark
+                ? 'bg-green-600/20 hover:bg-green-600/30 text-green-400 border border-green-600/30'
+                : 'bg-green-50 hover:bg-green-100 text-green-700 border border-green-200'
+            }`}
+            title="Add an index to this table"
+          >
+            <Zap className="w-3.5 h-3.5" />
+            Add Index
+          </button>
+          <button
+            onClick={onAddTimestampColumns}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors inline-flex items-center gap-1.5 ${
+              isDark
+                ? 'bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-600/30'
+                : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200'
+            }`}
+            title="Add created_at and updated_at timestamp columns"
+          >
+            <Clock className="w-3.5 h-3.5" />
+            Add Timestamps
           </button>
         </div>
       </div>
@@ -1385,14 +1579,26 @@ function ColumnsTab({
                     />
                   </td>
                   <td className="px-3 py-2 text-center">
-                    <button
-                      onClick={() => onDeleteColumn(col.id)}
-                      className={`p-1.5 rounded transition-colors ${
-                        isDark ? 'text-gray-400 hover:text-red-400 hover:bg-red-500/10' : 'text-gray-600 hover:text-red-600 hover:bg-red-50'
-                      }`}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center justify-center gap-1">
+                      <button
+                        onClick={() => onDuplicateColumn(col.id)}
+                        className={`p-1.5 rounded transition-colors ${
+                          isDark ? 'text-gray-400 hover:text-blue-400 hover:bg-blue-500/10' : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+                        }`}
+                        title="Duplicate column"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => onDeleteColumn(col.id)}
+                        className={`p-1.5 rounded transition-colors ${
+                          isDark ? 'text-gray-400 hover:text-red-400 hover:bg-red-500/10' : 'text-gray-600 hover:text-red-600 hover:bg-red-50'
+                        }`}
+                        title="Delete column"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
