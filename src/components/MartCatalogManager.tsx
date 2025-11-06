@@ -413,18 +413,18 @@ export default function MartCatalogManager() {
   const getNodeIcon = (node: TreeNode, isExpanded: boolean) => {
     switch (node.type) {
       case 'mart':
-        return <Database className="w-4 h-4 text-purple-400" />;
+        return <Database className="w-4 h-4 text-purple-400 drop-shadow-sm" />;
       case 'library':
         if (node.name === 'Templates') {
-          return <Archive className="w-4 h-4 text-amber-400" />;
+          return <Archive className="w-4 h-4 text-amber-400 drop-shadow-sm" />;
         }
-        return isExpanded ? <FolderOpen className="w-4 h-4 text-blue-400" /> : <Folder className="w-4 h-4 text-blue-400" />;
+        return isExpanded ? <FolderOpen className="w-4 h-4 text-sky-400 drop-shadow-sm" /> : <Folder className="w-4 h-4 text-sky-400 drop-shadow-sm" />;
       case 'model':
-        return <FileText className="w-4 h-4 text-emerald-400" />;
+        return <FileText className="w-4 h-4 text-emerald-400 drop-shadow-sm" />;
       case 'version':
-        return node.versionType === 'named' ? <Star className="w-4 h-4 text-amber-400" /> : <GitBranch className="w-4 h-4 text-gray-400" />;
+        return node.versionType === 'named' ? <Star className="w-4 h-4 text-amber-400 drop-shadow-sm" /> : <GitBranch className="w-4 h-4 text-slate-400 drop-shadow-sm" />;
       case 'template':
-        return <FileCode className="w-4 h-4 text-violet-400" />;
+        return <FileCode className="w-4 h-4 text-violet-400 drop-shadow-sm" />;
     }
   };
 
@@ -462,10 +462,12 @@ export default function MartCatalogManager() {
     return (
       <div key={node.id}>
         <div
-          className={`flex items-center gap-1 px-2 py-1.5 hover:bg-zinc-800/50 cursor-pointer group transition-colors relative ${
-            isSelected ? 'bg-indigo-600/20 text-indigo-300 border-l-2 border-indigo-500' : 'text-zinc-300'
+          className={`flex items-center gap-1.5 px-2.5 py-2 hover:bg-zinc-800/60 cursor-pointer group transition-all duration-150 relative ${
+            isSelected
+              ? 'bg-gradient-to-r from-indigo-600/25 via-indigo-600/20 to-transparent text-indigo-100 border-l-2 border-indigo-500 shadow-lg shadow-indigo-500/10'
+              : 'text-zinc-200 hover:text-zinc-50'
           } ${node.isHidden ? 'opacity-50' : ''}`}
-          style={{ paddingLeft: `${depth * 16 + 8}px` }}
+          style={{ paddingLeft: `${depth * 16 + 10}px` }}
           onClick={() => {
             setSelectedNode(node);
             setEditForm({ name: node.name, description: node.description || '' });
@@ -478,19 +480,19 @@ export default function MartCatalogManager() {
           onDragStart={() => setDraggedNode(node)}
           onDragEnd={() => setDraggedNode(null)}
         >
-          <div className="flex items-center gap-1 flex-1">
+          <div className="flex items-center gap-1.5 flex-1 min-w-0">
             {hasChildren ? (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   toggleNode(node.id);
                 }}
-                className="p-0.5 hover:bg-zinc-700 rounded flex-shrink-0"
+                className="p-0.5 hover:bg-zinc-700/80 rounded transition-all flex-shrink-0"
               >
                 {isExpanded ? (
-                  <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
+                  <ChevronDown className="w-3.5 h-3.5 text-zinc-300" />
                 ) : (
-                  <ChevronRight className="w-3.5 h-3.5 text-zinc-400" />
+                  <ChevronRight className="w-3.5 h-3.5 text-zinc-300" />
                 )}
               </button>
             ) : (
@@ -499,20 +501,20 @@ export default function MartCatalogManager() {
 
             {getNodeIcon(node, isExpanded)}
 
-            <span className="text-sm flex-1 truncate">{node.name}</span>
+            <span className="text-sm flex-1 truncate font-medium">{node.name}</span>
 
-            {node.isHidden && <EyeOff className="w-3 h-3 text-zinc-500 flex-shrink-0" />}
+            {node.isHidden && <EyeOff className="w-3 h-3 text-zinc-400 flex-shrink-0" />}
             {node.versionType === 'named' && <Tag className="w-3 h-3 text-amber-400 flex-shrink-0" />}
           </div>
 
           <button
-            className="p-0.5 opacity-0 group-hover:opacity-100 hover:bg-zinc-700 rounded flex-shrink-0"
+            className="p-0.5 opacity-0 group-hover:opacity-100 hover:bg-zinc-700/80 rounded transition-all flex-shrink-0"
             onClick={(e) => {
               e.stopPropagation();
               setContextMenu({ visible: true, x: e.clientX, y: e.clientY, node });
             }}
           >
-            <MoreVertical className="w-3.5 h-3.5 text-zinc-400" />
+            <MoreVertical className="w-3.5 h-3.5 text-zinc-300" />
           </button>
         </div>
 
@@ -526,32 +528,36 @@ export default function MartCatalogManager() {
   };
 
   return (
-    <div className="h-full flex bg-zinc-950" onClick={() => setContextMenu({ visible: false, x: 0, y: 0, node: null })}>
+    <div className="h-full flex bg-gradient-to-br from-zinc-950 to-zinc-900" onClick={() => setContextMenu({ visible: false, x: 0, y: 0, node: null })}>
       {/* Left Column - Tree View */}
-      <div className="w-96 border-r border-zinc-800 flex flex-col bg-zinc-900/50">
+      <div className="w-96 border-r border-zinc-800/60 flex flex-col bg-zinc-900/80 backdrop-blur-sm shadow-2xl">
         {/* Tree Header */}
-        <div className="p-3 border-b border-zinc-800">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
-              <FolderTree className="w-4 h-4 text-indigo-400" />
+        <div className="p-4 border-b border-zinc-800/60 bg-gradient-to-b from-zinc-800/40 to-transparent">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-zinc-50 flex items-center gap-2.5 tracking-tight">
+              <div className="p-1.5 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-md shadow-lg shadow-indigo-500/20">
+                <FolderTree className="w-3.5 h-3.5 text-white" />
+              </div>
               Catalog Hierarchy
             </h3>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <button
                 onClick={() => setShowHiddenVersions(!showHiddenVersions)}
-                className={`p-1.5 rounded transition-colors ${
-                  showHiddenVersions ? 'bg-indigo-600 text-white' : 'hover:bg-zinc-800 text-zinc-400'
+                className={`p-1.5 rounded-md transition-all duration-200 ${
+                  showHiddenVersions
+                    ? 'bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/25'
+                    : 'hover:bg-zinc-800/80 text-zinc-400 hover:text-zinc-300'
                 }`}
                 title={showHiddenVersions ? 'Hide hidden versions' : 'Show hidden versions'}
               >
                 {showHiddenVersions ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
               </button>
-              <button className="p-1.5 hover:bg-zinc-800 rounded transition-colors text-zinc-400">
+              <button className="p-1.5 hover:bg-zinc-800/80 rounded-md transition-all duration-200 text-zinc-400 hover:text-zinc-300">
                 <RefreshCw className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
-          <p className="text-xs text-zinc-500">Right-click for context menu</p>
+          <p className="text-xs text-zinc-400 font-medium">Right-click for context menu</p>
         </div>
 
         {/* Tree View */}
@@ -563,12 +569,12 @@ export default function MartCatalogManager() {
       {/* Right Column - Details Panel */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Toolbar */}
-        <div className="px-4 py-3 border-b border-zinc-800 bg-zinc-900/30">
+        <div className="px-4 py-3.5 border-b border-zinc-800/60 bg-gradient-to-b from-zinc-800/30 to-transparent backdrop-blur-sm shadow-lg">
           <div className="flex items-center gap-2">
             <button
               onClick={() => selectedNode && handleCreateLibrary()}
               disabled={isCreateLibraryDisabled()}
-              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-medium transition-colors flex items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-indigo-600"
+              className="px-3.5 py-2 bg-gradient-to-br from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white rounded-md text-xs font-semibold transition-all duration-200 flex items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:from-indigo-500 shadow-md shadow-indigo-500/25 hover:shadow-lg hover:shadow-indigo-500/40"
             >
               <Plus className="w-3.5 h-3.5" />
               Create Library
@@ -576,7 +582,7 @@ export default function MartCatalogManager() {
             <button
               onClick={() => selectedNode && handleMarkAsNamed()}
               disabled={isMarkVersionDisabled()}
-              className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-xs font-medium transition-colors flex items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="px-3.5 py-2 bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-200 rounded-md text-xs font-semibold transition-all duration-200 flex items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed border border-zinc-700/50 hover:border-zinc-600/50"
             >
               <Tag className="w-3.5 h-3.5" />
               Mark as Named
@@ -584,7 +590,7 @@ export default function MartCatalogManager() {
             <button
               onClick={() => selectedNode && handleHideVersion()}
               disabled={isHideVersionDisabled()}
-              className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-xs font-medium transition-colors flex items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="px-3.5 py-2 bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-200 rounded-md text-xs font-semibold transition-all duration-200 flex items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed border border-zinc-700/50 hover:border-zinc-600/50"
             >
               <EyeOff className="w-3.5 h-3.5" />
               Hide Version
@@ -592,7 +598,7 @@ export default function MartCatalogManager() {
             <button
               onClick={() => selectedNode && handleUnhideVersion()}
               disabled={isUnhideVersionDisabled()}
-              className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-xs font-medium transition-colors flex items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="px-3.5 py-2 bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-200 rounded-md text-xs font-semibold transition-all duration-200 flex items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed border border-zinc-700/50 hover:border-zinc-600/50"
             >
               <Eye className="w-3.5 h-3.5" />
               Unhide Version
@@ -601,7 +607,7 @@ export default function MartCatalogManager() {
             <button
               onClick={() => selectedNode && handleDelete()}
               disabled={isDeleteDisabled()}
-              className="px-3 py-1.5 bg-red-600/10 hover:bg-red-600/20 text-red-400 rounded text-xs font-medium transition-colors flex items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="px-3.5 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 rounded-md text-xs font-semibold transition-all duration-200 flex items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed border border-red-500/20 hover:border-red-500/40"
             >
               <Trash2 className="w-3.5 h-3.5" />
               Delete
@@ -613,55 +619,55 @@ export default function MartCatalogManager() {
         <div className="flex-1 overflow-auto p-6">
           {selectedNode ? (
             <div className="max-w-2xl">
-              <div className="mb-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-zinc-800 rounded-lg">
+              <div className="mb-8">
+                <div className="flex items-center gap-4 mb-3">
+                  <div className="p-3 bg-gradient-to-br from-zinc-800 to-zinc-800/50 rounded-xl shadow-lg border border-zinc-700/50">
                     {getNodeIcon(selectedNode, false)}
                   </div>
                   <div>
-                    <h2 className="text-lg font-semibold text-zinc-100">{selectedNode.name}</h2>
-                    <p className="text-xs text-zinc-500 capitalize">{selectedNode.type}</p>
+                    <h2 className="text-xl font-bold text-zinc-50 tracking-tight">{selectedNode.name}</h2>
+                    <p className="text-xs text-zinc-400 capitalize font-medium mt-1">{selectedNode.type}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-5">
                 {/* Name Field */}
                 <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-2">Name</label>
+                  <label className="block text-sm font-semibold text-zinc-200 mb-2.5">Name</label>
                   <input
                     type="text"
                     value={editForm.name}
                     onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500"
+                    className="w-full px-4 py-2.5 bg-zinc-800/80 border border-zinc-700/60 rounded-lg text-zinc-50 placeholder-zinc-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 shadow-sm hover:border-zinc-600/60"
                     placeholder="Enter name..."
                   />
                 </div>
 
                 {/* Description Field */}
                 <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-2">Description</label>
+                  <label className="block text-sm font-semibold text-zinc-200 mb-2.5">Description</label>
                   <textarea
                     value={editForm.description}
                     onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
                     rows={4}
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 resize-none"
+                    className="w-full px-4 py-2.5 bg-zinc-800/80 border border-zinc-700/60 rounded-lg text-zinc-50 placeholder-zinc-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 resize-none transition-all duration-200 shadow-sm hover:border-zinc-600/60"
                     placeholder="Enter description..."
                   />
                 </div>
 
                 {/* Additional Info */}
                 {selectedNode.type === 'version' && (
-                  <div className="p-4 bg-zinc-800 rounded-lg space-y-3">
-                    <h4 className="text-xs font-semibold text-zinc-400 uppercase">Version Information</h4>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="p-5 bg-gradient-to-br from-zinc-800/80 to-zinc-800/50 rounded-xl space-y-4 border border-zinc-700/50 shadow-lg">
+                    <h4 className="text-xs font-bold text-zinc-300 uppercase tracking-wider">Version Information</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <span className="text-zinc-500">Type:</span>
-                        <div className="mt-1">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs ${
+                        <span className="text-zinc-400 text-xs font-medium">Type</span>
+                        <div className="mt-2">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold shadow-sm ${
                             selectedNode.versionType === 'named'
-                              ? 'bg-amber-500/10 text-amber-400'
-                              : 'bg-gray-500/10 text-gray-400'
+                              ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                              : 'bg-gray-500/15 text-gray-300 border border-gray-500/30'
                           }`}>
                             {selectedNode.versionType === 'named' ? <Star className="w-3 h-3" /> : <GitBranch className="w-3 h-3" />}
                             {selectedNode.versionType === 'named' ? 'Named Version' : 'Delta Version'}
@@ -669,12 +675,12 @@ export default function MartCatalogManager() {
                         </div>
                       </div>
                       <div>
-                        <span className="text-zinc-500">Status:</span>
-                        <div className="mt-1">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs ${
+                        <span className="text-zinc-400 text-xs font-medium">Status</span>
+                        <div className="mt-2">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold shadow-sm ${
                             selectedNode.isHidden
-                              ? 'bg-red-500/10 text-red-400'
-                              : 'bg-green-500/10 text-green-400'
+                              ? 'bg-red-500/15 text-red-300 border border-red-500/30'
+                              : 'bg-green-500/15 text-green-300 border border-green-500/30'
                           }`}>
                             {selectedNode.isHidden ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                             {selectedNode.isHidden ? 'Hidden' : 'Visible'}
@@ -683,14 +689,14 @@ export default function MartCatalogManager() {
                       </div>
                       {selectedNode.createdDate && (
                         <div>
-                          <span className="text-zinc-500">Created:</span>
-                          <p className="text-zinc-300">{selectedNode.createdDate}</p>
+                          <span className="text-zinc-400 text-xs font-medium">Created</span>
+                          <p className="text-zinc-100 font-medium mt-1.5">{selectedNode.createdDate}</p>
                         </div>
                       )}
                       {selectedNode.author && (
                         <div>
-                          <span className="text-zinc-500">Author:</span>
-                          <p className="text-zinc-300">{selectedNode.author}</p>
+                          <span className="text-zinc-400 text-xs font-medium">Author</span>
+                          <p className="text-zinc-100 font-medium mt-1.5">{selectedNode.author}</p>
                         </div>
                       )}
                     </div>
@@ -698,17 +704,17 @@ export default function MartCatalogManager() {
                 )}
 
                 {/* Action Buttons */}
-                <div className="flex gap-3 pt-4">
+                <div className="flex gap-3 pt-6">
                   <button
                     onClick={handleSubmit}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                    className="px-5 py-2.5 bg-gradient-to-br from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2 shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40"
                   >
                     <Save className="w-4 h-4" />
                     Submit
                   </button>
                   <button
                     onClick={handleCancel}
-                    className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                    className="px-5 py-2.5 bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-200 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2 border border-zinc-700/50 hover:border-zinc-600/50"
                   >
                     <X className="w-4 h-4" />
                     Cancel
@@ -719,11 +725,11 @@ export default function MartCatalogManager() {
           ) : (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <div className="inline-flex p-4 bg-zinc-800 rounded-full mb-3">
-                  <FolderTree className="w-8 h-8 text-zinc-600" />
+                <div className="inline-flex p-6 bg-gradient-to-br from-zinc-800/80 to-zinc-800/50 rounded-2xl mb-4 shadow-xl border border-zinc-700/50">
+                  <FolderTree className="w-10 h-10 text-zinc-500" />
                 </div>
-                <h3 className="text-sm font-medium text-zinc-300 mb-1">No Item Selected</h3>
-                <p className="text-xs text-zinc-500">
+                <h3 className="text-base font-semibold text-zinc-200 mb-2">No Item Selected</h3>
+                <p className="text-sm text-zinc-400 max-w-xs">
                   Select an item from the catalog hierarchy to view and edit its details
                 </p>
               </div>
@@ -736,102 +742,105 @@ export default function MartCatalogManager() {
       <AnimatePresence>
         {contextMenu.visible && contextMenu.node && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.96, y: -8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: -8 }}
+            transition={{ duration: 0.15 }}
             style={{ position: 'fixed', left: contextMenu.x, top: contextMenu.y }}
-            className="bg-zinc-900 border border-zinc-700 rounded-lg shadow-2xl z-50 min-w-[200px] overflow-hidden"
+            className="bg-zinc-900/95 backdrop-blur-xl border border-zinc-700/60 rounded-lg shadow-2xl z-50 min-w-[220px] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {(contextMenu.node.type === 'mart' || contextMenu.node.type === 'library') && (
-              <button
-                onClick={handleCreateLibrary}
-                className="w-full px-3 py-2 text-left text-xs hover:bg-zinc-800 flex items-center gap-2 text-zinc-300 transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Create Library
-              </button>
-            )}
-            {contextMenu.node.type === 'model' && (
-              <>
+            <div className="py-1">
+              {(contextMenu.node.type === 'mart' || contextMenu.node.type === 'library') && (
                 <button
-                  onClick={handleCreateNamedVersion}
-                  className="w-full px-3 py-2 text-left text-xs hover:bg-zinc-800 flex items-center gap-2 text-zinc-300 transition-colors"
+                  onClick={handleCreateLibrary}
+                  className="w-full px-4 py-2.5 text-left text-xs hover:bg-zinc-800/80 flex items-center gap-2.5 text-zinc-200 transition-all duration-150 font-medium"
                 >
-                  <Star className="w-3.5 h-3.5" />
-                  Create Named Version
+                  <Plus className="w-3.5 h-3.5 text-indigo-400" />
+                  Create Library
                 </button>
-                <button
-                  onClick={handleCreateDeltaVersion}
-                  className="w-full px-3 py-2 text-left text-xs hover:bg-zinc-800 flex items-center gap-2 text-zinc-300 transition-colors"
-                >
-                  <GitBranch className="w-3.5 h-3.5" />
-                  Create Delta Version
-                </button>
-              </>
-            )}
-            {contextMenu.node.type === 'version' && (
-              <>
-                {contextMenu.node.versionType === 'delta' && (
+              )}
+              {contextMenu.node.type === 'model' && (
+                <>
                   <button
-                    onClick={handleMarkAsNamed}
-                    className="w-full px-3 py-2 text-left text-xs hover:bg-zinc-800 flex items-center gap-2 text-zinc-300 transition-colors"
+                    onClick={handleCreateNamedVersion}
+                    className="w-full px-4 py-2.5 text-left text-xs hover:bg-zinc-800/80 flex items-center gap-2.5 text-zinc-200 transition-all duration-150 font-medium"
                   >
-                    <Tag className="w-3.5 h-3.5" />
-                    Mark as Named Version
+                    <Star className="w-3.5 h-3.5 text-amber-400" />
+                    Create Named Version
                   </button>
-                )}
-                {!contextMenu.node.isHidden ? (
                   <button
-                    onClick={handleHideVersion}
-                    className="w-full px-3 py-2 text-left text-xs hover:bg-zinc-800 flex items-center gap-2 text-zinc-300 transition-colors"
+                    onClick={handleCreateDeltaVersion}
+                    className="w-full px-4 py-2.5 text-left text-xs hover:bg-zinc-800/80 flex items-center gap-2.5 text-zinc-200 transition-all duration-150 font-medium"
                   >
-                    <EyeOff className="w-3.5 h-3.5" />
-                    Hide Version
+                    <GitBranch className="w-3.5 h-3.5 text-gray-400" />
+                    Create Delta Version
                   </button>
-                ) : (
+                </>
+              )}
+              {contextMenu.node.type === 'version' && (
+                <>
+                  {contextMenu.node.versionType === 'delta' && (
+                    <button
+                      onClick={handleMarkAsNamed}
+                      className="w-full px-4 py-2.5 text-left text-xs hover:bg-zinc-800/80 flex items-center gap-2.5 text-zinc-200 transition-all duration-150 font-medium"
+                    >
+                      <Tag className="w-3.5 h-3.5 text-amber-400" />
+                      Mark as Named Version
+                    </button>
+                  )}
+                  {!contextMenu.node.isHidden ? (
+                    <button
+                      onClick={handleHideVersion}
+                      className="w-full px-4 py-2.5 text-left text-xs hover:bg-zinc-800/80 flex items-center gap-2.5 text-zinc-200 transition-all duration-150 font-medium"
+                    >
+                      <EyeOff className="w-3.5 h-3.5 text-zinc-400" />
+                      Hide Version
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleUnhideVersion}
+                      className="w-full px-4 py-2.5 text-left text-xs hover:bg-zinc-800/80 flex items-center gap-2.5 text-zinc-200 transition-all duration-150 font-medium"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-green-400" />
+                      Unhide Version
+                    </button>
+                  )}
+                </>
+              )}
+              {contextMenu.node.type !== 'mart' && contextMenu.node.type !== 'template' && (
+                <>
+                  <div className="border-t border-zinc-800/60 my-1" />
                   <button
-                    onClick={handleUnhideVersion}
-                    className="w-full px-3 py-2 text-left text-xs hover:bg-zinc-800 flex items-center gap-2 text-zinc-300 transition-colors"
+                    onClick={() => handleEdit(contextMenu.node!)}
+                    className="w-full px-4 py-2.5 text-left text-xs hover:bg-zinc-800/80 flex items-center gap-2.5 text-zinc-200 transition-all duration-150 font-medium"
                   >
-                    <Eye className="w-3.5 h-3.5" />
-                    Unhide Version
+                    <Edit3 className="w-3.5 h-3.5 text-blue-400" />
+                    Edit
                   </button>
-                )}
-              </>
-            )}
-            {contextMenu.node.type !== 'mart' && contextMenu.node.type !== 'template' && (
-              <>
-                <div className="border-t border-zinc-800 my-1" />
-                <button
-                  onClick={() => handleEdit(contextMenu.node!)}
-                  className="w-full px-3 py-2 text-left text-xs hover:bg-zinc-800 flex items-center gap-2 text-zinc-300 transition-colors"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  Edit
-                </button>
-                <button className="w-full px-3 py-2 text-left text-xs hover:bg-zinc-800 flex items-center gap-2 text-zinc-300 transition-colors">
-                  <Copy className="w-3.5 h-3.5" />
-                  Copy
-                </button>
-                <button className="w-full px-3 py-2 text-left text-xs hover:bg-zinc-800 flex items-center gap-2 text-zinc-300 transition-colors">
-                  <Move className="w-3.5 h-3.5" />
-                  Move
-                </button>
-              </>
-            )}
-            {contextMenu.node.type !== 'mart' && (
-              <>
-                <div className="border-t border-zinc-800 my-1" />
-                <button
-                  onClick={handleDelete}
-                  className="w-full px-3 py-2 text-left text-xs hover:bg-zinc-800 flex items-center gap-2 text-red-400 transition-colors"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Delete
-                </button>
-              </>
-            )}
+                  <button className="w-full px-4 py-2.5 text-left text-xs hover:bg-zinc-800/80 flex items-center gap-2.5 text-zinc-200 transition-all duration-150 font-medium">
+                    <Copy className="w-3.5 h-3.5 text-emerald-400" />
+                    Copy
+                  </button>
+                  <button className="w-full px-4 py-2.5 text-left text-xs hover:bg-zinc-800/80 flex items-center gap-2.5 text-zinc-200 transition-all duration-150 font-medium">
+                    <Move className="w-3.5 h-3.5 text-purple-400" />
+                    Move
+                  </button>
+                </>
+              )}
+              {contextMenu.node.type !== 'mart' && (
+                <>
+                  <div className="border-t border-zinc-800/60 my-1" />
+                  <button
+                    onClick={handleDelete}
+                    className="w-full px-4 py-2.5 text-left text-xs hover:bg-red-500/10 flex items-center gap-2.5 text-red-400 hover:text-red-300 transition-all duration-150 font-medium"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Delete
+                  </button>
+                </>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
