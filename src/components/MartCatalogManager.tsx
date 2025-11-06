@@ -553,7 +553,10 @@ export default function MartCatalogManager() {
             </h3>
             <div className="flex items-center gap-1.5">
               <button
-                onClick={() => setIsDark(!isDark)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsDark(!isDark);
+                }}
                 className={`p-1.5 rounded-md transition-all duration-200 ${
                   isDark
                     ? 'hover:bg-zinc-800/80 text-zinc-400 hover:text-zinc-300'
