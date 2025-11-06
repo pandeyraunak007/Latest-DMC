@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { QuickEditor } from './QuickEditorNew';
 import {
   Box,
   Plus,
@@ -77,6 +78,34 @@ import {
 // Types
 type ViewMode = 'diagram' | 'quick-editor' | 'properties';
 type Tool = 'select' | 'table' | 'relationship' | 'note' | 'move';
+type EditorViewMode = 'table-list' | 'table-editor';
+type TableEditorTab = 'columns' | 'indexes' | 'foreignKeys' | 'constraints' | 'businessTerms' | 'triggers';
+
+interface TableIndex {
+  id: string;
+  name: string;
+  columns: string[];
+  isUnique: boolean;
+  type: 'CLUSTERED' | 'NONCLUSTERED' | 'HASH';
+}
+
+interface ForeignKey {
+  id: string;
+  name: string;
+  column: string;
+  referencedTable: string;
+  referencedColumn: string;
+  onDelete: 'CASCADE' | 'SET NULL' | 'NO ACTION' | 'RESTRICT';
+  onUpdate: 'CASCADE' | 'SET NULL' | 'NO ACTION' | 'RESTRICT';
+}
+
+interface TableConstraint {
+  id: string;
+  name: string;
+  type: 'CHECK' | 'UNIQUE' | 'DEFAULT';
+  expression: string;
+  columns?: string[];
+}
 
 interface Table {
   id: string;
@@ -84,6 +113,17 @@ interface Table {
   x: number;
   y: number;
   columns: Column[];
+  schema?: string;
+  tableType?: 'Disk Based' | 'Memory Optimized' | 'File Table';
+  description?: string;
+  filegroup?: string;
+  lockEscalation?: 'AUTO' | 'TABLE' | 'DISABLE';
+  indexes?: TableIndex[];
+  foreignKeys?: ForeignKey[];
+  constraints?: TableConstraint[];
+  businessTerms?: string[];
+  triggers?: string[];
+  comments?: string;
 }
 
 interface Column {
@@ -93,6 +133,18 @@ interface Column {
   isPK: boolean;
   isNullable: boolean;
   defaultValue?: string;
+  isFK?: boolean;
+  description?: string;
+  // SQL Server specific properties
+  isRowGuid?: boolean;
+  isSparse?: boolean;
+  isHidden?: boolean;
+  collation?: string;
+  averageWidth?: number;
+  percentNull?: number;
+  isPersisted?: boolean;
+  columnMaskFunction?: string;
+  encryptionType?: string;
 }
 
 interface Relationship {
@@ -1536,330 +1588,7 @@ function DiagramView({
   );
 }
 
-// Quick Editor Component
-function QuickEditor({ tables, onTablesUpdate, isDark }: { tables: Table[]; onTablesUpdate: (tables: Table[]) => void; isDark: boolean }) {
-  const [editingTable, setEditingTable] = useState<string | null>(null);
-  const [collapsedTables, setCollapsedTables] = useState<Set<string>>(new Set());
-  const [allCollapsed, setAllCollapsed] = useState(false);
-
-  const addNewTable = () => {
-    const newTable: Table = {
-      id: `table-${Date.now()}`,
-      name: 'NewTable',
-      x: 100,
-      y: 100,
-      columns: []
-    };
-    onTablesUpdate([...tables, newTable]);
-    setEditingTable(newTable.id);
-    // Automatically expand the new table
-    setCollapsedTables(prev => {
-      const next = new Set(prev);
-      next.delete(newTable.id);
-      return next;
-    });
-  };
-
-  const addColumn = (tableId: string) => {
-    const updatedTables = tables.map(table => {
-      if (table.id === tableId) {
-        return {
-          ...table,
-          columns: [
-            ...table.columns,
-            {
-              id: `col-${Date.now()}`,
-              name: 'new_column',
-              dataType: 'VARCHAR(50)',
-              isPK: false,
-              isNullable: true
-            }
-          ]
-        };
-      }
-      return table;
-    });
-    onTablesUpdate(updatedTables);
-  };
-
-  const toggleTableCollapse = (tableId: string) => {
-    setCollapsedTables(prev => {
-      const next = new Set(prev);
-      if (next.has(tableId)) {
-        next.delete(tableId);
-      } else {
-        next.add(tableId);
-      }
-      return next;
-    });
-  };
-
-  const toggleCollapseAll = () => {
-    if (allCollapsed) {
-      // Expand all
-      setCollapsedTables(new Set());
-      setAllCollapsed(false);
-    } else {
-      // Collapse all
-      setCollapsedTables(new Set(tables.map(t => t.id)));
-      setAllCollapsed(true);
-    }
-  };
-
-  return (
-    <motion.div
-      key="quick-editor"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="flex-1 bg-zinc-950 overflow-auto p-6"
-    >
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className={`text-lg font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Quick Editor</h2>
-            <p className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
-              Add and edit tables in spreadsheet mode • {tables.length} {tables.length === 1 ? 'table' : 'tables'}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={toggleCollapseAll}
-              className={`px-3 py-2 rounded-md text-xs font-medium transition-all inline-flex items-center gap-2 ${
-                isDark
-                  ? 'bg-zinc-800 hover:bg-zinc-700 text-gray-300 border border-zinc-700'
-                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300'
-              }`}
-              title={allCollapsed ? 'Expand all tables' : 'Collapse all tables'}
-            >
-              {allCollapsed ? (
-                <>
-                  <Expand className="w-3.5 h-3.5" />
-                  Expand All
-                </>
-              ) : (
-                <>
-                  <Minimize2 className="w-3.5 h-3.5" />
-                  Collapse All
-                </>
-              )}
-            </button>
-            <button
-              onClick={addNewTable}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md text-xs font-medium hover:bg-indigo-700 transition-colors inline-flex items-center gap-2"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Add Table
-            </button>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          {tables.map(table => {
-            const isCollapsed = collapsedTables.has(table.id);
-            return (
-              <motion.div
-                key={table.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`border rounded-lg overflow-hidden transition-all ${
-                  isDark ? 'border-zinc-800 bg-zinc-900/50' : 'border-gray-200 bg-white'
-                }`}
-              >
-                {/* Table Header */}
-                <div className={`px-4 py-3 border-b flex items-center justify-between ${
-                  isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-gray-50 border-gray-200'
-                }`}>
-                  <div className="flex items-center gap-3 flex-1">
-                    {/* Collapse/Expand Button */}
-                    <button
-                      onClick={() => toggleTableCollapse(table.id)}
-                      className={`p-1 rounded transition-all ${
-                        isDark ? 'hover:bg-zinc-800 text-gray-400 hover:text-gray-200' : 'hover:bg-gray-200 text-gray-600 hover:text-gray-900'
-                      }`}
-                      title={isCollapsed ? 'Expand table' : 'Collapse table'}
-                    >
-                      <motion.div
-                        animate={{ rotate: isCollapsed ? -90 : 0 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <ChevronDown className="w-4 h-4" />
-                      </motion.div>
-                    </button>
-
-                    <Table2 className={`w-4 h-4 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`} />
-
-                    <input
-                      type="text"
-                      defaultValue={table.name}
-                      className={`text-sm font-semibold bg-transparent border-none focus:outline-none focus:ring-0 ${
-                        isDark ? 'text-gray-100' : 'text-gray-900'
-                      }`}
-                      placeholder="Table Name"
-                    />
-
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      isDark ? 'bg-zinc-800 text-gray-400' : 'bg-gray-200 text-gray-600'
-                    }`}>
-                      {table.columns.length} {table.columns.length === 1 ? 'column' : 'columns'}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {!isCollapsed && (
-                      <button
-                        onClick={() => addColumn(table.id)}
-                        className={`px-2.5 py-1.5 text-xs font-medium rounded transition-all inline-flex items-center gap-1.5 ${
-                          isDark ? 'text-indigo-400 hover:bg-indigo-500/20' : 'text-indigo-600 hover:bg-indigo-50'
-                        }`}
-                      >
-                        <Plus className="w-3 h-3" />
-                        Add Column
-                      </button>
-                    )}
-                    <button className={`p-1.5 rounded transition-colors ${
-                      isDark ? 'text-gray-400 hover:text-red-400 hover:bg-red-500/10' : 'text-gray-600 hover:text-red-600 hover:bg-red-50'
-                    }`}>
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Columns Table - Collapsible */}
-                <AnimatePresence initial={false}>
-                  {!isCollapsed && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3, ease: 'easeInOut' }}
-                      className="overflow-hidden"
-                    >
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-xs">
-                          <thead className={isDark ? 'bg-zinc-900 border-b border-zinc-800' : 'bg-gray-50 border-b border-gray-200'}>
-                            <tr>
-                              <th className={`px-4 py-2 text-left font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Column Name</th>
-                              <th className={`px-4 py-2 text-left font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Data Type</th>
-                              <th className={`px-4 py-2 text-center font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>PK</th>
-                              <th className={`px-4 py-2 text-center font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Nullable</th>
-                              <th className={`px-4 py-2 text-left font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Default</th>
-                              <th className={`px-4 py-2 text-center font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {table.columns.length === 0 ? (
-                              <tr>
-                                <td colSpan={6} className={`px-4 py-8 text-center ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                                  <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                                  <p className="text-xs">No columns yet. Click "Add Column" to start.</p>
-                                </td>
-                              </tr>
-                            ) : (
-                              table.columns.map(col => (
-                                <tr key={col.id} className={`border-b transition-colors ${
-                                  isDark ? 'border-zinc-800 hover:bg-zinc-800/50' : 'border-gray-200 hover:bg-gray-50'
-                                }`}>
-                                  <td className="px-4 py-2">
-                                    <input
-                                      type="text"
-                                      defaultValue={col.name}
-                                      className={`w-full bg-transparent border rounded px-2 py-1 text-xs focus:outline-none ${
-                                        isDark ? 'border-zinc-700 text-gray-100 focus:border-indigo-500' : 'border-gray-300 text-gray-900 focus:border-indigo-500'
-                                      }`}
-                                    />
-                                  </td>
-                                  <td className="px-4 py-2">
-                                    <input
-                                      type="text"
-                                      defaultValue={col.dataType}
-                                      className={`w-full bg-transparent border rounded px-2 py-1 text-xs focus:outline-none ${
-                                        isDark ? 'border-zinc-700 text-gray-100 focus:border-indigo-500' : 'border-gray-300 text-gray-900 focus:border-indigo-500'
-                                      }`}
-                                    />
-                                  </td>
-                                  <td className="px-4 py-2 text-center">
-                                    <input
-                                      type="checkbox"
-                                      checked={col.isPK}
-                                      className={`rounded text-indigo-600 focus:ring-indigo-500 ${isDark ? 'border-zinc-600 bg-zinc-800' : 'border-gray-300 bg-white'}`}
-                                    />
-                                  </td>
-                                  <td className="px-4 py-2 text-center">
-                                    <input
-                                      type="checkbox"
-                                      checked={col.isNullable}
-                                      className={`rounded text-indigo-600 focus:ring-indigo-500 ${isDark ? 'border-zinc-600 bg-zinc-800' : 'border-gray-300 bg-white'}`}
-                                    />
-                                  </td>
-                                  <td className="px-4 py-2">
-                                    <input
-                                      type="text"
-                                      defaultValue={col.defaultValue || ''}
-                                      placeholder="NULL"
-                                      className={`w-full bg-transparent border rounded px-2 py-1 text-xs focus:outline-none ${
-                                        isDark ? 'border-zinc-700 text-gray-100 focus:border-indigo-500' : 'border-gray-300 text-gray-900 focus:border-indigo-500'
-                                      }`}
-                                    />
-                                  </td>
-                                  <td className="px-4 py-2 text-center">
-                                    <button className={`p-1 rounded transition-colors ${
-                                      isDark ? 'text-gray-400 hover:text-red-400 hover:bg-red-500/10' : 'text-gray-600 hover:text-red-600 hover:bg-red-50'
-                                    }`}>
-                                      <Trash2 className="w-3 h-3" />
-                                    </button>
-                                  </td>
-                                </tr>
-                              ))
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            );
-          })}
-
-          {tables.length === 0 && (
-            <div className="text-center py-12 border-2 border-dashed border-zinc-700 rounded-lg">
-              <Table2 className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-              <h3 className="text-sm font-medium text-gray-300 mb-2">No Tables Yet</h3>
-              <p className="text-xs text-gray-500 mb-4">Start adding tables to build your data model</p>
-              <button
-                onClick={addNewTable}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-md text-xs font-medium hover:bg-indigo-700 transition-colors inline-flex items-center gap-2"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Add First Table
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Action Bar */}
-        {tables.length > 0 && (
-          <div className="mt-6 flex items-center justify-between pt-6 border-t border-zinc-800">
-            <button className="px-4 py-2 text-xs text-gray-400 hover:text-gray-100 flex items-center gap-2">
-              <RefreshCw className="w-3.5 h-3.5" />
-              Refresh from Diagram
-            </button>
-            <div className="flex items-center gap-2">
-              <button className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-gray-300 rounded-md text-xs font-medium transition-colors">
-                Cancel
-              </button>
-              <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-xs font-medium transition-colors inline-flex items-center gap-2">
-                <Save className="w-3.5 h-3.5" />
-                Save & Update Diagram
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </motion.div>
-  );
-}
+// Quick Editor Component is now imported from QuickEditorNew.tsx
 
 // Properties View Component - Model Explorer + Context Properties
 function PropertiesView({ selectedTable, isDark }: { selectedTable?: Table; isDark: boolean }) {
