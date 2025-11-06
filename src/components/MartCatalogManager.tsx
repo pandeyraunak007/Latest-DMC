@@ -215,6 +215,14 @@ export default function MartCatalogManager() {
   const [showHiddenVersions, setShowHiddenVersions] = useState(false);
   const [isDark, setIsDark] = useState(true);
 
+  const handleThemeToggle = () => {
+    console.log('handleThemeToggle called, current isDark:', isDark);
+    setIsDark(prevIsDark => {
+      console.log('Setting isDark from', prevIsDark, 'to', !prevIsDark);
+      return !prevIsDark;
+    });
+  };
+
   // Toggle node expansion
   const toggleNode = (nodeId: string) => {
     setExpandedNodes(prev => {
@@ -550,17 +558,18 @@ export default function MartCatalogManager() {
                 <FolderTree className="w-3.5 h-3.5 text-white" />
               </div>
               Catalog Hierarchy
+              <span className="text-xs opacity-50">({isDark ? 'Dark' : 'Light'})</span>
             </h3>
             <div className="flex items-center gap-1.5">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   e.preventDefault();
-                  console.log('Theme toggle clicked, current isDark:', isDark);
-                  setIsDark(!isDark);
+                  console.log('Button clicked!');
+                  handleThemeToggle();
                 }}
                 type="button"
-                className={`p-1.5 rounded-md transition-all duration-200 ${
+                className={`p-1.5 rounded-md transition-all duration-200 cursor-pointer ${
                   isDark
                     ? 'hover:bg-zinc-800/80 text-zinc-400 hover:text-zinc-300'
                     : 'hover:bg-gray-200 text-gray-600 hover:text-gray-900'
