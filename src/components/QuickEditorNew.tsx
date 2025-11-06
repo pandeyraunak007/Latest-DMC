@@ -658,19 +658,8 @@ export function QuickEditor({ tables, onTablesUpdate, isDark }: QuickEditorProps
             </div>
 
             <div className="flex items-center gap-2">
-              {editorMode === 'table-list' && (
-                <button
-                  onClick={handleAddTable}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors inline-flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Table
-                </button>
-              )}
-
               {hasUnsavedChanges && (
                 <>
-                  <div className={`h-6 w-px ${isDark ? 'bg-zinc-700' : 'bg-gray-300'}`} />
                   <button
                     onClick={handleCancel}
                     className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -688,7 +677,18 @@ export function QuickEditor({ tables, onTablesUpdate, isDark }: QuickEditorProps
                     <Save className="w-4 h-4" />
                     Save & Update Diagram
                   </button>
+                  <div className={`h-6 w-px ${isDark ? 'bg-zinc-700' : 'bg-gray-300'}`} />
                 </>
+              )}
+
+              {editorMode === 'table-list' && (
+                <button
+                  onClick={handleAddTable}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors inline-flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Table
+                </button>
               )}
             </div>
           </div>
