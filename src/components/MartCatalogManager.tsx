@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTheme } from '@/context/ThemeContext';
 import {
   Database,
   FolderTree,
@@ -205,6 +206,9 @@ const initialCatalogData: TreeNode = {
 };
 
 export default function MartCatalogManager() {
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === 'dark';
+
   const [catalogData, setCatalogData] = useState<TreeNode>(initialCatalogData);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(['mart-root', 'lib-1', 'model-1']));
   const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
@@ -213,7 +217,6 @@ export default function MartCatalogManager() {
   const [editingNode, setEditingNode] = useState<TreeNode | null>(null);
   const [editForm, setEditForm] = useState({ name: '', description: '' });
   const [showHiddenVersions, setShowHiddenVersions] = useState(false);
-  const [isDark, setIsDark] = useState(true);
 
   // Toggle node expansion
   const toggleNode = (nodeId: string) => {
@@ -553,7 +556,7 @@ export default function MartCatalogManager() {
             </h3>
             <div className="flex items-center gap-1.5">
               <button
-                onClick={() => setIsDark(!isDark)}
+                onClick={toggleTheme}
                 className={`p-1.5 rounded-md transition-all duration-200 ${
                   isDark
                     ? 'hover:bg-zinc-800/80 text-zinc-400 hover:text-zinc-300'

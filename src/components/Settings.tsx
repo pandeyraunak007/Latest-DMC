@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useTheme } from '@/context/ThemeContext';
 import {
   Settings as SettingsIcon,
   Database,
@@ -47,11 +48,6 @@ import {
   Terminal
 } from 'lucide-react';
 
-interface SettingsProps {
-  isDark: boolean;
-  toggleTheme: () => void;
-}
-
 interface SettingsState {
   autoSave: boolean;
   autoSaveInterval: number;
@@ -92,7 +88,9 @@ interface SettingsState {
   notifyOnError: boolean;
 }
 
-const Settings: React.FC<SettingsProps> = ({ isDark, toggleTheme }) => {
+const Settings: React.FC = () => {
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === 'dark';
   const [activeSection, setActiveSection] = useState('general');
   const [settings, setSettings] = useState<SettingsState>({
     // General Settings

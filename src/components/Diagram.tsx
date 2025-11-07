@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useTheme } from '@/context/ThemeContext';
 import {
   Search,
   ChevronDown,
@@ -85,11 +86,6 @@ import {
   GitBranch,
   GitMerge,
 } from 'lucide-react';
-
-interface DiagramProps {
-  isDark: boolean;
-  toggleTheme: () => void;
-}
 
 // Toolbar Button Component
 const ToolbarButton = ({
@@ -1800,7 +1796,9 @@ interface Relationship {
 }
 
 // Main Diagram Component
-const Diagram: React.FC<DiagramProps> = ({ isDark, toggleTheme }) => {
+const Diagram: React.FC = () => {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
 
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [showTreePanel, setShowTreePanel] = useState(true);

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useTheme } from '@/context/ThemeContext';
 import {
   Database,
   FileCode,
@@ -74,6 +75,9 @@ interface ComparisonResult {
 }
 
 const CompleteCompare = () => {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+
   const [currentStep, setCurrentStep] = useState<CompareStep>('source');
   const [baselineSourceType, setBaselineSourceType] = useState<SourceType>('library');
   const [targetSourceType, setTargetSourceType] = useState<SourceType>('library');
@@ -262,23 +266,23 @@ const CompleteCompare = () => {
 
   const ModelBrowser = ({ onSelect, onClose }: { onSelect: (model: Model) => void; onClose: () => void }) => (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-zinc-900 rounded-xl w-full max-w-3xl border border-zinc-800">
-        <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
+      <div className="bg-white dark:bg-zinc-900 rounded-xl w-full max-w-3xl border border-gray-200 dark:border-zinc-800">
+        <div className="p-4 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between">
           <h3 className="text-lg font-medium">Select Model from Library</h3>
-          <button onClick={onClose} className="p-1 hover:bg-zinc-800 rounded">
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-4 border-b border-zinc-800">
+        <div className="p-4 border-b border-gray-200 dark:border-zinc-800">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-zinc-400" />
             <input
               type="text"
               placeholder="Search models..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-zinc-800 text-zinc-100 rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
           </div>
         </div>
@@ -333,15 +337,15 @@ const CompleteCompare = () => {
   );
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-zinc-950 text-gray-900 dark:text-zinc-100 p-6">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold mb-2">Complete Compare</h1>
-        <p className="text-zinc-400">Compare and merge data models with intelligent conflict resolution</p>
+        <p className="text-gray-600 dark:text-zinc-400">Compare and merge data models with intelligent conflict resolution</p>
       </div>
 
       {/* Progress Steps */}
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6 mb-6">
+      <div className="bg-white dark:bg-zinc-900 rounded-xl border border-gray-200 dark:border-zinc-800 p-6 mb-6">
         <div className="flex items-center justify-between">
           {steps.map((step, index) => {
             const stepIndex = getStepIndex(step.key as CompareStep);
@@ -362,12 +366,12 @@ const CompleteCompare = () => {
                   <div className={`flex items-center gap-2 ${
                     isActive ? 'text-purple-400' :
                     isCompleted ? 'text-emerald-500' :
-                    'text-zinc-500'
+                    'text-gray-500 dark:text-zinc-500'
                   }`}>
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
                       isActive ? 'border-purple-400 bg-purple-400/20' :
                       isCompleted ? 'border-emerald-500 bg-emerald-500/20' :
-                      'border-zinc-600 bg-zinc-800'
+                      'border-gray-300 dark:border-zinc-600 bg-gray-100 dark:bg-zinc-800'
                     }`}>
                       {isCompleted ? (
                         <Check className="w-4 h-4" />
@@ -390,13 +394,13 @@ const CompleteCompare = () => {
       </div>
 
       {/* Main Content */}
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6">
+      <div className="bg-white dark:bg-zinc-900 rounded-xl border border-gray-200 dark:border-zinc-800 p-6">
         {/* Source Selection Step */}
         {currentStep === 'source' && (
           <div className="space-y-6">
             <div>
               <h2 className="text-xl font-semibold mb-2">Select models to compare</h2>
-              <p className="text-zinc-400">Choose your baseline and target models from any source</p>
+              <p className="text-gray-600 dark:text-zinc-400">Choose your baseline and target models from any source</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -405,14 +409,14 @@ const CompleteCompare = () => {
                 <h3 className="text-lg font-medium text-purple-400">Baseline Model (Left)</h3>
 
                 <div className="space-y-3">
-                  <div className="text-sm font-medium text-zinc-300">Source Type</div>
+                  <div className="text-sm font-medium text-gray-700 dark:text-zinc-300">Source Type</div>
                   <div className="space-y-2">
                     {[
                       { value: 'library', label: 'Model Library', icon: <Database className="w-4 h-4" /> },
                       { value: 'file', label: 'Script File (.sql, .ddl)', icon: <FileCode className="w-4 h-4" /> },
                       { value: 'database', label: 'Database Connection', icon: <Server className="w-4 h-4" /> }
                     ].map(option => (
-                      <label key={option.value} className="flex items-center gap-3 p-3 bg-zinc-800/50 rounded-lg cursor-pointer hover:bg-zinc-800 transition-colors">
+                      <label key={option.value} className="flex items-center gap-3 p-3 bg-gray-100 dark:bg-zinc-800/50 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-zinc-800 transition-colors">
                         <input
                           type="radio"
                           name="baseline-source"

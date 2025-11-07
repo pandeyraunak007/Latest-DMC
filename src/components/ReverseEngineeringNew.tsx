@@ -157,7 +157,7 @@ export default function ReverseEngineeringNew() {
           <div className="space-y-6">
             {/* Source Type Selection */}
             <div>
-              <label className="block text-sm font-medium text-zinc-100 dark:text-zinc-100 light:text-gray-900 mb-4">
+              <label className="block text-sm font-medium text-gray-900 dark:text-zinc-100 mb-4">
                 Choose Source Type
               </label>
               <div className="grid grid-cols-2 gap-4">
@@ -188,7 +188,7 @@ export default function ReverseEngineeringNew() {
                 exit={{ opacity: 0, height: 0 }}
                 className="space-y-4"
               >
-                <label className="block text-sm font-medium text-zinc-100 dark:text-zinc-100 light:text-gray-900">
+                <label className="block text-sm font-medium text-gray-900 dark:text-zinc-100">
                   Select Database Source
                 </label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -212,10 +212,10 @@ export default function ReverseEngineeringNew() {
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mt-6 p-6 bg-zinc-800 dark:bg-zinc-800 light:bg-gray-50 rounded-xl border border-zinc-700 dark:border-zinc-700 light:border-gray-200 space-y-4"
+                    className="mt-6 p-6 bg-gray-50 dark:bg-zinc-800 rounded-xl border border-gray-200 dark:border-zinc-700 space-y-4"
                   >
                     <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-zinc-100 dark:text-zinc-100 light:text-gray-900">
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100">
                         Connection Configuration
                       </h3>
                       <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded">
@@ -225,48 +225,48 @@ export default function ReverseEngineeringNew() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-medium text-zinc-300 dark:text-zinc-300 light:text-gray-700 mb-2">
+                        <label className="block text-xs font-medium text-gray-700 dark:text-zinc-300 mb-2">
                           Server/Host *
                         </label>
                         <input
                           type="text"
-                          className="w-full bg-zinc-900 dark:bg-zinc-900 light:bg-white border border-zinc-600 dark:border-zinc-600 light:border-gray-300 rounded-lg px-4 py-2 text-sm text-zinc-100 dark:text-zinc-100 light:text-gray-900 focus:border-violet-500 focus:outline-none"
+                          className="w-full bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-600 rounded-lg px-4 py-2 text-sm text-gray-900 dark:text-zinc-100 focus:border-violet-500 focus:outline-none"
                           placeholder="localhost:1433"
                           value={connectionConfig.server}
                           onChange={(e) => setConnectionConfig({ ...connectionConfig, server: e.target.value })}
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-zinc-300 dark:text-zinc-300 light:text-gray-700 mb-2">
+                        <label className="block text-xs font-medium text-gray-700 dark:text-zinc-300 mb-2">
                           Database Name *
                         </label>
                         <input
                           type="text"
-                          className="w-full bg-zinc-900 dark:bg-zinc-900 light:bg-white border border-zinc-600 dark:border-zinc-600 light:border-gray-300 rounded-lg px-4 py-2 text-sm text-zinc-100 dark:text-zinc-100 light:text-gray-900 focus:border-violet-500 focus:outline-none"
+                          className="w-full bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-600 rounded-lg px-4 py-2 text-sm text-gray-900 dark:text-zinc-100 focus:border-violet-500 focus:outline-none"
                           placeholder="my_database"
                           value={connectionConfig.database}
                           onChange={(e) => setConnectionConfig({ ...connectionConfig, database: e.target.value })}
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-zinc-300 dark:text-zinc-300 light:text-gray-700 mb-2">
+                        <label className="block text-xs font-medium text-gray-700 dark:text-zinc-300 mb-2">
                           Username
                         </label>
                         <input
                           type="text"
-                          className="w-full bg-zinc-900 dark:bg-zinc-900 light:bg-white border border-zinc-600 dark:border-zinc-600 light:border-gray-300 rounded-lg px-4 py-2 text-sm text-zinc-100 dark:text-zinc-100 light:text-gray-900 focus:border-violet-500 focus:outline-none"
+                          className="w-full bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-600 rounded-lg px-4 py-2 text-sm text-gray-900 dark:text-zinc-100 focus:border-violet-500 focus:outline-none"
                           placeholder="your_username"
                           value={connectionConfig.username}
                           onChange={(e) => setConnectionConfig({ ...connectionConfig, username: e.target.value })}
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-zinc-300 dark:text-zinc-300 light:text-gray-700 mb-2">
+                        <label className="block text-xs font-medium text-gray-700 dark:text-zinc-300 mb-2">
                           Password
                         </label>
                         <input
                           type="password"
-                          className="w-full bg-zinc-900 dark:bg-zinc-900 light:bg-white border border-zinc-600 dark:border-zinc-600 light:border-gray-300 rounded-lg px-4 py-2 text-sm text-zinc-100 dark:text-zinc-100 light:text-gray-900 focus:border-violet-500 focus:outline-none"
+                          className="w-full bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-600 rounded-lg px-4 py-2 text-sm text-gray-900 dark:text-zinc-100 focus:border-violet-500 focus:outline-none"
                           placeholder="••••••••"
                           value={connectionConfig.password}
                           onChange={(e) => setConnectionConfig({ ...connectionConfig, password: e.target.value })}
@@ -275,8 +275,8 @@ export default function ReverseEngineeringNew() {
                     </div>
 
                     {/* SSO Option */}
-                    <div className="pt-4 border-t border-zinc-700 dark:border-zinc-700 light:border-gray-200">
-                      <p className="text-xs text-zinc-400 dark:text-zinc-400 light:text-gray-600 mb-3">
+                    <div className="pt-4 border-t border-gray-200 dark:border-zinc-700">
+                      <p className="text-xs text-gray-600 dark:text-zinc-400 mb-3">
                         Or use Single Sign-On (SSO)
                       </p>
                       <button
@@ -342,12 +342,12 @@ export default function ReverseEngineeringNew() {
                 exit={{ opacity: 0, height: 0 }}
                 className="space-y-4"
               >
-                <label className="block text-sm font-medium text-zinc-100 dark:text-zinc-100 light:text-gray-900">
+                <label className="block text-sm font-medium text-gray-900 dark:text-zinc-100">
                   Upload DDL Script File
                 </label>
                 <div className="border-2 border-dashed border-zinc-700 dark:border-zinc-700 light:border-gray-300 rounded-xl p-8 text-center">
                   <Upload className="w-12 h-12 mx-auto mb-4 text-zinc-400" />
-                  <p className="text-sm text-zinc-300 dark:text-zinc-300 light:text-gray-700 mb-2">
+                  <p className="text-sm text-gray-700 dark:text-zinc-300 mb-2">
                     Drag and drop your SQL file here, or click to browse
                   </p>
                   <p className="text-xs text-zinc-500 mb-4">
@@ -355,7 +355,7 @@ export default function ReverseEngineeringNew() {
                   </p>
                   <input
                     type="text"
-                    className="w-full max-w-md mx-auto bg-zinc-900 dark:bg-zinc-900 light:bg-white border border-zinc-600 dark:border-zinc-600 light:border-gray-300 rounded-lg px-4 py-2 text-sm text-zinc-100 dark:text-zinc-100 light:text-gray-900 mb-3"
+                    className="w-full max-w-md mx-auto bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-600 rounded-lg px-4 py-2 text-sm text-gray-900 dark:text-zinc-100 mb-3"
                     placeholder="Or paste file path..."
                     value={scriptFile}
                     onChange={(e) => setScriptFile(e.target.value)}
@@ -373,10 +373,10 @@ export default function ReverseEngineeringNew() {
         return (
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-semibold text-zinc-100 dark:text-zinc-100 light:text-gray-900 mb-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-zinc-100 mb-2">
                 Select Database Objects
               </h3>
-              <p className="text-sm text-zinc-400 dark:text-zinc-400 light:text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-zinc-400">
                 Choose the tables, views, and other objects you want to reverse engineer
               </p>
             </div>
@@ -390,7 +390,7 @@ export default function ReverseEngineeringNew() {
                   placeholder="Search objects..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-zinc-800 dark:bg-zinc-800 light:bg-gray-50 border border-zinc-700 dark:border-zinc-700 light:border-gray-200 rounded-lg text-sm text-zinc-100 dark:text-zinc-100 light:text-gray-900 focus:border-violet-500 focus:outline-none"
+                  className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm text-gray-900 dark:text-zinc-100 focus:border-violet-500 focus:outline-none"
                 />
               </div>
               <button
@@ -408,14 +408,14 @@ export default function ReverseEngineeringNew() {
             </div>
 
             {/* Objects List */}
-            <div className="bg-zinc-800 dark:bg-zinc-800 light:bg-gray-50 border border-zinc-700 dark:border-zinc-700 light:border-gray-200 rounded-xl overflow-hidden">
+            <div className="bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl overflow-hidden">
               <div className="max-h-96 overflow-y-auto">
                 {filteredObjects.map((obj) => (
                   <motion.div
                     key={obj.id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className={`flex items-center gap-4 p-4 hover:bg-zinc-700/50 dark:hover:bg-zinc-700/50 light:hover:bg-gray-100 border-b border-zinc-700 dark:border-zinc-700 light:border-gray-200 last:border-b-0 cursor-pointer transition-colors ${
+                    className={`flex items-center gap-4 p-4 hover:bg-zinc-700/50 dark:hover:bg-zinc-700/50 light:hover:bg-gray-100 border-b border-gray-200 dark:border-zinc-700 last:border-b-0 cursor-pointer transition-colors ${
                       selectedObjects.has(obj.id) ? 'bg-violet-600/10' : ''
                     }`}
                     onClick={() => toggleObjectSelection(obj.id)}
@@ -429,10 +429,10 @@ export default function ReverseEngineeringNew() {
                     <Database className="w-5 h-5 text-blue-500 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-zinc-100 dark:text-zinc-100 light:text-gray-900">
+                        <span className="font-medium text-gray-900 dark:text-zinc-100">
                           {obj.name}
                         </span>
-                        <span className="text-xs px-2 py-0.5 bg-zinc-700 dark:bg-zinc-700 light:bg-gray-200 text-zinc-300 dark:text-zinc-300 light:text-gray-700 rounded">
+                        <span className="text-xs px-2 py-0.5 bg-zinc-700 dark:bg-zinc-700 light:bg-gray-200 text-gray-700 dark:text-zinc-300 rounded">
                           {obj.type}
                         </span>
                         {obj.hasForeignKeys && (
@@ -452,7 +452,7 @@ export default function ReverseEngineeringNew() {
             <div className="flex items-center justify-between p-4 bg-violet-600/10 border border-violet-600 rounded-lg">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-violet-500" />
-                <span className="text-sm font-medium text-zinc-100 dark:text-zinc-100 light:text-gray-900">
+                <span className="text-sm font-medium text-gray-900 dark:text-zinc-100">
                   {selectedObjects.size} objects selected
                 </span>
               </div>
@@ -466,37 +466,37 @@ export default function ReverseEngineeringNew() {
             {reverseEngineeringStatus === 'idle' && (
               <>
                 <div>
-                  <h3 className="text-lg font-semibold text-zinc-100 dark:text-zinc-100 light:text-gray-900 mb-2">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-zinc-100 mb-2">
                     Ready to Reverse Engineer
                   </h3>
-                  <p className="text-sm text-zinc-400 dark:text-zinc-400 light:text-gray-600">
+                  <p className="text-sm text-gray-600 dark:text-zinc-400">
                     Review your selections and start the reverse engineering process
                   </p>
                 </div>
 
                 {/* Summary */}
                 <div className="grid grid-cols-3 gap-4">
-                  <div className="p-4 bg-zinc-800 dark:bg-zinc-800 light:bg-gray-50 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-zinc-100 dark:text-zinc-100 light:text-gray-900">
+                  <div className="p-4 bg-gray-50 dark:bg-zinc-800 rounded-lg text-center">
+                    <p className="text-2xl font-bold text-gray-900 dark:text-zinc-100">
                       {selectedObjects.size}
                     </p>
-                    <p className="text-xs text-zinc-400 dark:text-zinc-400 light:text-gray-600 mt-1">
+                    <p className="text-xs text-gray-600 dark:text-zinc-400 mt-1">
                       Objects Selected
                     </p>
                   </div>
-                  <div className="p-4 bg-zinc-800 dark:bg-zinc-800 light:bg-gray-50 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-zinc-100 dark:text-zinc-100 light:text-gray-900">
+                  <div className="p-4 bg-gray-50 dark:bg-zinc-800 rounded-lg text-center">
+                    <p className="text-2xl font-bold text-gray-900 dark:text-zinc-100">
                       {mockDatabaseObjects.filter(o => selectedObjects.has(o.id) && o.hasForeignKeys).length}
                     </p>
-                    <p className="text-xs text-zinc-400 dark:text-zinc-400 light:text-gray-600 mt-1">
+                    <p className="text-xs text-gray-600 dark:text-zinc-400 mt-1">
                       Relationships
                     </p>
                   </div>
-                  <div className="p-4 bg-zinc-800 dark:bg-zinc-800 light:bg-gray-50 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-zinc-100 dark:text-zinc-100 light:text-gray-900">
+                  <div className="p-4 bg-gray-50 dark:bg-zinc-800 rounded-lg text-center">
+                    <p className="text-2xl font-bold text-gray-900 dark:text-zinc-100">
                       ~2m
                     </p>
-                    <p className="text-xs text-zinc-400 dark:text-zinc-400 light:text-gray-600 mt-1">
+                    <p className="text-xs text-gray-600 dark:text-zinc-400 mt-1">
                       Est. Time
                     </p>
                   </div>
@@ -520,10 +520,10 @@ export default function ReverseEngineeringNew() {
               >
                 <div className="text-center mb-8">
                   <Loader2 className="w-16 h-16 text-violet-500 animate-spin mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-zinc-100 dark:text-zinc-100 light:text-gray-900 mb-2">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-zinc-100 mb-2">
                     Processing Your Database
                   </h3>
-                  <p className="text-sm text-zinc-400 dark:text-zinc-400 light:text-gray-600">
+                  <p className="text-sm text-gray-600 dark:text-zinc-400">
                     Please wait while we reverse engineer your database schema
                   </p>
                 </div>
@@ -549,10 +549,10 @@ export default function ReverseEngineeringNew() {
                 >
                   <CheckCircle2 className="w-24 h-24 text-emerald-500 mx-auto mb-6" />
                 </motion.div>
-                <h3 className="text-2xl font-bold text-zinc-100 dark:text-zinc-100 light:text-gray-900 mb-3">
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-zinc-100 mb-3">
                   Reverse Engineering Complete!
                 </h3>
-                <p className="text-zinc-400 dark:text-zinc-400 light:text-gray-600 mb-6">
+                <p className="text-gray-600 dark:text-zinc-400 mb-6">
                   Successfully created {entitiesCreated} entities with all relationships and constraints
                 </p>
 
@@ -560,7 +560,7 @@ export default function ReverseEngineeringNew() {
                   <button className="px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-lg font-medium">
                     View Model
                   </button>
-                  <button className="px-6 py-3 border border-zinc-700 dark:border-zinc-700 light:border-gray-300 text-zinc-300 dark:text-zinc-300 light:text-gray-700 hover:bg-zinc-800 dark:hover:bg-zinc-800 light:hover:bg-gray-50 rounded-lg font-medium">
+                  <button className="px-6 py-3 border border-zinc-700 dark:border-zinc-700 light:border-gray-300 text-gray-700 dark:text-zinc-300 hover:bg-zinc-800 dark:hover:bg-zinc-800 light:hover:bg-gray-50 rounded-lg font-medium">
                     Export
                   </button>
                 </div>

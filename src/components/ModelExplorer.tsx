@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useTheme } from '@/context/ThemeContext';
 import {
   Search,
   ChevronDown,
@@ -2041,7 +2042,9 @@ const PropertyPane = ({ isDark, isCollapsed, onToggle }: { isDark: boolean; isCo
 
 // Main Model Explorer Component
 const ModelExplorer = () => {
-  const [isDark, setIsDark] = useState(true);
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === 'dark';
+
   const [activeTab, setActiveTab] = useState('home');
   const [isTreeCollapsed, setIsTreeCollapsed] = useState(false);
   const [isPropertyCollapsed, setIsPropertyCollapsed] = useState(false);
@@ -2051,10 +2054,6 @@ const ModelExplorer = () => {
   const [contextMenuType, setContextMenuType] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [addModalType, setAddModalType] = useState('');
-
-  const toggleTheme = () => {
-    setIsDark(!isDark);
-  };
 
   return (
     <div className={`h-full flex flex-col transition-colors ${

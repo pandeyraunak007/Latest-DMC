@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTheme } from '@/context/ThemeContext';
 import {
   Database,
   Table as Table2,
@@ -38,7 +39,6 @@ import {
 type ObjectType = 'model' | 'table' | 'column' | 'relationship';
 
 interface PropertyEditorProps {
-  isDark: boolean;
   onClose?: () => void;
 }
 
@@ -50,7 +50,9 @@ interface TreeNode {
   children?: TreeNode[];
 }
 
-export default function PropertyEditor({ isDark, onClose }: PropertyEditorProps) {
+export default function PropertyEditor({ onClose }: PropertyEditorProps) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(['model', 'tables', 'relationships']));
   const [selectedItem, setSelectedItem] = useState<{ type: ObjectType; id: string; name: string }>({

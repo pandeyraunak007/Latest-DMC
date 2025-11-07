@@ -39,7 +39,7 @@ export default function WizardLayout({
   const isLastStep = currentStep === steps.length;
 
   return (
-    <div className="min-h-screen bg-zinc-950 dark:bg-zinc-950 light:bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-zinc-950">
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Header */}
         <motion.div
@@ -50,11 +50,11 @@ export default function WizardLayout({
         >
           <div className="flex items-center gap-3 mb-4">
             {icon && <div className="text-blue-500">{icon}</div>}
-            <h1 className="text-3xl font-bold text-zinc-100 dark:text-zinc-100 light:text-gray-900">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-zinc-100">
               {title}
             </h1>
           </div>
-          <p className="text-zinc-400 dark:text-zinc-400 light:text-gray-600 text-lg">
+          <p className="text-gray-600 dark:text-zinc-400 text-lg">
             {description}
           </p>
         </motion.div>
@@ -77,7 +77,7 @@ export default function WizardLayout({
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.3 }}
-              className="bg-zinc-900 dark:bg-zinc-900 light:bg-white rounded-xl border border-zinc-800 dark:border-zinc-800 light:border-gray-200 p-8"
+              className="bg-white dark:bg-zinc-900 rounded-xl border border-gray-200 dark:border-zinc-800 p-8"
             >
               {children}
             </motion.div>
@@ -98,7 +98,7 @@ export default function WizardLayout({
               className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
                 isFirstStep
                   ? 'opacity-0 pointer-events-none'
-                  : 'border border-zinc-700 dark:border-zinc-700 light:border-gray-300 text-zinc-300 dark:text-zinc-300 light:text-gray-700 hover:bg-zinc-800 dark:hover:bg-zinc-800 light:hover:bg-gray-100'
+                  : 'border border-gray-300 dark:border-zinc-700 text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800'
               }`}
             >
               <ArrowLeft className="w-4 h-4" />
@@ -110,7 +110,7 @@ export default function WizardLayout({
               disabled={nextDisabled}
               className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
                 nextDisabled
-                  ? 'bg-zinc-700 text-zinc-500 cursor-not-allowed'
+                  ? 'bg-gray-300 dark:bg-zinc-700 text-gray-500 dark:text-zinc-500 cursor-not-allowed'
                   : 'bg-violet-600 text-white hover:bg-violet-700'
               }`}
             >

@@ -20,7 +20,7 @@ export default function StepIndicator({ steps, currentStep }: StepIndicatorProps
     <div className="w-full max-w-3xl mx-auto mb-8">
       <div className="relative flex items-center justify-between">
         {/* Progress Line */}
-        <div className="absolute top-5 left-0 right-0 h-0.5 bg-zinc-800 dark:bg-zinc-800 light:bg-gray-200">
+        <div className="absolute top-5 left-0 right-0 h-0.5 bg-gray-200 dark:bg-zinc-800">
           <motion.div
             className="h-full bg-violet-600"
             initial={{ width: '0%' }}
@@ -45,7 +45,7 @@ export default function StepIndicator({ steps, currentStep }: StepIndicatorProps
                     ? 'bg-violet-600 border-violet-600'
                     : isCurrent
                     ? 'bg-violet-600 border-violet-600'
-                    : 'bg-zinc-900 dark:bg-zinc-900 light:bg-white border-zinc-700 dark:border-zinc-700 light:border-gray-300'
+                    : 'bg-white dark:bg-zinc-900 border-gray-300 dark:border-zinc-700'
                 }`}
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -62,7 +62,7 @@ export default function StepIndicator({ steps, currentStep }: StepIndicatorProps
                 ) : (
                   <span
                     className={`text-sm font-semibold ${
-                      isCurrent ? 'text-white' : 'text-zinc-400 dark:text-zinc-400 light:text-gray-500'
+                      isCurrent ? 'text-white' : 'text-gray-500 dark:text-zinc-400'
                     }`}
                   >
                     {stepNumber}
@@ -80,15 +80,15 @@ export default function StepIndicator({ steps, currentStep }: StepIndicatorProps
                   <p
                     className={`text-sm font-medium mb-1 ${
                       isCurrent
-                        ? 'text-zinc-100 dark:text-zinc-100 light:text-gray-900'
+                        ? 'text-gray-900 dark:text-zinc-100'
                         : isCompleted
-                        ? 'text-zinc-300 dark:text-zinc-300 light:text-gray-700'
-                        : 'text-zinc-500 dark:text-zinc-500 light:text-gray-400'
+                        ? 'text-gray-700 dark:text-zinc-300'
+                        : 'text-gray-400 dark:text-zinc-500'
                     }`}
                   >
                     {step.title}
                   </p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-500 light:text-gray-400">
+                  <p className="text-xs text-gray-400 dark:text-zinc-500">
                     {step.description}
                   </p>
                 </motion.div>

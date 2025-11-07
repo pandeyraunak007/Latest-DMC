@@ -65,8 +65,8 @@ interface SidebarItemProps {
 
 const SidebarItem = ({ icon, label, active = false, onClick, collapsed = false }: SidebarItemProps) => (
   <div
-    className={`flex items-center px-3 py-1.5 text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 rounded-md transition-colors cursor-pointer ${
-      active ? 'text-zinc-100 bg-zinc-800' : ''
+    className={`flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-zinc-100 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-md transition-colors cursor-pointer ${
+      active ? 'text-gray-900 dark:text-zinc-100 bg-gray-100 dark:bg-zinc-800' : ''
     } ${collapsed ? 'justify-center' : 'gap-3'}`}
     onClick={onClick}
     title={collapsed ? label : undefined}
@@ -120,14 +120,14 @@ const LinearToolbar = () => {
         </button>
 
         {showTemplates && (
-          <div className="absolute top-full left-0 mt-2 w-80 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl z-50">
-            <div className="p-3 border-b border-zinc-800">
-              <h3 className="text-sm font-semibold text-zinc-100">Quick Start Templates</h3>
-              <p className="text-xs text-zinc-400 mt-1">Get started with pre-built model templates</p>
+          <div className="absolute top-full left-0 mt-2 w-80 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg shadow-xl z-50">
+            <div className="p-3 border-b border-gray-200 dark:border-zinc-800">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100">Quick Start Templates</h3>
+              <p className="text-xs text-gray-600 dark:text-zinc-400 mt-1">Get started with pre-built model templates</p>
             </div>
             <div className="max-h-64 overflow-y-auto">
               <button
-                className="w-full p-3 hover:bg-zinc-800 transition-colors text-left border-b border-zinc-800"
+                className="w-full p-3 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors text-left border-b border-gray-200 dark:border-zinc-800"
                 onClick={() => {
                   handleAction('Create Blank Model');
                   setShowTemplates(false);
@@ -138,8 +138,8 @@ const LinearToolbar = () => {
                     <Plus className="w-4 h-4 text-white" />
                   </div>
                   <div>
-                    <div className="text-sm font-medium text-zinc-100">Blank Model</div>
-                    <div className="text-xs text-zinc-400">Start from scratch</div>
+                    <div className="text-sm font-medium text-gray-900 dark:text-zinc-100">Blank Model</div>
+                    <div className="text-xs text-gray-600 dark:text-zinc-400">Start from scratch</div>
                   </div>
                 </div>
               </button>
@@ -147,21 +147,21 @@ const LinearToolbar = () => {
               {templates.map((template, index) => (
                 <button
                   key={index}
-                  className="w-full p-3 hover:bg-zinc-800 transition-colors text-left"
+                  className="w-full p-3 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors text-left"
                   onClick={() => {
                     handleAction(`Create from template: ${template.name}`);
                     setShowTemplates(false);
                   }}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-zinc-700 rounded-lg flex items-center justify-center">
-                      <Database className="w-4 h-4 text-zinc-400" />
+                    <div className="w-8 h-8 bg-gray-200 dark:bg-zinc-700 rounded-lg flex items-center justify-center">
+                      <Database className="w-4 h-4 text-gray-600 dark:text-zinc-400" />
                     </div>
                     <div className="flex-1">
-                      <div className="text-sm font-medium text-zinc-100">{template.name}</div>
-                      <div className="text-xs text-zinc-400">{template.description}</div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-zinc-100">{template.name}</div>
+                      <div className="text-xs text-gray-600 dark:text-zinc-400">{template.description}</div>
                     </div>
-                    <div className="text-xs text-zinc-500">{template.entities} entities</div>
+                    <div className="text-xs text-gray-500 dark:text-zinc-500">{template.entities} entities</div>
                   </div>
                 </button>
               ))}
@@ -219,27 +219,27 @@ const ModelRow = ({ name, path, lastModified, entityCount, status, onClick }: Mo
   return (
     <div className="model-row" onClick={onClick}>
       <div className="flex items-center gap-3 flex-1 min-w-0">
-        <Folder className="w-4 h-4 text-zinc-400 flex-shrink-0" />
+        <Folder className="w-4 h-4 text-gray-500 dark:text-zinc-400 flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-medium text-zinc-100 truncate">{name}</span>
+            <span className="font-medium text-gray-900 dark:text-zinc-100 truncate">{name}</span>
             <div className="flex items-center gap-1">
               {getStatusIcon()}
               <span className={`text-xs capitalize ${getStatusColor()}`}>{status}</span>
             </div>
           </div>
-          <div className="text-xs text-zinc-500 truncate">{path}</div>
+          <div className="text-xs text-gray-500 dark:text-zinc-500 truncate">{path}</div>
         </div>
       </div>
 
-      <div className="flex items-center gap-3 text-xs text-zinc-500">
+      <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-zinc-500">
         <span className="badge">{entityCount} entities</span>
         <span className="flex items-center gap-1">
           <Calendar className="w-3 h-3" />
           {lastModified}
         </span>
         <div className="model-actions">
-          <button className="p-1 hover:bg-zinc-800 rounded">
+          <button className="p-1 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded">
             <MoreHorizontal className="w-3 h-3" />
           </button>
         </div>
@@ -280,22 +280,22 @@ const SystemInsightsPanel = () => {
   return (
     <div className="panel">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100 flex items-center gap-2">
           <PieChart className="w-4 h-4 text-violet-500" />
           System Insights
         </h3>
-        <button className="text-xs text-zinc-400 hover:text-zinc-100">View Details</button>
+        <button className="text-xs text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-zinc-100">View Details</button>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         {insights.map((insight, index) => (
           <div key={index} className="space-y-2">
-            <div className="flex items-center gap-2 text-xs text-zinc-400">
+            <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-zinc-400">
               {insight.icon}
               <span>{insight.label}</span>
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-lg font-semibold text-zinc-100">{insight.value}</span>
+              <span className="text-lg font-semibold text-gray-900 dark:text-zinc-100">{insight.value}</span>
               <span className="text-xs text-emerald-500">{insight.trend}</span>
             </div>
           </div>
@@ -311,7 +311,7 @@ const AIAssistantPreview = () => {
   return (
     <div className="panel">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100 flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-violet-500" />
           AI Assistant
         </h3>
@@ -319,22 +319,22 @@ const AIAssistantPreview = () => {
       </div>
 
       <div className="space-y-3">
-        <div className="p-3 bg-zinc-800 rounded-lg">
+        <div className="p-3 bg-gray-100 dark:bg-zinc-800 rounded-lg">
           <div className="flex items-center gap-2 mb-2">
             <Bot className="w-4 h-4 text-violet-500" />
-            <span className="text-sm font-medium text-zinc-100">Smart Suggestions</span>
+            <span className="text-sm font-medium text-gray-900 dark:text-zinc-100">Smart Suggestions</span>
           </div>
-          <p className="text-xs text-zinc-400">
+          <p className="text-xs text-gray-600 dark:text-zinc-400">
             AI will analyze your models and suggest optimizations, naming conventions, and relationships.
           </p>
         </div>
 
-        <div className="p-3 bg-zinc-800 rounded-lg">
+        <div className="p-3 bg-gray-100 dark:bg-zinc-800 rounded-lg">
           <div className="flex items-center gap-2 mb-2">
             <Zap className="w-4 h-4 text-violet-500" />
-            <span className="text-sm font-medium text-zinc-100">Natural Language</span>
+            <span className="text-sm font-medium text-gray-900 dark:text-zinc-100">Natural Language</span>
           </div>
-          <p className="text-xs text-zinc-400">
+          <p className="text-xs text-gray-600 dark:text-zinc-400">
             Create models using plain English: "Add a Customer table with email and phone fields"
           </p>
         </div>
@@ -386,8 +386,8 @@ const ModelsPanel = () => {
             onClick={() => setActiveTab('recent')}
             className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
               activeTab === 'recent'
-                ? 'bg-zinc-800 text-zinc-100'
-                : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800'
+                ? 'bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-zinc-100'
+                : 'text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-zinc-100 hover:bg-gray-100 dark:hover:bg-zinc-800'
             }`}
           >
             <Clock className="w-4 h-4 inline mr-2" />
@@ -397,8 +397,8 @@ const ModelsPanel = () => {
             onClick={() => setActiveTab('favorites')}
             className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
               activeTab === 'favorites'
-                ? 'bg-zinc-800 text-zinc-100'
-                : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800'
+                ? 'bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-zinc-100'
+                : 'text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-zinc-100 hover:bg-gray-100 dark:hover:bg-zinc-800'
             }`}
           >
             <Star className="w-4 h-4 inline mr-2" />
@@ -407,7 +407,7 @@ const ModelsPanel = () => {
         </div>
 
         {activeTab === 'recent' && (
-          <button className="text-xs text-zinc-400 hover:text-zinc-100 flex items-center gap-1">
+          <button className="text-xs text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-zinc-100 flex items-center gap-1">
             View All
             <ArrowRight className="w-3 h-3" />
           </button>
@@ -442,7 +442,7 @@ const ReverseEngineeringCard = ({ onClick }: { onClick?: () => void }) => {
   return (
     <div className="panel">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100 flex items-center gap-2">
           <RefreshCw className="w-4 h-4 text-blue-500" />
           Reverse Engineering
         </h3>
@@ -450,31 +450,31 @@ const ReverseEngineeringCard = ({ onClick }: { onClick?: () => void }) => {
       </div>
 
       <div className="space-y-4">
-        <div className="p-3 bg-zinc-800 rounded-lg">
+        <div className="p-3 bg-gray-100 dark:bg-zinc-800 rounded-lg">
           <div className="flex items-center gap-2 mb-2">
             <Database className="w-4 h-4 text-blue-500" />
-            <span className="text-sm font-medium text-zinc-100">Import Database Schema</span>
+            <span className="text-sm font-medium text-gray-900 dark:text-zinc-100">Import Database Schema</span>
           </div>
-          <p className="text-xs text-zinc-400 mb-3">
+          <p className="text-xs text-gray-600 dark:text-zinc-400 mb-3">
             Connect to databases and automatically generate visual data models with full entity relationships.
           </p>
           <div className="flex gap-2">
             <div className="text-xs bg-blue-600 text-white px-2 py-1 rounded">MS Fabric</div>
-            <div className="text-xs bg-zinc-700 px-2 py-1 rounded opacity-50">MySQL</div>
-            <div className="text-xs bg-zinc-700 px-2 py-1 rounded opacity-50">PostgreSQL</div>
+            <div className="text-xs bg-gray-300 dark:bg-zinc-700 text-gray-700 dark:text-zinc-300 px-2 py-1 rounded opacity-50">MySQL</div>
+            <div className="text-xs bg-gray-300 dark:bg-zinc-700 text-gray-700 dark:text-zinc-300 px-2 py-1 rounded opacity-50">PostgreSQL</div>
           </div>
         </div>
 
         <div className="space-y-2">
-          <div className="text-xs text-zinc-400 mb-2">Quick Actions</div>
+          <div className="text-xs text-gray-600 dark:text-zinc-400 mb-2">Quick Actions</div>
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="p-2 bg-zinc-800 rounded text-center">
+            <div className="p-2 bg-gray-100 dark:bg-zinc-800 rounded text-center">
               <Database className="w-4 h-4 mx-auto mb-1 text-blue-500" />
-              <div className="text-zinc-300">Connect DB</div>
+              <div className="text-gray-700 dark:text-zinc-300">Connect DB</div>
             </div>
-            <div className="p-2 bg-zinc-800 rounded text-center">
+            <div className="p-2 bg-gray-100 dark:bg-zinc-800 rounded text-center">
               <Upload className="w-4 h-4 mx-auto mb-1 text-emerald-500" />
-              <div className="text-zinc-300">Upload SQL</div>
+              <div className="text-gray-700 dark:text-zinc-300">Upload SQL</div>
             </div>
           </div>
         </div>
@@ -495,7 +495,7 @@ const CompleteCompareCard = ({ onClick }: { onClick?: () => void }) => {
   return (
     <div className="panel">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100 flex items-center gap-2">
           <Scale className="w-4 h-4 text-emerald-500" />
           Model Compare
         </h3>
@@ -503,36 +503,36 @@ const CompleteCompareCard = ({ onClick }: { onClick?: () => void }) => {
       </div>
 
       <div className="space-y-4">
-        <div className="p-3 bg-zinc-800 rounded-lg">
+        <div className="p-3 bg-gray-100 dark:bg-zinc-800 rounded-lg">
           <div className="flex items-center gap-2 mb-2">
             <GitBranch className="w-4 h-4 text-emerald-500" />
-            <span className="text-sm font-medium text-zinc-100">Visual Diff</span>
+            <span className="text-sm font-medium text-gray-900 dark:text-zinc-100">Visual Diff</span>
           </div>
-          <p className="text-xs text-zinc-400 mb-3">
+          <p className="text-xs text-gray-600 dark:text-zinc-400 mb-3">
             Compare models side-by-side and identify structural differences, changes, and conflicts.
           </p>
           <div className="flex gap-2">
-            <div className="text-xs bg-zinc-700 px-2 py-1 rounded">Model vs Model</div>
-            <div className="text-xs bg-zinc-700 px-2 py-1 rounded">DB vs Model</div>
+            <div className="text-xs bg-gray-200 dark:bg-zinc-700 text-gray-800 dark:text-zinc-200 px-2 py-1 rounded">Model vs Model</div>
+            <div className="text-xs bg-gray-200 dark:bg-zinc-700 text-gray-800 dark:text-zinc-200 px-2 py-1 rounded">DB vs Model</div>
           </div>
         </div>
 
         <div className="space-y-2">
-          <div className="text-xs text-zinc-400 mb-2">Recent Comparisons</div>
+          <div className="text-xs text-gray-600 dark:text-zinc-400 mb-2">Recent Comparisons</div>
           <div className="space-y-1">
-            <div className="p-2 bg-zinc-800 rounded text-xs">
+            <div className="p-2 bg-gray-100 dark:bg-zinc-800 rounded text-xs">
               <div className="flex items-center justify-between">
-                <span className="text-zinc-100">E-Commerce v2.1 vs v2.0</span>
+                <span className="text-gray-900 dark:text-zinc-100">E-Commerce v2.1 vs v2.0</span>
                 <span className="text-emerald-400">+3 entities</span>
               </div>
-              <div className="text-zinc-400 mt-1">2 hours ago</div>
+              <div className="text-gray-600 dark:text-zinc-400 mt-1">2 hours ago</div>
             </div>
-            <div className="p-2 bg-zinc-800 rounded text-xs">
+            <div className="p-2 bg-gray-100 dark:bg-zinc-800 rounded text-xs">
               <div className="flex items-center justify-between">
-                <span className="text-zinc-100">CRM vs Production DB</span>
+                <span className="text-gray-900 dark:text-zinc-100">CRM vs Production DB</span>
                 <span className="text-amber-400">5 conflicts</span>
               </div>
-              <div className="text-zinc-400 mt-1">1 day ago</div>
+              <div className="text-gray-600 dark:text-zinc-400 mt-1">1 day ago</div>
             </div>
           </div>
         </div>
@@ -548,11 +548,6 @@ const CompleteCompareCard = ({ onClick }: { onClick?: () => void }) => {
 export default function Dashboard() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentPage, setCurrentPage] = useState<'dashboard' | 'mart-catalog' | 'model-explorer' | 'reverse-engineering' | 'forward-engineering' | 'complete-compare' | 'settings' | 'diagram' | 'diagrammer' | 'property-editor'>('dashboard');
-  const [isDark, setIsDark] = useState(true);
-
-  const toggleTheme = () => {
-    setIsDark(!isDark);
-  };
 
   const sidebarItems = [
     {
@@ -618,21 +613,21 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="h-screen flex bg-zinc-950 text-zinc-100">
+    <div className="h-screen flex bg-gray-50 dark:bg-zinc-950 text-gray-900 dark:text-zinc-100">
       {/* Sidebar */}
-      <div className={`${sidebarCollapsed ? 'w-16' : 'w-64'} bg-zinc-900 border-r border-zinc-800 flex flex-col transition-all duration-200`}>
+      <div className={`${sidebarCollapsed ? 'w-16' : 'w-64'} bg-white dark:bg-zinc-900 border-r border-gray-200 dark:border-zinc-800 flex flex-col transition-all duration-200`}>
         {/* Logo & Workspace */}
-        <div className="p-4 border-b border-zinc-800">
+        <div className="p-4 border-b border-gray-200 dark:border-zinc-800">
           <div className="flex items-center justify-between">
             {!sidebarCollapsed && (
               <div>
-                <h1 className="text-lg font-semibold text-zinc-100">DMPro</h1>
-                <p className="text-xs text-zinc-400">Data Modeling Studio</p>
+                <h1 className="text-lg font-semibold text-gray-900 dark:text-zinc-100">DMPro</h1>
+                <p className="text-xs text-gray-500 dark:text-zinc-400">Data Modeling Studio</p>
               </div>
             )}
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="p-1 hover:bg-zinc-800 rounded transition-colors"
+              className="p-1 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded transition-colors"
             >
               {sidebarCollapsed ?
                 <ChevronRight className="w-4 h-4" /> :
@@ -658,7 +653,7 @@ export default function Dashboard() {
 
         {/* Bottom Links */}
         {!sidebarCollapsed && (
-          <div className="p-3 border-t border-zinc-800 space-y-1">
+          <div className="p-3 border-t border-gray-200 dark:border-zinc-800 space-y-1">
             {bottomLinks.map((link, index) => (
               <SidebarItem
                 key={index}
@@ -675,7 +670,7 @@ export default function Dashboard() {
 
         {/* Header with Theme Toggle - Hidden for Diagrammer */}
         {currentPage !== 'diagrammer' && (
-          <div className="flex items-center justify-end p-4 border-b border-zinc-800">
+          <div className="flex items-center justify-end p-4 border-b border-gray-200 dark:border-zinc-800">
             <ThemeToggle />
           </div>
         )}
@@ -686,10 +681,10 @@ export default function Dashboard() {
             <div className="p-6">
               {/* Welcome Section */}
               <div className="text-center mb-12">
-                <h1 className="text-3xl font-bold text-zinc-100 mb-4">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-zinc-100 mb-4">
                   Welcome to DMPro
                 </h1>
-                <p className="text-lg text-zinc-400 mb-8">
+                <p className="text-lg text-gray-600 dark:text-zinc-400 mb-8">
                   Your comprehensive data modeling workspace
                 </p>
 
@@ -697,60 +692,60 @@ export default function Dashboard() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto mb-12">
                   <button
                     onClick={() => setCurrentPage('model-explorer')}
-                    className="group p-6 bg-zinc-900 rounded-xl border border-zinc-800 hover:border-purple-500/50 hover:bg-zinc-800/50 transition-all duration-200"
+                    className="group p-6 bg-white dark:bg-zinc-900 rounded-xl border border-gray-200 dark:border-zinc-800 hover:border-purple-500/50 hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-all duration-200"
                   >
                     <div className="flex flex-col items-center space-y-3">
                       <div className="p-3 bg-purple-500/20 rounded-lg group-hover:bg-purple-500/30 transition-colors">
                         <FolderOpen className="w-6 h-6 text-purple-400" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-medium text-zinc-100">Open Model</h3>
-                        <p className="text-xs text-zinc-500 mt-1">Browse and edit existing models</p>
+                        <h3 className="text-sm font-medium text-gray-900 dark:text-zinc-100">Open Model</h3>
+                        <p className="text-xs text-gray-500 dark:text-zinc-500 mt-1">Browse and edit existing models</p>
                       </div>
                     </div>
                   </button>
 
                   <button
                     onClick={() => setCurrentPage('model-explorer')}
-                    className="group p-6 bg-zinc-900 rounded-xl border border-zinc-800 hover:border-emerald-500/50 hover:bg-zinc-800/50 transition-all duration-200"
+                    className="group p-6 bg-white dark:bg-zinc-900 rounded-xl border border-gray-200 dark:border-zinc-800 hover:border-emerald-500/50 hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-all duration-200"
                   >
                     <div className="flex flex-col items-center space-y-3">
                       <div className="p-3 bg-emerald-500/20 rounded-lg group-hover:bg-emerald-500/30 transition-colors">
                         <Plus className="w-6 h-6 text-emerald-400" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-medium text-zinc-100">New Model</h3>
-                        <p className="text-xs text-zinc-500 mt-1">Create a new data model</p>
+                        <h3 className="text-sm font-medium text-gray-900 dark:text-zinc-100">New Model</h3>
+                        <p className="text-xs text-gray-500 dark:text-zinc-500 mt-1">Create a new data model</p>
                       </div>
                     </div>
                   </button>
 
                   <button
                     onClick={() => setCurrentPage('reverse-engineering')}
-                    className="group p-6 bg-zinc-900 rounded-xl border border-zinc-800 hover:border-blue-500/50 hover:bg-zinc-800/50 transition-all duration-200"
+                    className="group p-6 bg-white dark:bg-zinc-900 rounded-xl border border-gray-200 dark:border-zinc-800 hover:border-blue-500/50 hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-all duration-200"
                   >
                     <div className="flex flex-col items-center space-y-3">
                       <div className="p-3 bg-blue-500/20 rounded-lg group-hover:bg-blue-500/30 transition-colors">
                         <RefreshCw className="w-6 h-6 text-blue-400" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-medium text-zinc-100">Reverse Engineer</h3>
-                        <p className="text-xs text-zinc-500 mt-1">Import from database</p>
+                        <h3 className="text-sm font-medium text-gray-900 dark:text-zinc-100">Reverse Engineer</h3>
+                        <p className="text-xs text-gray-500 dark:text-zinc-500 mt-1">Import from database</p>
                       </div>
                     </div>
                   </button>
 
                   <button
                     onClick={() => setCurrentPage('complete-compare')}
-                    className="group p-6 bg-zinc-900 rounded-xl border border-zinc-800 hover:border-amber-500/50 hover:bg-zinc-800/50 transition-all duration-200"
+                    className="group p-6 bg-white dark:bg-zinc-900 rounded-xl border border-gray-200 dark:border-zinc-800 hover:border-amber-500/50 hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-all duration-200"
                   >
                     <div className="flex flex-col items-center space-y-3">
                       <div className="p-3 bg-amber-500/20 rounded-lg group-hover:bg-amber-500/30 transition-colors">
                         <Scale className="w-6 h-6 text-amber-400" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-medium text-zinc-100">Compare Models</h3>
-                        <p className="text-xs text-zinc-500 mt-1">Compare and merge models</p>
+                        <h3 className="text-sm font-medium text-gray-900 dark:text-zinc-100">Compare Models</h3>
+                        <p className="text-xs text-gray-500 dark:text-zinc-500 mt-1">Compare and merge models</p>
                       </div>
                     </div>
                   </button>
@@ -759,44 +754,44 @@ export default function Dashboard() {
 
               {/* Stats Overview Row */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <div className="bg-zinc-900 rounded-lg p-4 border border-zinc-800">
+                <div className="bg-white dark:bg-zinc-900 rounded-lg p-4 border border-gray-200 dark:border-zinc-800">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-zinc-400 text-sm">Total Models</p>
-                      <p className="text-2xl font-bold text-zinc-100">24</p>
+                      <p className="text-gray-600 dark:text-zinc-400 text-sm">Total Models</p>
+                      <p className="text-2xl font-bold text-gray-900 dark:text-zinc-100">24</p>
                     </div>
                     <Database className="w-8 h-8 text-violet-500" />
                   </div>
                   <div className="text-xs text-emerald-400 mt-2">+3 this week</div>
                 </div>
 
-                <div className="bg-zinc-900 rounded-lg p-4 border border-zinc-800">
+                <div className="bg-white dark:bg-zinc-900 rounded-lg p-4 border border-gray-200 dark:border-zinc-800">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-zinc-400 text-sm">Active Users</p>
-                      <p className="text-2xl font-bold text-zinc-100">12</p>
+                      <p className="text-gray-600 dark:text-zinc-400 text-sm">Active Users</p>
+                      <p className="text-2xl font-bold text-gray-900 dark:text-zinc-100">12</p>
                     </div>
                     <UsersIcon className="w-8 h-8 text-blue-500" />
                   </div>
                   <div className="text-xs text-emerald-400 mt-2">+2 today</div>
                 </div>
 
-                <div className="bg-zinc-900 rounded-lg p-4 border border-zinc-800">
+                <div className="bg-white dark:bg-zinc-900 rounded-lg p-4 border border-gray-200 dark:border-zinc-800">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-zinc-400 text-sm">Entities</p>
-                      <p className="text-2xl font-bold text-zinc-100">158</p>
+                      <p className="text-gray-600 dark:text-zinc-400 text-sm">Entities</p>
+                      <p className="text-2xl font-bold text-gray-900 dark:text-zinc-100">158</p>
                     </div>
                     <Boxes className="w-8 h-8 text-amber-500" />
                   </div>
                   <div className="text-xs text-emerald-400 mt-2">+15 this week</div>
                 </div>
 
-                <div className="bg-zinc-900 rounded-lg p-4 border border-zinc-800">
+                <div className="bg-white dark:bg-zinc-900 rounded-lg p-4 border border-gray-200 dark:border-zinc-800">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-zinc-400 text-sm">AI Suggestions</p>
-                      <p className="text-2xl font-bold text-zinc-100">73%</p>
+                      <p className="text-gray-600 dark:text-zinc-400 text-sm">AI Suggestions</p>
+                      <p className="text-2xl font-bold text-gray-900 dark:text-zinc-100">73%</p>
                     </div>
                     <Brain className="w-8 h-8 text-emerald-500" />
                   </div>
@@ -840,10 +835,10 @@ export default function Dashboard() {
               {currentPage === 'reverse-engineering' && <ReverseEngineeringNew />}
               {currentPage === 'forward-engineering' && <FabricForwardEngineering />}
               {currentPage === 'complete-compare' && <CompleteCompare />}
-              {currentPage === 'settings' && <Settings isDark={isDark} toggleTheme={toggleTheme} />}
-              {currentPage === 'diagram' && <Diagram isDark={isDark} toggleTheme={toggleTheme} />}
+              {currentPage === 'settings' && <Settings />}
+              {currentPage === 'diagram' && <Diagram />}
               {currentPage === 'diagrammer' && <Diagrammer />}
-              {currentPage === 'property-editor' && <PropertyEditor isDark={isDark} onClose={() => setCurrentPage('dashboard')} />}
+              {currentPage === 'property-editor' && <PropertyEditor onClose={() => setCurrentPage('dashboard')} />}
             </motion.div>
           </AnimatePresence>
         </div>
