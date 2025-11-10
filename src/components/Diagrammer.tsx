@@ -406,30 +406,6 @@ export default function Diagrammer() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Zoom Controls */}
-          {viewMode === 'diagram' && (
-            <>
-              <div className={`flex items-center gap-1 rounded-lg px-2 py-1 ${isDark ? 'bg-zinc-800' : 'bg-gray-100'}`}>
-                <button
-                  onClick={handleZoomOut}
-                  className={`p-1 rounded ${isDark ? 'hover:bg-zinc-700' : 'hover:bg-gray-200'}`}
-                  title="Zoom Out"
-                >
-                  <ZoomOut className={`w-3.5 h-3.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`} />
-                </button>
-                <span className={`text-xs font-medium min-w-[3rem] text-center ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{zoom}%</span>
-                <button
-                  onClick={handleZoomIn}
-                  className={`p-1 rounded ${isDark ? 'hover:bg-zinc-700' : 'hover:bg-gray-200'}`}
-                  title="Zoom In"
-                >
-                  <ZoomIn className={`w-3.5 h-3.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`} />
-                </button>
-              </div>
-              <div className={`w-px h-6 ${isDark ? 'bg-zinc-700' : 'bg-gray-300'}`} />
-            </>
-          )}
-
           {/* Actions */}
           <button
             className={`p-1.5 rounded ${isDark ? 'text-gray-400 hover:bg-zinc-800' : 'text-gray-600 hover:bg-gray-100'}`}
@@ -597,6 +573,108 @@ const ToolbarButton = ({
 };
 
 // Shape Dropdown Component
+// Relationship Dropdown Component
+const RelationshipDropdown = ({
+  isDark,
+  isActive,
+  onSelectTool
+}: {
+  isDark: boolean;
+  isActive: boolean;
+  onSelectTool: (mode: 'table' | 'annotation' | 'relationship' | null) => void;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  return (
+    <div className="relative">
+      <button
+        className={`p-2.5 rounded-lg hover:scale-105 transition-all duration-200 cursor-pointer ${
+          isActive
+            ? isDark ? 'bg-indigo-600 text-white' : 'bg-indigo-500 text-white'
+            : isDark ? 'hover:bg-zinc-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'
+        }`}
+        onMouseEnter={() => !isOpen && setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+        onClick={() => {
+          setIsOpen(!isOpen);
+          setShowTooltip(false);
+        }}
+        style={{ pointerEvents: 'auto', zIndex: 10000 }}
+      >
+        <GitBranch className="w-4 h-4" />
+      </button>
+      {showTooltip && !isOpen && (
+        <div className={`absolute left-full ml-2 top-1/2 -translate-y-1/2 px-2 py-1 rounded-lg text-xs whitespace-nowrap z-50 ${
+          isDark ? 'bg-zinc-700 text-white' : 'bg-gray-800 text-white'
+        }`}>
+          Add Relationship
+        </div>
+      )}
+      {isOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-[9998]"
+            onClick={() => setIsOpen(false)}
+          />
+          <div className={`absolute left-full ml-2 top-0 rounded-lg shadow-lg border p-1.5 flex flex-col gap-1 ${
+            isDark ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-gray-200'
+          }`} style={{ zIndex: 10001 }}>
+            <button
+              className={`p-2 rounded-lg hover:scale-105 transition-all duration-200 cursor-pointer flex items-center gap-2 ${
+                isDark ? 'hover:bg-zinc-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'
+              }`}
+              onClick={() => {
+                onSelectTool('relationship');
+                setIsOpen(false);
+              }}
+            >
+              <KeyRound className="w-4 h-4" />
+              <span className="text-xs whitespace-nowrap">Identifying</span>
+            </button>
+            <button
+              className={`p-2 rounded-lg hover:scale-105 transition-all duration-200 cursor-pointer flex items-center gap-2 ${
+                isDark ? 'hover:bg-zinc-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'
+              }`}
+              onClick={() => {
+                onSelectTool('relationship');
+                setIsOpen(false);
+              }}
+            >
+              <Link2 className="w-4 h-4" />
+              <span className="text-xs whitespace-nowrap">Non-identifying</span>
+            </button>
+            <button
+              className={`p-2 rounded-lg hover:scale-105 transition-all duration-200 cursor-pointer flex items-center gap-2 ${
+                isDark ? 'hover:bg-zinc-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'
+              }`}
+              onClick={() => {
+                onSelectTool('relationship');
+                setIsOpen(false);
+              }}
+            >
+              <GitMerge className="w-4 h-4" />
+              <span className="text-xs whitespace-nowrap">Sub-type</span>
+            </button>
+            <button
+              className={`p-2 rounded-lg hover:scale-105 transition-all duration-200 cursor-pointer flex items-center gap-2 ${
+                isDark ? 'hover:bg-zinc-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'
+              }`}
+              onClick={() => {
+                onSelectTool('relationship');
+                setIsOpen(false);
+              }}
+            >
+              <Network className="w-4 h-4" />
+              <span className="text-xs whitespace-nowrap">Many to Many</span>
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 const ShapeDropdown = ({ isDark }: { isDark: boolean }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
@@ -689,12 +767,10 @@ const ObjectToolbar = ({
         isActive={isDrawingMode === 'table'}
         onClick={() => onSelectTool('table')}
       />
-      <ToolbarButton
-        icon={GitBranch}
-        tooltip="Add Relationship"
+      <RelationshipDropdown
         isDark={isDark}
         isActive={isDrawingMode === 'relationship'}
-        onClick={() => onSelectTool('relationship')}
+        onSelectTool={onSelectTool}
       />
       <ToolbarButton
         icon={StickyNote}
