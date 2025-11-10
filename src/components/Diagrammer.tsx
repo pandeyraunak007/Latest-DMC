@@ -208,6 +208,9 @@ export default function Diagrammer() {
   const [snapToGrid, setSnapToGrid] = useState(false);
   const [showMinimap, setShowMinimap] = useState(false);
   const [isPanMode, setIsPanMode] = useState(false);
+  const [diagramViewType, setDiagramViewType] = useState<'entity' | 'column' | 'key' | 'icon' | 'definition'>('entity');
+  const [modelType, setModelType] = useState<'physical' | 'logical'>('physical');
+  const [isViewTypeDropdownOpen, setIsViewTypeDropdownOpen] = useState(false);
 
   const handleZoomIn = () => setZoom(prev => Math.min(prev + 10, 200));
   const handleZoomOut = () => setZoom(prev => Math.max(prev - 10, 50));
@@ -287,53 +290,117 @@ export default function Diagrammer() {
 
           <div className={`w-px h-6 ${isDark ? 'bg-zinc-700' : 'bg-gray-300'}`} />
 
-          {/* Tools */}
+          {/* View Type and Model Type Dropdowns */}
           {viewMode === 'diagram' && (
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setActiveTool('select')}
-                className={`p-1.5 rounded transition-colors ${
-                  activeTool === 'select'
-                    ? 'bg-indigo-500/20 text-indigo-400'
-                    : isDark ? 'text-gray-400 hover:bg-zinc-800' : 'text-gray-600 hover:bg-gray-100'
-                }`}
-                title="Select"
-              >
-                <MousePointer2 className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setActiveTool('table')}
-                className={`p-1.5 rounded transition-colors ${
-                  activeTool === 'table'
-                    ? 'bg-indigo-500/20 text-indigo-400'
-                    : isDark ? 'text-gray-400 hover:bg-zinc-800' : 'text-gray-600 hover:bg-gray-100'
-                }`}
-                title="Add Table"
-              >
-                <Box className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setActiveTool('relationship')}
-                className={`p-1.5 rounded transition-colors ${
-                  activeTool === 'relationship'
-                    ? 'bg-indigo-500/20 text-indigo-400'
-                    : isDark ? 'text-gray-400 hover:bg-zinc-800' : 'text-gray-600 hover:bg-gray-100'
-                }`}
-                title="Add Relationship"
-              >
-                <Link2 className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setActiveTool('note')}
-                className={`p-1.5 rounded transition-colors ${
-                  activeTool === 'note'
-                    ? 'bg-indigo-500/20 text-indigo-400'
-                    : isDark ? 'text-gray-400 hover:bg-zinc-800' : 'text-gray-600 hover:bg-gray-100'
-                }`}
-                title="Add Note"
-              >
-                <FileText className="w-4 h-4" />
-              </button>
+            <div className="flex items-center gap-2">
+              {/* View Type Dropdown with Icons */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsViewTypeDropdownOpen(!isViewTypeDropdownOpen)}
+                  className={`flex items-center gap-2 px-3 py-1.5 pr-8 rounded-md text-xs font-medium cursor-pointer transition-colors ${
+                    isDark
+                      ? 'bg-zinc-800 text-gray-300 hover:bg-zinc-700 border border-zinc-700'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                  }`}
+                >
+                  {diagramViewType === 'entity' && <><Table2 className="w-3.5 h-3.5" /> Entity View</>}
+                  {diagramViewType === 'column' && <><Hash className="w-3.5 h-3.5" /> Column View</>}
+                  {diagramViewType === 'key' && <><Key className="w-3.5 h-3.5" /> Key View</>}
+                  {diagramViewType === 'icon' && <><Shapes className="w-3.5 h-3.5" /> Icons View</>}
+                  {diagramViewType === 'definition' && <><BookOpen className="w-3.5 h-3.5" /> Definition View</>}
+                </button>
+                <ChevronDown className={`absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none ${
+                  isDark ? 'text-gray-400' : 'text-gray-600'
+                }`} />
+
+                {/* Dropdown Menu */}
+                {isViewTypeDropdownOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setIsViewTypeDropdownOpen(false)}
+                    />
+                    <div className={`absolute top-full left-0 mt-1 rounded-md shadow-lg z-20 overflow-hidden min-w-[160px] ${
+                      isDark ? 'bg-zinc-800 border border-zinc-700' : 'bg-white border border-gray-200'
+                    }`}>
+                      <button
+                        onClick={() => { setDiagramViewType('entity'); setIsViewTypeDropdownOpen(false); }}
+                        className={`flex items-center gap-2 w-full px-3 py-2 text-xs font-medium transition-colors ${
+                          diagramViewType === 'entity'
+                            ? isDark ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-50 text-indigo-600'
+                            : isDark ? 'text-gray-300 hover:bg-zinc-700' : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        <Table2 className="w-3.5 h-3.5" />
+                        Entity View
+                      </button>
+                      <button
+                        onClick={() => { setDiagramViewType('column'); setIsViewTypeDropdownOpen(false); }}
+                        className={`flex items-center gap-2 w-full px-3 py-2 text-xs font-medium transition-colors ${
+                          diagramViewType === 'column'
+                            ? isDark ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-50 text-indigo-600'
+                            : isDark ? 'text-gray-300 hover:bg-zinc-700' : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        <Hash className="w-3.5 h-3.5" />
+                        Column View
+                      </button>
+                      <button
+                        onClick={() => { setDiagramViewType('key'); setIsViewTypeDropdownOpen(false); }}
+                        className={`flex items-center gap-2 w-full px-3 py-2 text-xs font-medium transition-colors ${
+                          diagramViewType === 'key'
+                            ? isDark ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-50 text-indigo-600'
+                            : isDark ? 'text-gray-300 hover:bg-zinc-700' : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        <Key className="w-3.5 h-3.5" />
+                        Key View
+                      </button>
+                      <button
+                        onClick={() => { setDiagramViewType('icon'); setIsViewTypeDropdownOpen(false); }}
+                        className={`flex items-center gap-2 w-full px-3 py-2 text-xs font-medium transition-colors ${
+                          diagramViewType === 'icon'
+                            ? isDark ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-50 text-indigo-600'
+                            : isDark ? 'text-gray-300 hover:bg-zinc-700' : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        <Shapes className="w-3.5 h-3.5" />
+                        Icons View
+                      </button>
+                      <button
+                        onClick={() => { setDiagramViewType('definition'); setIsViewTypeDropdownOpen(false); }}
+                        className={`flex items-center gap-2 w-full px-3 py-2 text-xs font-medium transition-colors ${
+                          diagramViewType === 'definition'
+                            ? isDark ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-50 text-indigo-600'
+                            : isDark ? 'text-gray-300 hover:bg-zinc-700' : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        <BookOpen className="w-3.5 h-3.5" />
+                        Definition View
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Model Type Dropdown */}
+              <div className="relative">
+                <select
+                  value={modelType}
+                  onChange={(e) => setModelType(e.target.value as any)}
+                  className={`px-3 py-1.5 pr-8 rounded-md text-xs font-medium appearance-none cursor-pointer transition-colors ${
+                    isDark
+                      ? 'bg-zinc-800 text-gray-300 hover:bg-zinc-700 border border-zinc-700'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                  }`}
+                >
+                  <option value="physical">🗄️ Physical</option>
+                  <option value="logical">💡 Logical</option>
+                </select>
+                <ChevronDown className={`absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none ${
+                  isDark ? 'text-gray-400' : 'text-gray-600'
+                }`} />
+              </div>
             </div>
           )}
         </div>
@@ -739,7 +806,7 @@ const ViewControlsToolbar = ({
 
 // Left Panel Component with Model Explorer Tree
 function LeftPanel({ isDark }: { isDark: boolean }) {
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(['model', 'tables', 'relationships', 'table-users', 'table-orders']));
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set([]));
   const [searchTerm, setSearchTerm] = useState('');
 
   const toggleExpanded = (id: string) => {
