@@ -57,6 +57,7 @@ import {
   Globe,
   Archive,
   FileCode,
+  Code,
   MoreHorizontal,
   Sun,
   Moon,
@@ -72,7 +73,13 @@ import {
   Sparkles,
   Map,
   Expand,
-  Minimize2
+  Minimize2,
+  BookOpen,
+  ClipboardList,
+  History,
+  Shield,
+  FileStack,
+  Sliders
 } from 'lucide-react';
 
 // Types
@@ -732,7 +739,7 @@ const ViewControlsToolbar = ({
 
 // Left Panel Component with Model Explorer Tree
 function LeftPanel({ isDark }: { isDark: boolean }) {
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(['model-root', 'entities-tables', 'relationships']));
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(['model', 'tables', 'relationships', 'table-users', 'table-orders']));
   const [searchTerm, setSearchTerm] = useState('');
 
   const toggleExpanded = (id: string) => {
@@ -747,87 +754,45 @@ function LeftPanel({ isDark }: { isDark: boolean }) {
 
   const treeData = [
     {
-      id: 'model-root',
-      label: 'E-Commerce Platform',
+      id: 'model',
+      label: 'E-Commerce Model',
       icon: <Database className="w-4 h-4 text-blue-500" />,
       type: 'model',
       children: [
         {
-          id: 'model-properties',
-          label: 'Model Properties',
-          icon: <Settings className="w-4 h-4 text-gray-500" />,
-          type: 'folder'
-        },
-        {
           id: 'subject-areas',
           label: 'Subject Areas',
-          icon: <Component className="w-4 h-4 text-purple-500" />,
+          icon: <Folder className="w-4 h-4 text-purple-500" />,
           type: 'folder',
           children: [
             {
-              id: 'sa-customer-mgmt',
+              id: 'sa-1',
               label: 'Customer Management',
-              icon: <Box className="w-4 h-4 text-purple-400" />,
+              icon: <Component className="w-4 h-4 text-purple-400" />,
               type: 'subject-area'
             },
             {
-              id: 'sa-order-processing',
+              id: 'sa-2',
               label: 'Order Processing',
-              icon: <Box className="w-4 h-4 text-purple-400" />,
+              icon: <Component className="w-4 h-4 text-purple-400" />,
               type: 'subject-area'
-            }
-          ]
-        },
-        {
-          id: 'diagrams-root',
-          label: 'Diagrams',
-          icon: <Workflow className="w-4 h-4 text-blue-500" />,
-          type: 'folder',
-          children: [
-            {
-              id: 'logical-diagrams',
-              label: 'Logical Diagram(s)',
-              icon: <FileText className="w-4 h-4 text-green-500" />,
-              type: 'folder',
-              children: [
-                {
-                  id: 'diagram-logical-main',
-                  label: 'Main Logical Model',
-                  icon: <FileText className="w-4 h-4 text-green-400" />,
-                  type: 'diagram'
-                }
-              ]
-            },
-            {
-              id: 'physical-diagrams',
-              label: 'Physical Diagram(s)',
-              icon: <FileText className="w-4 h-4 text-orange-500" />,
-              type: 'folder',
-              children: [
-                {
-                  id: 'diagram-physical-main',
-                  label: 'Main Physical Model',
-                  icon: <FileText className="w-4 h-4 text-orange-400" />,
-                  type: 'diagram'
-                }
-              ]
             }
           ]
         },
         {
           id: 'domains',
           label: 'Domains',
-          icon: <Type className="w-4 h-4 text-blue-500" />,
+          icon: <Globe className="w-4 h-4 text-blue-500" />,
           type: 'folder',
           children: [
             {
-              id: 'domain-email',
+              id: 'domain-1',
               label: 'EmailAddress',
               icon: <Type className="w-4 h-4 text-blue-400" />,
               type: 'domain'
             },
             {
-              id: 'domain-currency',
+              id: 'domain-2',
               label: 'Currency',
               icon: <Type className="w-4 h-4 text-blue-400" />,
               type: 'domain'
@@ -835,116 +800,185 @@ function LeftPanel({ isDark }: { isDark: boolean }) {
           ]
         },
         {
-          id: 'entities-tables',
-          label: 'Tables',
-          icon: <Database className="w-4 h-4 text-purple-500" />,
+          id: 'tables',
+          label: 'Tables (2)',
+          icon: <Table2 className="w-4 h-4 text-purple-500" />,
           type: 'folder',
           children: [
             {
-              id: 'entity-customer',
-              label: 'Customer',
-              icon: <Box className="w-4 h-4 text-purple-500" />,
-              type: 'entity',
+              id: 'table-users',
+              label: 'Users',
+              icon: <Users className="w-4 h-4 text-purple-500" />,
+              type: 'table',
               children: [
                 {
-                  id: 'customer-attributes',
+                  id: 'table-users-columns',
                   label: 'Columns',
                   icon: <Hash className="w-4 h-4 text-gray-500" />,
                   type: 'folder',
                   children: [
                     {
-                      id: 'customer-pk',
-                      label: 'Primary Keys (PK)',
-                      icon: <Key className="w-4 h-4 text-yellow-500" />,
-                      type: 'folder',
-                      children: [
-                        {
-                          id: 'attr-customer-id',
-                          label: 'customer_id',
-                          icon: <Key className="w-3.5 h-3.5 text-yellow-500" />,
-                          type: 'attribute'
-                        }
-                      ]
+                      id: 'col-user-id',
+                      label: 'user_id (PK)',
+                      icon: <Key className="w-3.5 h-3.5 text-yellow-500" />,
+                      type: 'column'
                     },
                     {
-                      id: 'customer-other',
-                      label: 'Other attributes',
-                      icon: <Hash className="w-4 h-4 text-gray-500" />,
-                      type: 'folder',
-                      children: [
-                        {
-                          id: 'attr-first-name',
-                          label: 'first_name',
-                          icon: <Hash className="w-3.5 h-3.5 text-gray-500" />,
-                          type: 'attribute'
-                        },
-                        {
-                          id: 'attr-email',
-                          label: 'email',
-                          icon: <Hash className="w-3.5 h-3.5 text-gray-500" />,
-                          type: 'attribute'
-                        }
-                      ]
+                      id: 'col-email',
+                      label: 'email',
+                      icon: <Type className="w-3.5 h-3.5 text-gray-500" />,
+                      type: 'column'
+                    },
+                    {
+                      id: 'col-name',
+                      label: 'name',
+                      icon: <Type className="w-3.5 h-3.5 text-gray-500" />,
+                      type: 'column'
+                    },
+                    {
+                      id: 'col-created-at',
+                      label: 'created_at',
+                      icon: <Type className="w-3.5 h-3.5 text-gray-500" />,
+                      type: 'column'
+                    }
+                  ]
+                },
+                {
+                  id: 'table-users-keys',
+                  label: 'Keys',
+                  icon: <KeyRound className="w-4 h-4 text-yellow-500" />,
+                  type: 'folder',
+                  children: [
+                    {
+                      id: 'key-users-pk',
+                      label: 'PK_Users',
+                      icon: <Key className="w-3.5 h-3.5 text-yellow-500" />,
+                      type: 'key'
+                    }
+                  ]
+                },
+                {
+                  id: 'table-users-indexes',
+                  label: 'Indexes',
+                  icon: <Zap className="w-4 h-4 text-orange-500" />,
+                  type: 'folder',
+                  children: [
+                    {
+                      id: 'idx-users-email',
+                      label: 'IDX_Users_Email',
+                      icon: <Zap className="w-3.5 h-3.5 text-orange-500" />,
+                      type: 'index'
+                    }
+                  ]
+                },
+                {
+                  id: 'table-users-triggers',
+                  label: 'Triggers',
+                  icon: <Zap className="w-4 h-4 text-red-500" />,
+                  type: 'folder',
+                  children: []
+                },
+                {
+                  id: 'table-users-constraints',
+                  label: 'Check Constraints',
+                  icon: <Lock className="w-4 h-4 text-blue-500" />,
+                  type: 'folder',
+                  children: [
+                    {
+                      id: 'chk-users-email',
+                      label: 'CHK_Users_Email',
+                      icon: <Lock className="w-3.5 h-3.5 text-blue-500" />,
+                      type: 'constraint'
                     }
                   ]
                 }
               ]
             },
             {
-              id: 'entity-order',
-              label: 'Order',
-              icon: <Box className="w-4 h-4 text-purple-500" />,
-              type: 'entity',
+              id: 'table-orders',
+              label: 'Orders',
+              icon: <Table2 className="w-4 h-4 text-purple-500" />,
+              type: 'table',
               children: [
                 {
-                  id: 'order-attributes',
+                  id: 'table-orders-columns',
                   label: 'Columns',
                   icon: <Hash className="w-4 h-4 text-gray-500" />,
                   type: 'folder',
                   children: [
                     {
-                      id: 'order-pk',
-                      label: 'Primary Keys (PK)',
-                      icon: <Key className="w-4 h-4 text-yellow-500" />,
-                      type: 'folder',
-                      children: [
-                        {
-                          id: 'attr-order-id',
-                          label: 'order_id',
-                          icon: <Key className="w-3.5 h-3.5 text-yellow-500" />,
-                          type: 'attribute'
-                        }
-                      ]
+                      id: 'col-order-id',
+                      label: 'order_id (PK)',
+                      icon: <Key className="w-3.5 h-3.5 text-yellow-500" />,
+                      type: 'column'
                     },
                     {
-                      id: 'order-fk',
-                      label: 'Foreign Keys (FK)',
-                      icon: <LinkIcon className="w-4 h-4 text-blue-500" />,
-                      type: 'folder',
-                      children: [
-                        {
-                          id: 'attr-customer-fk',
-                          label: 'customer_id',
-                          icon: <LinkIcon className="w-3.5 h-3.5 text-blue-500" />,
-                          type: 'attribute'
-                        }
-                      ]
+                      id: 'col-user-id-fk',
+                      label: 'user_id (FK)',
+                      icon: <LinkIcon className="w-3.5 h-3.5 text-blue-500" />,
+                      type: 'column'
                     },
                     {
-                      id: 'order-other',
-                      label: 'Other attributes',
-                      icon: <Hash className="w-4 h-4 text-gray-500" />,
-                      type: 'folder',
-                      children: [
-                        {
-                          id: 'attr-order-date',
-                          label: 'order_date',
-                          icon: <Hash className="w-3.5 h-3.5 text-gray-500" />,
-                          type: 'attribute'
-                        }
-                      ]
+                      id: 'col-order-date',
+                      label: 'order_date',
+                      icon: <Type className="w-3.5 h-3.5 text-gray-500" />,
+                      type: 'column'
+                    },
+                    {
+                      id: 'col-total',
+                      label: 'total_amount',
+                      icon: <Type className="w-3.5 h-3.5 text-gray-500" />,
+                      type: 'column'
                     }
                   ]
+                },
+                {
+                  id: 'table-orders-keys',
+                  label: 'Keys',
+                  icon: <KeyRound className="w-4 h-4 text-yellow-500" />,
+                  type: 'folder',
+                  children: [
+                    {
+                      id: 'key-orders-pk',
+                      label: 'PK_Orders',
+                      icon: <Key className="w-3.5 h-3.5 text-yellow-500" />,
+                      type: 'key'
+                    },
+                    {
+                      id: 'key-orders-fk',
+                      label: 'FK_Orders_Users',
+                      icon: <LinkIcon className="w-3.5 h-3.5 text-blue-500" />,
+                      type: 'key'
+                    }
+                  ]
+                },
+                {
+                  id: 'table-orders-indexes',
+                  label: 'Indexes',
+                  icon: <Zap className="w-4 h-4 text-orange-500" />,
+                  type: 'folder',
+                  children: [
+                    {
+                      id: 'idx-orders-date',
+                      label: 'IDX_Orders_Date',
+                      icon: <Zap className="w-3.5 h-3.5 text-orange-500" />,
+                      type: 'index'
+                    }
+                  ]
+                },
+                {
+                  id: 'table-orders-triggers',
+                  label: 'Triggers',
+                  icon: <Zap className="w-4 h-4 text-red-500" />,
+                  type: 'folder',
+                  children: []
+                },
+                {
+                  id: 'table-orders-constraints',
+                  label: 'Check Constraints',
+                  icon: <Lock className="w-4 h-4 text-blue-500" />,
+                  type: 'folder',
+                  children: []
                 }
               ]
             }
@@ -952,48 +986,27 @@ function LeftPanel({ isDark }: { isDark: boolean }) {
         },
         {
           id: 'relationships',
-          label: 'Relationships',
+          label: 'Relationships (2)',
           icon: <GitBranch className="w-4 h-4 text-green-500" />,
           type: 'folder',
           children: [
             {
-              id: 'identifying-rel',
+              id: 'relationships-identifying',
               label: 'Identifying',
               icon: <GitBranch className="w-4 h-4 text-green-600" />,
               type: 'folder',
-              children: [
-                {
-                  id: 'rel-customer-order',
-                  label: 'Customer_Order',
-                  icon: <GitBranch className="w-4 h-4 text-green-500" />,
-                  type: 'relationship'
-                }
-              ]
+              children: []
             },
             {
-              id: 'non-identifying-rel',
+              id: 'relationships-non-identifying',
               label: 'Non-identifying',
               icon: <GitMerge className="w-4 h-4 text-green-600" />,
               type: 'folder',
               children: [
                 {
-                  id: 'rel-order-product',
-                  label: 'Order_Product',
+                  id: 'rel-users-orders',
+                  label: 'Users → Orders',
                   icon: <GitMerge className="w-4 h-4 text-green-500" />,
-                  type: 'relationship'
-                }
-              ]
-            },
-            {
-              id: 'many-to-many-rel',
-              label: 'Many-to-Many',
-              icon: <Network className="w-4 h-4 text-green-600" />,
-              type: 'folder',
-              children: [
-                {
-                  id: 'rel-product-category',
-                  label: 'Product_Category',
-                  icon: <Network className="w-4 h-4 text-green-500" />,
                   type: 'relationship'
                 }
               ]
@@ -1002,13 +1015,13 @@ function LeftPanel({ isDark }: { isDark: boolean }) {
         },
         {
           id: 'views',
-          label: 'Views',
+          label: 'Views (2)',
           icon: <Eye className="w-4 h-4 text-cyan-500" />,
           type: 'folder',
           children: [
             {
-              id: 'logical-views',
-              label: 'Logical views',
+              id: 'views-logical',
+              label: 'Logical Views',
               icon: <Eye className="w-4 h-4 text-cyan-600" />,
               type: 'folder',
               children: [
@@ -1021,14 +1034,14 @@ function LeftPanel({ isDark }: { isDark: boolean }) {
               ]
             },
             {
-              id: 'physical-views',
-              label: 'Physical views (SQL)',
+              id: 'views-physical',
+              label: 'Physical Views',
               icon: <FileCode className="w-4 h-4 text-cyan-600" />,
               type: 'folder',
               children: [
                 {
-                  id: 'view-customer-orders',
-                  label: 'VW_CUSTOMER_ORDERS',
+                  id: 'view-order-details',
+                  label: 'VW_OrderDetails',
                   icon: <FileCode className="w-4 h-4 text-cyan-500" />,
                   type: 'view'
                 }
@@ -1037,192 +1050,58 @@ function LeftPanel({ isDark }: { isDark: boolean }) {
           ]
         },
         {
-          id: 'sequences-procedures-triggers',
-          label: 'Sequences / Procedures / Triggers',
-          icon: <Zap className="w-4 h-4 text-red-500" />,
+          id: 'stored-procedures',
+          label: 'Stored Procedures',
+          icon: <Command className="w-4 h-4 text-red-600" />,
           type: 'folder',
           children: [
             {
-              id: 'sequences',
-              label: 'Sequences',
-              icon: <Hash className="w-4 h-4 text-purple-600" />,
-              type: 'folder',
-              children: [
-                {
-                  id: 'seq-customer-id',
-                  label: 'SEQ_CUSTOMER_ID',
-                  icon: <Hash className="w-4 h-4 text-purple-500" />,
-                  type: 'sequence'
-                }
-              ]
-            },
-            {
-              id: 'stored-procedures',
-              label: 'Stored Procedures',
-              icon: <Command className="w-4 h-4 text-red-600" />,
-              type: 'folder',
-              children: [
-                {
-                  id: 'proc-get-orders',
-                  label: 'SP_GET_CUSTOMER_ORDERS',
-                  icon: <Command className="w-4 h-4 text-red-500" />,
-                  type: 'procedure'
-                }
-              ]
-            },
-            {
-              id: 'triggers',
-              label: 'Triggers',
-              icon: <Zap className="w-4 h-4 text-yellow-600" />,
-              type: 'folder',
-              children: [
-                {
-                  id: 'trigger-audit',
-                  label: 'TRG_CUSTOMER_AUDIT',
-                  icon: <Zap className="w-4 h-4 text-yellow-500" />,
-                  type: 'trigger'
-                }
-              ]
+              id: 'sp-get-user-orders',
+              label: 'sp_GetUserOrders',
+              icon: <Command className="w-4 h-4 text-red-500" />,
+              type: 'procedure'
             }
           ]
         },
         {
-          id: 'users-roles',
-          label: 'Users / Roles',
-          icon: <Users className="w-4 h-4 text-indigo-500" />,
+          id: 'functions',
+          label: 'Functions',
+          icon: <Code className="w-4 h-4 text-orange-600" />,
           type: 'folder',
           children: [
             {
-              id: 'users',
-              label: 'Users',
-              icon: <User className="w-4 h-4 text-indigo-600" />,
-              type: 'folder',
-              children: [
-                {
-                  id: 'user-admin',
-                  label: 'db_admin',
-                  icon: <Crown className="w-4 h-4 text-indigo-500" />,
-                  type: 'user'
-                }
-              ]
-            },
-            {
-              id: 'roles',
-              label: 'Roles',
-              icon: <UserPlus className="w-4 h-4 text-indigo-600" />,
-              type: 'folder',
-              children: [
-                {
-                  id: 'role-admin',
-                  label: 'ADMIN_ROLE',
-                  icon: <Crown className="w-4 h-4 text-indigo-500" />,
-                  type: 'role'
-                }
-              ]
-            },
-            {
-              id: 'permissions',
-              label: 'Permissions',
-              icon: <KeyRound className="w-4 h-4 text-indigo-600" />,
-              type: 'folder',
-              children: [
-                {
-                  id: 'perm-select',
-                  label: 'SELECT_PERMISSION',
-                  icon: <Eye className="w-4 h-4 text-indigo-500" />,
-                  type: 'permission'
-                }
-              ]
+              id: 'fn-calculate-total',
+              label: 'fn_CalculateTotal',
+              icon: <Code className="w-4 h-4 text-orange-500" />,
+              type: 'function'
             }
           ]
         },
         {
-          id: 'other-objects',
-          label: 'Other Objects (depending on DBMS)',
-          icon: <Server className="w-4 h-4 text-gray-500" />,
+          id: 'sequences',
+          label: 'Sequences',
+          icon: <Hash className="w-4 h-4 text-purple-600" />,
           type: 'folder',
           children: [
             {
-              id: 'indexes',
-              label: 'Indexes',
-              icon: <Search className="w-4 h-4 text-yellow-600" />,
-              type: 'folder',
-              children: [
-                {
-                  id: 'idx-customer-email',
-                  label: 'IDX_CUSTOMER_EMAIL',
-                  icon: <Search className="w-4 h-4 text-yellow-500" />,
-                  type: 'index'
-                }
-              ]
-            },
+              id: 'seq-order-id',
+              label: 'seq_OrderId',
+              icon: <Hash className="w-4 h-4 text-purple-500" />,
+              type: 'sequence'
+            }
+          ]
+        },
+        {
+          id: 'user-types',
+          label: 'User Defined Types',
+          icon: <FileCode className="w-4 h-4 text-indigo-600" />,
+          type: 'folder',
+          children: [
             {
-              id: 'constraints',
-              label: 'Constraints',
-              icon: <Lock className="w-4 h-4 text-red-600" />,
-              type: 'folder',
-              children: [
-                {
-                  id: 'chk-email-format',
-                  label: 'CHK_EMAIL_FORMAT',
-                  icon: <Lock className="w-4 h-4 text-red-500" />,
-                  type: 'constraint'
-                }
-              ]
-            },
-            {
-              id: 'synonyms',
-              label: 'Synonyms',
-              icon: <Link2 className="w-4 h-4 text-purple-600" />,
-              type: 'folder',
-              children: [
-                {
-                  id: 'syn-customer',
-                  label: 'SYN_CUSTOMER',
-                  icon: <Link2 className="w-4 h-4 text-purple-500" />,
-                  type: 'synonym'
-                }
-              ]
-            },
-            {
-              id: 'schemas',
-              label: 'Schemas',
-              icon: <Folder className="w-4 h-4 text-blue-600" />,
-              type: 'folder',
-              children: [
-                {
-                  id: 'schema-public',
-                  label: 'PUBLIC',
-                  icon: <Globe className="w-4 h-4 text-blue-500" />,
-                  type: 'schema'
-                },
-                {
-                  id: 'schema-app',
-                  label: 'APP_SCHEMA',
-                  icon: <Folder className="w-4 h-4 text-blue-500" />,
-                  type: 'schema'
-                }
-              ]
-            },
-            {
-              id: 'tablespaces-storage',
-              label: 'Tablespaces / Storage',
-              icon: <Server className="w-4 h-4 text-gray-600" />,
-              type: 'folder',
-              children: [
-                {
-                  id: 'ts-data',
-                  label: 'DATA_TABLESPACE',
-                  icon: <Server className="w-4 h-4 text-gray-500" />,
-                  type: 'tablespace'
-                },
-                {
-                  id: 'ts-index',
-                  label: 'INDEX_TABLESPACE',
-                  icon: <Archive className="w-4 h-4 text-gray-500" />,
-                  type: 'tablespace'
-                }
-              ]
+              id: 'udt-address',
+              label: 'AddressType',
+              icon: <FileCode className="w-4 h-4 text-indigo-500" />,
+              type: 'udt'
             }
           ]
         }
@@ -1805,71 +1684,215 @@ function PropertiesView({ selectedTable, isDark }: { selectedTable?: Table; isDa
       id: 'model',
       label: properties.modelName,
       icon: Database,
-      children: [
-        { id: 'model-general', label: 'General', icon: FileText, type: 'model' as const },
-        { id: 'model-settings', label: 'Settings', icon: Settings, type: 'model' as const },
-        { id: 'model-metadata', label: 'Metadata', icon: FileCode, type: 'model' as const },
-        { id: 'model-subject', label: 'Subject Area', icon: Folder, type: 'model' as const },
-        { id: 'model-domain', label: 'Domain', icon: Globe, type: 'model' as const }
-      ]
-    },
-    {
-      id: 'tables',
-      label: `Tables (1)`,
-      icon: Table2,
+      type: 'model' as const,
       children: [
         {
-          id: 'table-users',
-          label: properties.tableName,
-          icon: Users,
-          type: 'table' as const,
-          children: columns.map(col => ({
-            id: col.id,
-            label: `${col.name}${col.isPK ? ' (PK)' : col.isFK ? ' (FK)' : ''}`,
-            icon: col.isPK ? Key : col.isFK ? LinkIcon : Type,
-            type: 'column' as const
-          }))
+          id: 'subject-areas',
+          label: 'Subject Areas',
+          icon: Folder,
+          children: [
+            { id: 'sa-1', label: 'Customer Management', icon: Component, type: 'subject-area' as const },
+            { id: 'sa-2', label: 'Order Processing', icon: Component, type: 'subject-area' as const }
+          ]
+        },
+        {
+          id: 'domains',
+          label: 'Domains',
+          icon: Globe,
+          children: [
+            { id: 'domain-1', label: 'EmailAddress', icon: Type, type: 'domain' as const },
+            { id: 'domain-2', label: 'Currency', icon: Type, type: 'domain' as const }
+          ]
+        },
+        {
+          id: 'tables',
+          label: `Tables (2)`,
+          icon: Table2,
+          children: [
+            {
+              id: 'table-users',
+              label: properties.tableName,
+              icon: Users,
+              type: 'table' as const,
+              children: [
+                {
+                  id: 'table-users-columns',
+                  label: 'Columns',
+                  icon: Hash,
+                  children: columns.map(col => ({
+                    id: col.id,
+                    label: `${col.name}${col.isPK ? ' (PK)' : col.isFK ? ' (FK)' : ''}`,
+                    icon: col.isPK ? Key : col.isFK ? LinkIcon : Type,
+                    type: 'column' as const
+                  }))
+                },
+                {
+                  id: 'table-users-keys',
+                  label: 'Keys',
+                  icon: KeyRound,
+                  children: [
+                    { id: 'key-users-pk', label: 'PK_Users', icon: Key, type: 'key' as const }
+                  ]
+                },
+                {
+                  id: 'table-users-indexes',
+                  label: 'Indexes',
+                  icon: Zap,
+                  children: indexes.map(idx => ({
+                    id: `table-users-${idx.id}`,
+                    label: idx.name,
+                    icon: idx.isUnique ? KeyRound : Hash,
+                    type: 'index' as const
+                  }))
+                },
+                {
+                  id: 'table-users-triggers',
+                  label: 'Triggers',
+                  icon: Zap,
+                  children: []
+                },
+                {
+                  id: 'table-users-constraints',
+                  label: 'Check Constraints',
+                  icon: Lock,
+                  children: constraints.map(con => ({
+                    id: `table-users-${con.id}`,
+                    label: con.name,
+                    icon: Lock,
+                    type: 'constraint' as const
+                  }))
+                }
+              ]
+            },
+            {
+              id: 'table-orders',
+              label: 'Orders',
+              icon: Table2,
+              type: 'table' as const,
+              children: [
+                {
+                  id: 'table-orders-columns',
+                  label: 'Columns',
+                  icon: Hash,
+                  children: [
+                    { id: 'col-order-id', label: 'order_id (PK)', icon: Key, type: 'column' as const },
+                    { id: 'col-user-id', label: 'user_id (FK)', icon: LinkIcon, type: 'column' as const },
+                    { id: 'col-order-date', label: 'order_date', icon: Type, type: 'column' as const },
+                    { id: 'col-total', label: 'total_amount', icon: Type, type: 'column' as const }
+                  ]
+                },
+                {
+                  id: 'table-orders-keys',
+                  label: 'Keys',
+                  icon: KeyRound,
+                  children: [
+                    { id: 'key-orders-pk', label: 'PK_Orders', icon: Key, type: 'key' as const },
+                    { id: 'key-orders-fk', label: 'FK_Orders_Users', icon: LinkIcon, type: 'key' as const }
+                  ]
+                },
+                {
+                  id: 'table-orders-indexes',
+                  label: 'Indexes',
+                  icon: Zap,
+                  children: [
+                    { id: 'idx-orders-date', label: 'IDX_Orders_Date', icon: Hash, type: 'index' as const }
+                  ]
+                },
+                {
+                  id: 'table-orders-triggers',
+                  label: 'Triggers',
+                  icon: Zap,
+                  children: []
+                },
+                {
+                  id: 'table-orders-constraints',
+                  label: 'Check Constraints',
+                  icon: Lock,
+                  children: []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          id: 'relationships',
+          label: `Relationships (2)`,
+          icon: GitBranch,
+          children: [
+            {
+              id: 'relationships-identifying',
+              label: 'Identifying',
+              icon: GitBranch,
+              children: [
+                { id: 'rel-1', label: 'Users → Orders', icon: ArrowRight, type: 'relationship' as const }
+              ]
+            },
+            {
+              id: 'relationships-non-identifying',
+              label: 'Non-identifying',
+              icon: GitMerge,
+              children: [
+                { id: 'rel-2', label: 'Orders → Products', icon: ArrowRight, type: 'relationship' as const }
+              ]
+            }
+          ]
+        },
+        {
+          id: 'views',
+          label: 'Views (2)',
+          icon: Eye,
+          children: [
+            {
+              id: 'views-logical',
+              label: 'Logical Views',
+              icon: Eye,
+              children: [
+                { id: 'view-1', label: 'vw_order_summary', icon: FileText, type: 'view' as const }
+              ]
+            },
+            {
+              id: 'views-physical',
+              label: 'Physical Views',
+              icon: FileCode,
+              children: [
+                { id: 'view-2', label: 'vw_user_stats', icon: FileText, type: 'view' as const }
+              ]
+            }
+          ]
+        },
+        {
+          id: 'stored-procedures',
+          label: 'Stored Procedures',
+          icon: Command,
+          children: [
+            { id: 'proc-1', label: 'sp_GetUserOrders', icon: Command, type: 'procedure' as const },
+            { id: 'proc-2', label: 'sp_CreateOrder', icon: Command, type: 'procedure' as const }
+          ]
+        },
+        {
+          id: 'functions',
+          label: 'Functions',
+          icon: FileCode,
+          children: [
+            { id: 'func-1', label: 'fn_CalculateTotal', icon: FileCode, type: 'function' as const }
+          ]
+        },
+        {
+          id: 'sequences',
+          label: 'Sequences',
+          icon: Hash,
+          children: [
+            { id: 'seq-1', label: 'SEQ_ORDER_ID', icon: Hash, type: 'sequence' as const }
+          ]
+        },
+        {
+          id: 'user-types',
+          label: 'User Defined Types',
+          icon: Type,
+          children: [
+            { id: 'udt-1', label: 'Address', icon: Type, type: 'udt' as const }
+          ]
         }
-      ]
-    },
-    {
-      id: 'relationships',
-      label: `Relationships (2)`,
-      icon: GitBranch,
-      children: [
-        { id: 'rel-1', label: 'Users → Orders', icon: ArrowRight, type: 'relationship' as const },
-        { id: 'rel-2', label: 'Orders → Products', icon: ArrowRight, type: 'relationship' as const }
-      ]
-    },
-    {
-      id: 'indexes',
-      label: `Indexes (${indexes.length})`,
-      icon: Zap,
-      children: indexes.map(idx => ({
-        id: idx.id,
-        label: idx.name,
-        icon: idx.isUnique ? KeyRound : Hash,
-        type: 'index' as const
-      }))
-    },
-    {
-      id: 'constraints',
-      label: `Constraints (${constraints.length})`,
-      icon: Lock,
-      children: constraints.map(con => ({
-        id: con.id,
-        label: con.name,
-        icon: con.type === 'Foreign Key' ? LinkIcon : Settings,
-        type: 'constraint' as const
-      }))
-    },
-    {
-      id: 'views',
-      label: 'Views (2)',
-      icon: Eye,
-      children: [
-        { id: 'view-1', label: 'vw_order_summary', icon: FileText, type: 'view' as const },
-        { id: 'view-2', label: 'vw_user_stats', icon: FileText, type: 'view' as const }
       ]
     }
   ], [properties.modelName, properties.tableName, columns, indexes, constraints]);
@@ -1948,10 +1971,14 @@ function PropertiesView({ selectedTable, isDark }: { selectedTable?: Table; isDa
     // Tabs configuration - Context-sensitive
     const modelTabs = [
       { id: 'general', label: 'General', icon: FileText },
-      { id: 'settings', label: 'Settings', icon: Settings },
-      { id: 'metadata', label: 'Metadata', icon: FileCode },
-      { id: 'subject', label: 'Subject', icon: Folder },
-      { id: 'domain', label: 'Domain', icon: Globe }
+      { id: 'defaults', label: 'Defaults', icon: Sliders },
+      { id: 'ri-defaults', label: 'RI Defaults', icon: Shield },
+      { id: 'options', label: 'Options', icon: Settings },
+      { id: 'definitions', label: 'Definitions', icon: BookOpen },
+      { id: 'udp', label: 'UDP', icon: ClipboardList },
+      { id: 'history', label: 'History', icon: History },
+      { id: 'notes', label: 'Notes', icon: StickyNote },
+      { id: 'extended-notes', label: 'Extended Notes', icon: FileStack }
     ];
 
     const tableTabs = [
@@ -1959,28 +1986,40 @@ function PropertiesView({ selectedTable, isDark }: { selectedTable?: Table; isDa
       { id: 'columns', label: 'Columns', icon: Table2 },
       { id: 'keys', label: 'Keys', icon: KeyRound },
       { id: 'indexes', label: 'Indexes', icon: Zap },
-      { id: 'display', label: 'Display', icon: Eye }
+      { id: 'defaults', label: 'Defaults', icon: Sliders },
+      { id: 'ri-defaults', label: 'RI Defaults', icon: Shield },
+      { id: 'udp', label: 'UDP', icon: ClipboardList },
+      { id: 'notes', label: 'Notes', icon: StickyNote },
+      { id: 'extended-notes', label: 'Extended Notes', icon: FileStack }
     ];
 
     const columnTabs = [
       { id: 'general', label: 'General', icon: FileText },
       { id: 'constraints', label: 'Constraints', icon: Lock },
-      { id: 'display', label: 'Display', icon: Eye }
+      { id: 'defaults', label: 'Defaults', icon: Sliders },
+      { id: 'udp', label: 'UDP', icon: ClipboardList },
+      { id: 'notes', label: 'Notes', icon: StickyNote }
     ];
 
     const relationshipTabs = [
       { id: 'general', label: 'General', icon: FileText },
-      { id: 'cardinality', label: 'Cardinality', icon: GitBranch }
+      { id: 'cardinality', label: 'Cardinality', icon: GitBranch },
+      { id: 'udp', label: 'UDP', icon: ClipboardList },
+      { id: 'notes', label: 'Notes', icon: StickyNote }
     ];
 
     const indexTabs = [
       { id: 'general', label: 'General', icon: FileText },
-      { id: 'columns', label: 'Columns', icon: Table2 }
+      { id: 'columns', label: 'Columns', icon: Table2 },
+      { id: 'udp', label: 'UDP', icon: ClipboardList },
+      { id: 'notes', label: 'Notes', icon: StickyNote }
     ];
 
     const viewTabs = [
       { id: 'general', label: 'General', icon: FileText },
-      { id: 'sql', label: 'SQL', icon: FileCode }
+      { id: 'sql', label: 'SQL', icon: FileCode },
+      { id: 'udp', label: 'UDP', icon: ClipboardList },
+      { id: 'notes', label: 'Notes', icon: StickyNote }
     ];
 
     const tabs = selectedItem.type === 'model' ? modelTabs
@@ -1992,32 +2031,32 @@ function PropertiesView({ selectedTable, isDark }: { selectedTable?: Table; isDa
 
     return (
       <div className="flex h-full flex-col">
-        {/* Left Icon Strip */}
-        <div className="flex h-full">
-          <div className={`w-6 border-r transition-colors flex flex-col ${
-            isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200'
-          }`}>
+        {/* Top Tab Bar */}
+        <div className={`border-b transition-colors ${
+          isDark ? 'border-zinc-800 bg-zinc-900' : 'border-gray-200 bg-white'
+        }`}>
+          <div className="flex items-center overflow-x-auto">
             {tabs.map((tab) => (
-              <div
+              <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`h-8 flex items-center justify-center cursor-pointer transition-all duration-200 ${
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all duration-200 border-b-2 whitespace-nowrap ${
                   activeTab === tab.id
-                    ? `${isDark ? 'bg-indigo-500 text-white' : 'bg-indigo-600 text-white'} shadow-sm`
-                    : `${isDark ? 'text-gray-400 hover:text-gray-100 hover:bg-zinc-800/50' : 'text-gray-600 hover:text-gray-900 hover:bg-indigo-50/50'}`
+                    ? `${isDark ? 'border-indigo-500 text-indigo-400 bg-indigo-500/10' : 'border-indigo-600 text-indigo-600 bg-indigo-50'}`
+                    : `border-transparent ${isDark ? 'text-gray-400 hover:text-gray-100 hover:bg-zinc-800/50' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`
                 }`}
-                title={tab.label}
-                style={{ marginBottom: '1px' }}
               >
-                <tab.icon className="w-3.5 h-3.5" />
-              </div>
+                <tab.icon className="w-4 h-4" />
+                <span>{tab.label}</span>
+              </button>
             ))}
           </div>
+        </div>
 
-          {/* Main Content Area */}
-          <div className={`flex-1 overflow-y-auto transition-colors ${
-            isDark ? 'bg-zinc-900' : 'bg-white'
-          }`}>
+        {/* Main Content Area */}
+        <div className={`flex-1 overflow-y-auto transition-colors ${
+          isDark ? 'bg-zinc-900' : 'bg-white'
+        }`}>
             {/* Enhanced Context Header with Breadcrumb */}
             <div className={`p-3 border-b transition-colors ${
               isDark ? 'border-zinc-800 bg-zinc-900/50' : 'border-gray-200 bg-gray-50'
@@ -2425,6 +2464,229 @@ function PropertiesView({ selectedTable, isDark }: { selectedTable?: Table; isDa
                                    : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500'
                           } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
                         />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* NEW TABS - Model Level */}
+              {selectedItem.type === 'model' && activeTab === 'defaults' && (
+                <div className="space-y-4">
+                  <div className={`rounded-lg border p-3 shadow-sm ${isDark ? 'bg-zinc-900/50 border-zinc-800' : 'bg-white border-gray-200'}`}>
+                    <h3 className={`text-xs font-semibold mb-3 flex items-center gap-1.5 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
+                      <Sliders className="w-3.5 h-3.5" />
+                      Entity Defaults
+                    </h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Default Schema</label>
+                        <input type="text" defaultValue="dbo" className={`w-full px-3 py-2 text-xs rounded-md border ${isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-indigo-500/20`} />
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Default Tablespace</label>
+                        <input type="text" placeholder="PRIMARY" className={`w-full px-3 py-2 text-xs rounded-md border ${isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-indigo-500/20`} />
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>PK Index Name Format</label>
+                        <input type="text" defaultValue="PK_{table_name}" className={`w-full px-3 py-2 text-xs rounded-md border ${isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-indigo-500/20`} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className={`rounded-lg border p-3 shadow-sm ${isDark ? 'bg-zinc-900/50 border-zinc-800' : 'bg-white border-gray-200'}`}>
+                    <h3 className={`text-xs font-semibold mb-3 flex items-center gap-1.5 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
+                      <Hash className="w-3.5 h-3.5" />
+                      Column Defaults
+                    </h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Default Datatype</label>
+                        <select className={`w-full px-3 py-2 text-xs rounded-md border ${isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-gray-300 text-gray-900'}`}>
+                          <option>VARCHAR(255)</option>
+                          <option>INT</option>
+                          <option>DATETIME</option>
+                        </select>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" id="defaultNullable" className="rounded w-4 h-4" />
+                        <label htmlFor="defaultNullable" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Allow NULL by default</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedItem.type === 'model' && activeTab === 'ri-defaults' && (
+                <div className="space-y-4">
+                  <div className={`rounded-lg border p-3 shadow-sm ${isDark ? 'bg-zinc-900/50 border-zinc-800' : 'bg-white border-gray-200'}`}>
+                    <h3 className={`text-xs font-semibold mb-3 flex items-center gap-1.5 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
+                      <Shield className="w-3.5 h-3.5" />
+                      Referential Integrity Actions
+                    </h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>On Update Action</label>
+                        <select className={`w-full px-3 py-2 text-xs rounded-md border ${isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-gray-300 text-gray-900'}`}>
+                          <option>NO ACTION</option>
+                          <option>CASCADE</option>
+                          <option>SET NULL</option>
+                          <option>SET DEFAULT</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>On Delete Action</label>
+                        <select className={`w-full px-3 py-2 text-xs rounded-md border ${isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-gray-300 text-gray-900'}`}>
+                          <option>NO ACTION</option>
+                          <option>CASCADE</option>
+                          <option>SET NULL</option>
+                          <option>SET DEFAULT</option>
+                        </select>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" id="enforceFKConstraints" defaultChecked className="rounded w-4 h-4" />
+                        <label htmlFor="enforceFKConstraints" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Enforce Foreign Key Constraints</label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" id="genPhysicalConstraints" defaultChecked className="rounded w-4 h-4" />
+                        <label htmlFor="genPhysicalConstraints" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Generate Physical Constraints</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedItem.type === 'model' && activeTab === 'options' && (
+                <div className="space-y-4">
+                  <div className={`rounded-lg border p-3 shadow-sm ${isDark ? 'bg-zinc-900/50 border-zinc-800' : 'bg-white border-gray-200'}`}>
+                    <h3 className={`text-xs font-semibold mb-3 flex items-center gap-1.5 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
+                      <Eye className="w-3.5 h-3.5" />
+                      Display Settings
+                    </h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" id="showDatatypes" defaultChecked className="rounded w-4 h-4" />
+                        <label htmlFor="showDatatypes" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Show Datatypes in Diagram</label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" id="showRelationships" defaultChecked className="rounded w-4 h-4" />
+                        <label htmlFor="showRelationships" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Display FK Relationships</label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" id="showIndexes" className="rounded w-4 h-4" />
+                        <label htmlFor="showIndexes" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Display Indexes</label>
+                      </div>
+                    </div>
+                  </div>
+                  <div className={`rounded-lg border p-3 shadow-sm ${isDark ? 'bg-zinc-900/50 border-zinc-800' : 'bg-white border-gray-200'}`}>
+                    <h3 className={`text-xs font-semibold mb-3 flex items-center gap-1.5 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
+                      <Settings className="w-3.5 h-3.5" />
+                      Validation
+                    </h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" id="realtimeValidation" defaultChecked className="rounded w-4 h-4" />
+                        <label htmlFor="realtimeValidation" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Enable Real-time Validation</label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" id="showWarnings" defaultChecked className="rounded w-4 h-4" />
+                        <label htmlFor="showWarnings" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Show Non-standard Datatype Warnings</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedItem.type === 'model' && activeTab === 'definitions' && (
+                <div className="space-y-4">
+                  <div className={`rounded-lg border p-3 shadow-sm ${isDark ? 'bg-zinc-900/50 border-zinc-800' : 'bg-white border-gray-200'}`}>
+                    <h3 className={`text-xs font-semibold mb-3 flex items-center gap-1.5 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
+                      <BookOpen className="w-3.5 h-3.5" />
+                      Definitions
+                    </h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Business Definition</label>
+                        <textarea rows={4} placeholder="Enter business definition..." className={`w-full px-3 py-2 text-xs rounded-md border ${isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}></textarea>
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Technical Definition</label>
+                        <textarea rows={4} placeholder="Enter technical definition..." className={`w-full px-3 py-2 text-xs rounded-md border ${isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}></textarea>
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Source System</label>
+                        <input type="text" placeholder="Enter source system" className={`w-full px-3 py-2 text-xs rounded-md border ${isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-indigo-500/20`} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedItem.type === 'model' && activeTab === 'udp' && (
+                <div className="space-y-4">
+                  <div className={`rounded-lg border p-3 shadow-sm ${isDark ? 'bg-zinc-900/50 border-zinc-800' : 'bg-white border-gray-200'}`}>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className={`text-xs font-semibold flex items-center gap-1.5 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
+                        <ClipboardList className="w-3.5 h-3.5" />
+                        User Defined Properties
+                      </h3>
+                      <button className="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs rounded transition-colors">
+                        <Plus className="w-3 h-3 inline mr-1" />
+                        Add UDP
+                      </button>
+                    </div>
+                    <div className={`text-xs text-center py-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                      <ClipboardList className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p>No user-defined properties yet</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedItem.type === 'model' && activeTab === 'history' && (
+                <div className="space-y-4">
+                  <div className={`rounded-lg border p-3 shadow-sm ${isDark ? 'bg-zinc-900/50 border-zinc-800' : 'bg-white border-gray-200'}`}>
+                    <h3 className={`text-xs font-semibold mb-3 flex items-center gap-1.5 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
+                      <History className="w-3.5 h-3.5" />
+                      Version History
+                    </h3>
+                    <div className="space-y-2">
+                      <div className={`p-2 rounded border ${isDark ? 'bg-zinc-800/50 border-zinc-700' : 'bg-gray-50 border-gray-200'}`}>
+                        <div className="flex justify-between items-start mb-1">
+                          <span className={`text-xs font-medium ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>v2.1.0</span>
+                          <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>2025-01-10</span>
+                        </div>
+                        <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Added Order tables and relationships</p>
+                        <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>Modified by: John Doe</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedItem.type === 'model' && activeTab === 'notes' && (
+                <div className="space-y-4">
+                  <div className={`rounded-lg border p-3 shadow-sm ${isDark ? 'bg-zinc-900/50 border-zinc-800' : 'bg-white border-gray-200'}`}>
+                    <h3 className={`text-xs font-semibold mb-3 flex items-center gap-1.5 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
+                      <StickyNote className="w-3.5 h-3.5" />
+                      Model Notes
+                    </h3>
+                    <textarea rows={8} placeholder="Enter notes about this model..." className={`w-full px-3 py-2 text-xs rounded-md border ${isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}></textarea>
+                  </div>
+                </div>
+              )}
+
+              {selectedItem.type === 'model' && activeTab === 'extended-notes' && (
+                <div className="space-y-4">
+                  <div className={`rounded-lg border p-3 shadow-sm ${isDark ? 'bg-zinc-900/50 border-zinc-800' : 'bg-white border-gray-200'}`}>
+                    <h3 className={`text-xs font-semibold mb-3 flex items-center gap-1.5 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
+                      <FileStack className="w-3.5 h-3.5" />
+                      Extended Documentation
+                    </h3>
+                    <div className="space-y-3">
+                      <textarea rows={12} placeholder="Enter detailed documentation with formatting support..." className={`w-full px-3 py-2 text-xs rounded-md border ${isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}></textarea>
+                      <div>
+                        <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>External References</label>
+                        <input type="url" placeholder="https://wiki.example.com/model-docs" className={`w-full px-3 py-2 text-xs rounded-md border ${isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-indigo-500/20`} />
                       </div>
                     </div>
                   </div>
@@ -3019,7 +3281,6 @@ function PropertiesView({ selectedTable, isDark }: { selectedTable?: Table; isDa
             </div>
           </div>
         </div>
-      </div>
     );
   };
 
