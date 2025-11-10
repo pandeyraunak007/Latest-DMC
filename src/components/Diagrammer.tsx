@@ -159,6 +159,9 @@ interface Relationship {
   fromTable: string;
   toTable: string;
   type: '1:1' | '1:N' | 'N:M';
+  relationshipType: 'identifying' | 'non-identifying' | 'sub-type' | 'many-to-many';
+  fromSide?: 'top' | 'right' | 'bottom' | 'left';
+  toSide?: 'top' | 'right' | 'bottom' | 'left';
 }
 
 // Mock data
@@ -190,7 +193,7 @@ const mockTables: Table[] = [
 ];
 
 const mockRelationships: Relationship[] = [
-  { id: 'rel-1', fromTable: 'table-1', toTable: 'table-2', type: '1:N' }
+  { id: 'rel-1', fromTable: 'table-1', toTable: 'table-2', type: '1:N', relationshipType: 'identifying', fromSide: 'right', toSide: 'left' }
 ];
 
 export default function Diagrammer() {
