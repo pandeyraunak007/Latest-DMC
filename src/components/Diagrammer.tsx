@@ -202,7 +202,7 @@ export default function Diagrammer() {
   const [isLocked, setIsLocked] = useState(false);
   const [zoom, setZoom] = useState(100);
   const [tables, setTables] = useState<Table[]>(mockTables);
-  const [relationships] = useState<Relationship[]>(mockRelationships);
+  const [relationships, setRelationships] = useState<Relationship[]>(mockRelationships);
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
   const [showLeftPanel, setShowLeftPanel] = useState(true);
   const [showPropertiesPanel, setShowPropertiesPanel] = useState(true);
@@ -485,6 +485,7 @@ export default function Diagrammer() {
                 onTableSelect={setSelectedTable}
                 onAddTable={handleAddTable}
                 onTablesUpdate={setTables}
+                onRelationshipsUpdate={setRelationships}
                 isDark={isDark}
                 showGrid={showGrid}
                 snapToGrid={snapToGrid}
@@ -580,11 +581,13 @@ const ToolbarButton = ({
 const RelationshipDropdown = ({
   isDark,
   isActive,
-  onSelectTool
+  onSelectTool,
+  onSelectRelationshipType
 }: {
   isDark: boolean;
   isActive: boolean;
   onSelectTool: (mode: 'table' | 'annotation' | 'relationship' | null) => void;
+  onSelectRelationshipType: (type: 'identifying' | 'non-identifying' | 'sub-type' | 'many-to-many') => void;
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
@@ -628,6 +631,7 @@ const RelationshipDropdown = ({
                 isDark ? 'hover:bg-zinc-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'
               }`}
               onClick={() => {
+                onSelectRelationshipType('identifying');
                 onSelectTool('relationship');
                 setIsOpen(false);
               }}
@@ -640,6 +644,7 @@ const RelationshipDropdown = ({
                 isDark ? 'hover:bg-zinc-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'
               }`}
               onClick={() => {
+                onSelectRelationshipType('non-identifying');
                 onSelectTool('relationship');
                 setIsOpen(false);
               }}
@@ -652,6 +657,7 @@ const RelationshipDropdown = ({
                 isDark ? 'hover:bg-zinc-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'
               }`}
               onClick={() => {
+                onSelectRelationshipType('sub-type');
                 onSelectTool('relationship');
                 setIsOpen(false);
               }}
@@ -664,6 +670,7 @@ const RelationshipDropdown = ({
                 isDark ? 'hover:bg-zinc-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'
               }`}
               onClick={() => {
+                onSelectRelationshipType('many-to-many');
                 onSelectTool('relationship');
                 setIsOpen(false);
               }}
@@ -746,11 +753,13 @@ const ShapeDropdown = ({ isDark }: { isDark: boolean }) => {
 const ObjectToolbar = ({
   isDark,
   isDrawingMode,
-  onSelectTool
+  onSelectTool,
+  onSelectRelationshipType
 }: {
   isDark: boolean;
   isDrawingMode: 'table' | 'annotation' | 'relationship' | null;
   onSelectTool: (mode: 'table' | 'annotation' | 'relationship' | null) => void;
+  onSelectRelationshipType: (type: 'identifying' | 'non-identifying' | 'sub-type' | 'many-to-many') => void;
 }) => {
   return (
     <div className={`absolute top-6 left-6 flex flex-col gap-1 p-1.5 rounded-xl shadow-lg backdrop-blur-sm border z-50 ${
@@ -774,6 +783,7 @@ const ObjectToolbar = ({
         isDark={isDark}
         isActive={isDrawingMode === 'relationship'}
         onSelectTool={onSelectTool}
+        onSelectRelationshipType={onSelectRelationshipType}
       />
       <ToolbarButton
         icon={StickyNote}
@@ -1358,7 +1368,8 @@ function DiagramView({
   onToggleSnap,
   onToggleMinimap,
   onTogglePan,
-  showMinimap
+  showMinimap,
+  onRelationshipsUpdate
 }: {
   tables: Table[];
   relationships: Relationship[];
@@ -1380,10 +1391,16 @@ function DiagramView({
   onToggleMinimap: () => void;
   onTogglePan: () => void;
   showMinimap: boolean;
+  onRelationshipsUpdate: (relationships: Relationship[]) => void;
 }) {
   const [draggingTable, setDraggingTable] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isDrawingMode, setIsDrawingMode] = useState<'table' | 'annotation' | 'relationship' | null>(null);
+  const [selectedRelationshipType, setSelectedRelationshipType] = useState<'identifying' | 'non-identifying' | 'sub-type' | 'many-to-many'>('identifying');
+  const [pendingRelationship, setPendingRelationship] = useState<{
+    fromTable: string;
+    fromSide: 'top' | 'right' | 'bottom' | 'left';
+  } | null>(null);
 
   const handleToolSelection = (mode: 'table' | 'annotation' | 'relationship' | null) => {
     setIsDrawingMode(mode);
@@ -1440,6 +1457,48 @@ function DiagramView({
     setDraggingTable(null);
   };
 
+  const handleRelationshipTypeSelection = (type: 'identifying' | 'non-identifying' | 'sub-type' | 'many-to-many') => {
+    setSelectedRelationshipType(type);
+  };
+
+  const handleConnectionPointClick = (tableId: string, side: 'top' | 'right' | 'bottom' | 'left') => {
+    if (!pendingRelationship) {
+      // First click - set source
+      setPendingRelationship({ fromTable: tableId, fromSide: side });
+    } else {
+      // Second click - create relationship
+      const newRelationship: Relationship = {
+        id: `rel-${Date.now()}`,
+        fromTable: pendingRelationship.fromTable,
+        toTable: tableId,
+        type: selectedRelationshipType === 'many-to-many' ? 'N:M' : '1:N',
+        relationshipType: selectedRelationshipType,
+        fromSide: pendingRelationship.fromSide,
+        toSide: side
+      };
+
+      onRelationshipsUpdate([...relationships, newRelationship]);
+      setPendingRelationship(null);
+    }
+  };
+
+  // Helper to get connection point coordinates
+  const getConnectionPoint = (table: Table, side: 'top' | 'right' | 'bottom' | 'left') => {
+    const tableWidth = 200; // minWidth from table style
+    const tableHeight = 100; // approximate height
+
+    switch (side) {
+      case 'top':
+        return { x: table.x + tableWidth / 2, y: table.y };
+      case 'right':
+        return { x: table.x + tableWidth, y: table.y + tableHeight / 2 };
+      case 'bottom':
+        return { x: table.x + tableWidth / 2, y: table.y + tableHeight };
+      case 'left':
+        return { x: table.x, y: table.y + tableHeight / 2 };
+    }
+  };
+
   return (
     <motion.div
       key="diagram"
@@ -1471,6 +1530,303 @@ function DiagramView({
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
+        {/* SVG Layer for Relationships */}
+        <svg
+          className="absolute top-0 left-0 pointer-events-none"
+          style={{
+            width: '100%',
+            height: '100%',
+            zIndex: 0
+          }}
+        >
+          {relationships.map(rel => {
+            const fromTable = tables.find(t => t.id === rel.fromTable);
+            const toTable = tables.find(t => t.id === rel.toTable);
+
+            if (!fromTable || !toTable || !rel.fromSide || !rel.toSide) return null;
+
+            const fromPoint = getConnectionPoint(fromTable, rel.fromSide);
+            const toPoint = getConnectionPoint(toTable, rel.toSide);
+
+            const strokeColor = isDark ? '#818cf8' : '#6366f1'; // indigo color
+
+            // Calculate angle for proper marker orientation
+            const angle = Math.atan2(toPoint.y - fromPoint.y, toPoint.x - fromPoint.x) * 180 / Math.PI;
+
+            // Helper to render IDEF1X notation at connection point
+            const renderParentNotation = (point: {x: number, y: number}, side: string) => {
+              const offset = 15;
+              let x = point.x;
+              let y = point.y;
+
+              // Position based on connection side
+              if (side === 'right') { x += offset; }
+              else if (side === 'left') { x -= offset; }
+              else if (side === 'bottom') { y += offset; }
+              else if (side === 'top') { y -= offset; }
+
+              return { x, y };
+            };
+
+            const renderChildNotation = (point: {x: number, y: number}, side: string) => {
+              const offset = 15;
+              let x = point.x;
+              let y = point.y;
+
+              if (side === 'right') { x += offset; }
+              else if (side === 'left') { x -= offset; }
+              else if (side === 'bottom') { y += offset; }
+              else if (side === 'top') { y -= offset; }
+
+              return { x, y };
+            };
+
+            const isDashed = rel.relationshipType === 'non-identifying';
+
+            return (
+              <g key={rel.id}>
+                {/* Main relationship line */}
+                <line
+                  x1={fromPoint.x}
+                  y1={fromPoint.y}
+                  x2={toPoint.x}
+                  y2={toPoint.y}
+                  stroke={strokeColor}
+                  strokeWidth="2"
+                  strokeDasharray={isDashed ? '8 4' : '0'}
+                  className="pointer-events-auto"
+                />
+
+                {/* IDEF1X Notation based on relationship type */}
+
+                {/* Identifying Relationship: Solid line with filled circle at child end */}
+                {rel.relationshipType === 'identifying' && (
+                  <>
+                    {/* Parent end: Simple line end (already rendered) */}
+
+                    {/* Child end: Filled circle (dot) notation */}
+                    <circle
+                      cx={toPoint.x}
+                      cy={toPoint.y}
+                      r="6"
+                      fill={strokeColor}
+                      stroke={strokeColor}
+                      strokeWidth="1"
+                    />
+
+                    {/* Crow's foot for "many" side at child */}
+                    {(() => {
+                      const crowOffset = 12;
+                      const crowSize = 8;
+                      let cx = toPoint.x, cy = toPoint.y;
+
+                      if (rel.toSide === 'left') {
+                        cx -= crowOffset;
+                        return (
+                          <>
+                            <line x1={cx} y1={cy} x2={cx - crowSize} y2={cy - crowSize} stroke={strokeColor} strokeWidth="2" />
+                            <line x1={cx} y1={cy} x2={cx - crowSize} y2={cy + crowSize} stroke={strokeColor} strokeWidth="2" />
+                          </>
+                        );
+                      } else if (rel.toSide === 'right') {
+                        cx += crowOffset;
+                        return (
+                          <>
+                            <line x1={cx} y1={cy} x2={cx + crowSize} y2={cy - crowSize} stroke={strokeColor} strokeWidth="2" />
+                            <line x1={cx} y1={cy} x2={cx + crowSize} y2={cy + crowSize} stroke={strokeColor} strokeWidth="2" />
+                          </>
+                        );
+                      } else if (rel.toSide === 'top') {
+                        cy -= crowOffset;
+                        return (
+                          <>
+                            <line x1={cx} y1={cy} x2={cx - crowSize} y2={cy - crowSize} stroke={strokeColor} strokeWidth="2" />
+                            <line x1={cx} y1={cy} x2={cx + crowSize} y2={cy - crowSize} stroke={strokeColor} strokeWidth="2" />
+                          </>
+                        );
+                      } else {
+                        cy += crowOffset;
+                        return (
+                          <>
+                            <line x1={cx} y1={cy} x2={cx - crowSize} y2={cy + crowSize} stroke={strokeColor} strokeWidth="2" />
+                            <line x1={cx} y1={cy} x2={cx + crowSize} y2={cy + crowSize} stroke={strokeColor} strokeWidth="2" />
+                          </>
+                        );
+                      }
+                    })()}
+                  </>
+                )}
+
+                {/* Non-Identifying Relationship: Dashed line with circle and crow's foot */}
+                {rel.relationshipType === 'non-identifying' && (
+                  <>
+                    {/* Child end: Hollow circle notation */}
+                    <circle
+                      cx={toPoint.x}
+                      cy={toPoint.y}
+                      r="6"
+                      fill={isDark ? '#0f172a' : 'white'}
+                      stroke={strokeColor}
+                      strokeWidth="2"
+                    />
+
+                    {/* Crow's foot for "many" side */}
+                    {(() => {
+                      const crowOffset = 12;
+                      const crowSize = 8;
+                      let cx = toPoint.x, cy = toPoint.y;
+
+                      if (rel.toSide === 'left') {
+                        cx -= crowOffset;
+                        return (
+                          <>
+                            <line x1={cx} y1={cy} x2={cx - crowSize} y2={cy - crowSize} stroke={strokeColor} strokeWidth="2" />
+                            <line x1={cx} y1={cy} x2={cx - crowSize} y2={cy + crowSize} stroke={strokeColor} strokeWidth="2" />
+                          </>
+                        );
+                      } else if (rel.toSide === 'right') {
+                        cx += crowOffset;
+                        return (
+                          <>
+                            <line x1={cx} y1={cy} x2={cx + crowSize} y2={cy - crowSize} stroke={strokeColor} strokeWidth="2" />
+                            <line x1={cx} y1={cy} x2={cx + crowSize} y2={cy + crowSize} stroke={strokeColor} strokeWidth="2" />
+                          </>
+                        );
+                      } else if (rel.toSide === 'top') {
+                        cy -= crowOffset;
+                        return (
+                          <>
+                            <line x1={cx} y1={cy} x2={cx - crowSize} y2={cy - crowSize} stroke={strokeColor} strokeWidth="2" />
+                            <line x1={cx} y1={cy} x2={cx + crowSize} y2={cy - crowSize} stroke={strokeColor} strokeWidth="2" />
+                          </>
+                        );
+                      } else {
+                        cy += crowOffset;
+                        return (
+                          <>
+                            <line x1={cx} y1={cy} x2={cx - crowSize} y2={cy + crowSize} stroke={strokeColor} strokeWidth="2" />
+                            <line x1={cx} y1={cy} x2={cx + crowSize} y2={cy + crowSize} stroke={strokeColor} strokeWidth="2" />
+                          </>
+                        );
+                      }
+                    })()}
+                  </>
+                )}
+
+                {/* Sub-type (Categorization) Relationship: Line with category symbol */}
+                {rel.relationshipType === 'sub-type' && (
+                  <>
+                    {/* Category symbol - circle with horizontal line through it */}
+                    <circle
+                      cx={fromPoint.x + (toPoint.x - fromPoint.x) / 2}
+                      cy={fromPoint.y + (toPoint.y - fromPoint.y) / 2}
+                      r="12"
+                      fill={isDark ? '#0f172a' : 'white'}
+                      stroke={strokeColor}
+                      strokeWidth="2"
+                    />
+                    <line
+                      x1={fromPoint.x + (toPoint.x - fromPoint.x) / 2 - 12}
+                      y1={fromPoint.y + (toPoint.y - fromPoint.y) / 2}
+                      x2={fromPoint.x + (toPoint.x - fromPoint.x) / 2 + 12}
+                      y2={fromPoint.y + (toPoint.y - fromPoint.y) / 2}
+                      stroke={strokeColor}
+                      strokeWidth="2"
+                    />
+                  </>
+                )}
+
+                {/* Many-to-Many: Crow's feet on both ends */}
+                {rel.relationshipType === 'many-to-many' && (
+                  <>
+                    {/* Crow's foot at parent (from) end */}
+                    {(() => {
+                      const crowOffset = 8;
+                      const crowSize = 8;
+                      let cx = fromPoint.x, cy = fromPoint.y;
+
+                      if (rel.fromSide === 'left') {
+                        cx -= crowOffset;
+                        return (
+                          <>
+                            <line x1={cx} y1={cy} x2={cx - crowSize} y2={cy - crowSize} stroke={strokeColor} strokeWidth="2" />
+                            <line x1={cx} y1={cy} x2={cx - crowSize} y2={cy + crowSize} stroke={strokeColor} strokeWidth="2" />
+                          </>
+                        );
+                      } else if (rel.fromSide === 'right') {
+                        cx += crowOffset;
+                        return (
+                          <>
+                            <line x1={cx} y1={cy} x2={cx + crowSize} y2={cy - crowSize} stroke={strokeColor} strokeWidth="2" />
+                            <line x1={cx} y1={cy} x2={cx + crowSize} y2={cy + crowSize} stroke={strokeColor} strokeWidth="2" />
+                          </>
+                        );
+                      } else if (rel.fromSide === 'top') {
+                        cy -= crowOffset;
+                        return (
+                          <>
+                            <line x1={cx} y1={cy} x2={cx - crowSize} y2={cy - crowSize} stroke={strokeColor} strokeWidth="2" />
+                            <line x1={cx} y1={cy} x2={cx + crowSize} y2={cy - crowSize} stroke={strokeColor} strokeWidth="2" />
+                          </>
+                        );
+                      } else {
+                        cy += crowOffset;
+                        return (
+                          <>
+                            <line x1={cx} y1={cy} x2={cx - crowSize} y2={cy + crowSize} stroke={strokeColor} strokeWidth="2" />
+                            <line x1={cx} y1={cy} x2={cx + crowSize} y2={cy + crowSize} stroke={strokeColor} strokeWidth="2" />
+                          </>
+                        );
+                      }
+                    })()}
+
+                    {/* Crow's foot at child (to) end */}
+                    {(() => {
+                      const crowOffset = 8;
+                      const crowSize = 8;
+                      let cx = toPoint.x, cy = toPoint.y;
+
+                      if (rel.toSide === 'left') {
+                        cx -= crowOffset;
+                        return (
+                          <>
+                            <line x1={cx} y1={cy} x2={cx - crowSize} y2={cy - crowSize} stroke={strokeColor} strokeWidth="2" />
+                            <line x1={cx} y1={cy} x2={cx - crowSize} y2={cy + crowSize} stroke={strokeColor} strokeWidth="2" />
+                          </>
+                        );
+                      } else if (rel.toSide === 'right') {
+                        cx += crowOffset;
+                        return (
+                          <>
+                            <line x1={cx} y1={cy} x2={cx + crowSize} y2={cy - crowSize} stroke={strokeColor} strokeWidth="2" />
+                            <line x1={cx} y1={cy} x2={cx + crowSize} y2={cy + crowSize} stroke={strokeColor} strokeWidth="2" />
+                          </>
+                        );
+                      } else if (rel.toSide === 'top') {
+                        cy -= crowOffset;
+                        return (
+                          <>
+                            <line x1={cx} y1={cy} x2={cx - crowSize} y2={cy - crowSize} stroke={strokeColor} strokeWidth="2" />
+                            <line x1={cx} y1={cy} x2={cx + crowSize} y2={cy - crowSize} stroke={strokeColor} strokeWidth="2" />
+                          </>
+                        );
+                      } else {
+                        cy += crowOffset;
+                        return (
+                          <>
+                            <line x1={cx} y1={cy} x2={cx - crowSize} y2={cy + crowSize} stroke={strokeColor} strokeWidth="2" />
+                            <line x1={cx} y1={cy} x2={cx + crowSize} y2={cy + crowSize} stroke={strokeColor} strokeWidth="2" />
+                          </>
+                        );
+                      }
+                    })()}
+                  </>
+                )}
+              </g>
+            );
+          })}
+        </svg>
+
         {/* Render Tables */}
         {tables.map(table => (
           <div
@@ -1528,6 +1884,71 @@ function DiagramView({
                 </div>
               ))}
             </div>
+
+            {/* Connection Points */}
+            {isDrawingMode === 'relationship' && (
+              <>
+                {/* Top Connection Point */}
+                <div
+                  className={`absolute -top-2 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full border-2 cursor-pointer transition-all hover:scale-125 ${
+                    pendingRelationship?.fromTable === table.id && pendingRelationship?.fromSide === 'top'
+                      ? 'bg-green-500 border-green-400 animate-pulse'
+                      : isDark
+                        ? 'bg-indigo-600 border-indigo-400 hover:bg-indigo-500'
+                        : 'bg-indigo-500 border-indigo-300 hover:bg-indigo-600'
+                  }`}
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    handleConnectionPointClick(table.id, 'top');
+                  }}
+                />
+
+                {/* Right Connection Point */}
+                <div
+                  className={`absolute top-1/2 -right-2 -translate-y-1/2 w-3 h-3 rounded-full border-2 cursor-pointer transition-all hover:scale-125 ${
+                    pendingRelationship?.fromTable === table.id && pendingRelationship?.fromSide === 'right'
+                      ? 'bg-green-500 border-green-400 animate-pulse'
+                      : isDark
+                        ? 'bg-indigo-600 border-indigo-400 hover:bg-indigo-500'
+                        : 'bg-indigo-500 border-indigo-300 hover:bg-indigo-600'
+                  }`}
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    handleConnectionPointClick(table.id, 'right');
+                  }}
+                />
+
+                {/* Bottom Connection Point */}
+                <div
+                  className={`absolute -bottom-2 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full border-2 cursor-pointer transition-all hover:scale-125 ${
+                    pendingRelationship?.fromTable === table.id && pendingRelationship?.fromSide === 'bottom'
+                      ? 'bg-green-500 border-green-400 animate-pulse'
+                      : isDark
+                        ? 'bg-indigo-600 border-indigo-400 hover:bg-indigo-500'
+                        : 'bg-indigo-500 border-indigo-300 hover:bg-indigo-600'
+                  }`}
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    handleConnectionPointClick(table.id, 'bottom');
+                  }}
+                />
+
+                {/* Left Connection Point */}
+                <div
+                  className={`absolute top-1/2 -left-2 -translate-y-1/2 w-3 h-3 rounded-full border-2 cursor-pointer transition-all hover:scale-125 ${
+                    pendingRelationship?.fromTable === table.id && pendingRelationship?.fromSide === 'left'
+                      ? 'bg-green-500 border-green-400 animate-pulse'
+                      : isDark
+                        ? 'bg-indigo-600 border-indigo-400 hover:bg-indigo-500'
+                        : 'bg-indigo-500 border-indigo-300 hover:bg-indigo-600'
+                  }`}
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    handleConnectionPointClick(table.id, 'left');
+                  }}
+                />
+              </>
+            )}
           </div>
         ))}
 
@@ -1559,6 +1980,7 @@ function DiagramView({
         isDark={isDark}
         isDrawingMode={isDrawingMode}
         onSelectTool={handleToolSelection}
+        onSelectRelationshipType={handleRelationshipTypeSelection}
       />
       <ViewControlsToolbar
         isDark={isDark}
