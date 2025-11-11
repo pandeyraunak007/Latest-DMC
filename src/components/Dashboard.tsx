@@ -584,12 +584,6 @@ export default function Dashboard() {
     {
       icon: <Scale className="w-4 h-4" />,
       label: 'Complete Compare',
-      page: 'complete-compare' as const,
-      active: currentPage === 'complete-compare'
-    },
-    {
-      icon: <ArrowRightLeft className="w-4 h-4" />,
-      label: 'Complete Compare 2',
       page: 'complete-compare-2' as const,
       active: currentPage === 'complete-compare-2'
     },
