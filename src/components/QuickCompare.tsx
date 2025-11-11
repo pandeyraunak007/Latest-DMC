@@ -31,12 +31,18 @@ import {
   Shield,
   RefreshCw,
   Check,
-  X
+  X,
+  FolderOpen,
+  HardDrive,
+  Warehouse,
+  Loader2
 } from 'lucide-react';
 
 // Type definitions
 type DifferenceType = 'added' | 'deleted' | 'modified' | 'equal';
 type ObjectType = 'table' | 'column' | 'index' | 'relationship' | 'view' | 'procedure' | 'constraint' | 'trigger';
+type SourceType = 'local-model' | 'mart' | 'database';
+type ComparisonStep = 'source-selection' | 'comparing' | 'results';
 
 interface ComparisonObject {
   id: string;
@@ -51,14 +57,27 @@ interface ComparisonObject {
   selected?: boolean;
 }
 
+interface ModelSource {
+  type: SourceType;
+  name: string;
+  description?: string;
+}
+
 const QuickCompare = () => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
+  // Comparison workflow state
+  const [currentStep, setCurrentStep] = useState<ComparisonStep>('source-selection');
+  const [sourceModel, setSourceModel] = useState<ModelSource | null>(null);
+  const [targetModel, setTargetModel] = useState<ModelSource | null>(null);
+  const [isComparing, setIsComparing] = useState(false);
+
+  // Results state
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'all' | ObjectType>('all');
   const [showSqlPreview, setShowSqlPreview] = useState(false);
-  const [comparisonResults, setComparisonResults] = useState<ComparisonObject[]>(mockComparisonData);
+  const [comparisonResults, setComparisonResults] = useState<ComparisonObject[]>([]);
 
   const toggleExpand = (id: string) => {
     const updateExpanded = (items: ComparisonObject[]): ComparisonObject[] => {
@@ -222,17 +241,239 @@ const QuickCompare = () => {
     );
   };
 
+  // Run comparison function
+  const runComparison = async () => {
+    if (!sourceModel || !targetModel) return;
+
+    setCurrentStep('comparing');
+    setIsComparing(true);
+
+    // Simulate comparison process
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Load mock data for demonstration
+    setComparisonResults(mockComparisonData);
+    setIsComparing(false);
+    setCurrentStep('results');
+  };
+
   const selectedCount = comparisonResults.filter(obj => obj.selected || obj.children?.some(c => c.selected)).length;
   const totalChanges = comparisonResults.filter(obj => obj.difference !== 'equal').length;
 
+  // Source Selection View
+  if (currentStep === 'source-selection') {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-zinc-950 text-gray-900 dark:text-zinc-100 p-6">
+        <div className="max-w-5xl mx-auto">
+          {/* Header */}
+          <div className="mb-8 text-center">
+            <h1 className="text-3xl font-bold mb-2">Quick Compare</h1>
+            <p className="text-sm text-gray-600 dark:text-zinc-400">
+              Select source and target models to compare
+            </p>
+          </div>
+
+          {/* Source Selection */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            {/* Source Model */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-2 h-2 bg-purple-600 rounded-full" />
+                <h2 className="text-lg font-bold text-gray-900 dark:text-zinc-100">Source Model</h2>
+              </div>
+
+              {[
+                {
+                  type: 'local-model' as SourceType,
+                  icon: <FolderOpen className="w-8 h-8" />,
+                  title: 'Local Model',
+                  description: 'Select from your local model files',
+                  color: 'blue'
+                },
+                {
+                  type: 'mart' as SourceType,
+                  icon: <Warehouse className="w-8 h-8" />,
+                  title: 'Mart Catalog',
+                  description: 'Compare from enterprise data mart',
+                  color: 'emerald'
+                },
+                {
+                  type: 'database' as SourceType,
+                  icon: <HardDrive className="w-8 h-8" />,
+                  title: 'Database',
+                  description: 'Connect to live database schema',
+                  color: 'amber'
+                }
+              ].map((option) => (
+                <button
+                  key={option.type}
+                  onClick={() => setSourceModel({ type: option.type, name: option.title })}
+                  className={`w-full p-6 border-2 rounded-lg transition-all text-left ${
+                    sourceModel?.type === option.type
+                      ? `border-${option.color}-600 bg-${option.color}-50 dark:bg-${option.color}-950/20 shadow-lg`
+                      : 'border-gray-200 dark:border-zinc-800 hover:border-gray-300 dark:hover:border-zinc-700 hover:shadow-md'
+                  }`}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className={`p-3 rounded-lg ${
+                      sourceModel?.type === option.type
+                        ? `bg-${option.color}-100 dark:bg-${option.color}-900/30 text-${option.color}-600 dark:text-${option.color}-400`
+                        : 'bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-400'
+                    }`}>
+                      {option.icon}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900 dark:text-zinc-100 mb-1">{option.title}</h3>
+                      <p className="text-sm text-gray-600 dark:text-zinc-400">{option.description}</p>
+                      {sourceModel?.type === option.type && (
+                        <div className="mt-3">
+                          <input
+                            type="text"
+                            placeholder={`Enter ${option.title.toLowerCase()} name...`}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-zinc-700 rounded bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            onChange={(e) => setSourceModel({ ...sourceModel, name: e.target.value || option.title })}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* Target Model */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-2 h-2 bg-emerald-600 rounded-full" />
+                <h2 className="text-lg font-bold text-gray-900 dark:text-zinc-100">Target Model</h2>
+              </div>
+
+              {[
+                {
+                  type: 'local-model' as SourceType,
+                  icon: <FolderOpen className="w-8 h-8" />,
+                  title: 'Local Model',
+                  description: 'Select from your local model files',
+                  color: 'blue'
+                },
+                {
+                  type: 'mart' as SourceType,
+                  icon: <Warehouse className="w-8 h-8" />,
+                  title: 'Mart Catalog',
+                  description: 'Compare from enterprise data mart',
+                  color: 'emerald'
+                },
+                {
+                  type: 'database' as SourceType,
+                  icon: <HardDrive className="w-8 h-8" />,
+                  title: 'Database',
+                  description: 'Connect to live database schema',
+                  color: 'amber'
+                }
+              ].map((option) => (
+                <button
+                  key={option.type}
+                  onClick={() => setTargetModel({ type: option.type, name: option.title })}
+                  className={`w-full p-6 border-2 rounded-lg transition-all text-left ${
+                    targetModel?.type === option.type
+                      ? `border-${option.color}-600 bg-${option.color}-50 dark:bg-${option.color}-950/20 shadow-lg`
+                      : 'border-gray-200 dark:border-zinc-800 hover:border-gray-300 dark:hover:border-zinc-700 hover:shadow-md'
+                  }`}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className={`p-3 rounded-lg ${
+                      targetModel?.type === option.type
+                        ? `bg-${option.color}-100 dark:bg-${option.color}-900/30 text-${option.color}-600 dark:text-${option.color}-400`
+                        : 'bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-400'
+                    }`}>
+                      {option.icon}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900 dark:text-zinc-100 mb-1">{option.title}</h3>
+                      <p className="text-sm text-gray-600 dark:text-zinc-400">{option.description}</p>
+                      {targetModel?.type === option.type && (
+                        <div className="mt-3">
+                          <input
+                            type="text"
+                            placeholder={`Enter ${option.title.toLowerCase()} name...`}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-zinc-700 rounded bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            onChange={(e) => setTargetModel({ ...targetModel, name: e.target.value || option.title })}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Action Button */}
+          <div className="flex justify-center">
+            <button
+              onClick={runComparison}
+              disabled={!sourceModel || !targetModel}
+              className="px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold rounded-lg shadow-lg transition-all flex items-center gap-2"
+            >
+              <Play className="w-5 h-5" />
+              Run Comparison
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Comparing View (Loading State)
+  if (currentStep === 'comparing') {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-zinc-950 text-gray-900 dark:text-zinc-100 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-16 h-16 text-blue-600 animate-spin mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Comparing Models...</h2>
+          <p className="text-gray-600 dark:text-zinc-400 mb-4">
+            Analyzing {sourceModel?.name} vs {targetModel?.name}
+          </p>
+          <div className="flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-zinc-500">
+            <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" />
+            <span>Detecting differences</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Results View
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-zinc-950 text-gray-900 dark:text-zinc-100 p-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-1">Quick Compare</h1>
-        <p className="text-sm text-gray-600 dark:text-zinc-400">
-          Fast side-by-side comparison with delta highlighting and SQL generation
-        </p>
+        <div className="flex items-center justify-between mb-2">
+          <h1 className="text-2xl font-bold">Quick Compare Results</h1>
+          <button
+            onClick={() => {
+              setCurrentStep('source-selection');
+              setComparisonResults([]);
+            }}
+            className="px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded transition-colors flex items-center gap-2"
+          >
+            <ArrowRight className="w-4 h-4 rotate-180" />
+            New Comparison
+          </button>
+        </div>
+        <div className="flex items-center gap-3 text-sm">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
+            <div className="w-2 h-2 bg-purple-600 rounded-full" />
+            <span className="font-medium text-purple-700 dark:text-purple-400">Source:</span>
+            <span className="text-gray-700 dark:text-zinc-300">{sourceModel?.name}</span>
+          </div>
+          <ArrowRight className="w-4 h-4 text-gray-400" />
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg">
+            <div className="w-2 h-2 bg-emerald-600 rounded-full" />
+            <span className="font-medium text-emerald-700 dark:text-emerald-400">Target:</span>
+            <span className="text-gray-700 dark:text-zinc-300">{targetModel?.name}</span>
+          </div>
+        </div>
       </div>
 
       {/* Main Layout */}
