@@ -52,7 +52,11 @@ import {
   Hash,
   BookOpen,
   Box,
-  Workflow
+  Workflow,
+  FileDown,
+  FileSpreadsheet,
+  FileType,
+  ChevronDown as ChevronDownIcon
 } from 'lucide-react';
 
 // Type definitions
@@ -258,10 +262,19 @@ const CompleteCompare2 = () => {
     }
   };
 
+  // Export handlers
+  const handleExport = (format: 'pdf' | 'excel' | 'html') => {
+    console.log(`Exporting comparison report as ${format.toUpperCase()}...`);
+    // Simulate export
+    alert(`Exporting comparison report as ${format.toUpperCase()}...`);
+    setShowExportMenu(false);
+  };
+
   // Step 3: Comparison View
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [comparisonResults, setComparisonResults] = useState<ComparisonObject[]>([]);
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   // Mock data for model library
   const modelMart: Model[] = [
@@ -1899,10 +1912,69 @@ const CompleteCompare2 = () => {
             <ChevronLeft className="w-3 h-3 inline mr-1" />
             Back
           </button>
-          <button className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors">
-            <Save className="w-3.5 h-3.5 inline mr-1" />
-            Save Merge
-          </button>
+
+          <div className="flex items-center gap-2">
+            {/* Export Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowExportMenu(!showExportMenu)}
+                className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-700 border border-gray-300 dark:border-zinc-700 rounded transition-colors flex items-center gap-1.5"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Export Report
+                <ChevronDownIcon className="w-3 h-3" />
+              </button>
+
+              {/* Export Menu */}
+              {showExportMenu && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="absolute right-0 mt-1 w-48 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg shadow-xl z-50 overflow-hidden"
+                >
+                  <div className="py-1">
+                    <button
+                      onClick={() => handleExport('pdf')}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
+                    >
+                      <FileType className="w-4 h-4 text-red-600" />
+                      <div className="flex-1">
+                        <div className="font-medium">Export as PDF</div>
+                        <div className="text-xs text-gray-500 dark:text-zinc-500">Formatted comparison report</div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => handleExport('excel')}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
+                    >
+                      <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                      <div className="flex-1">
+                        <div className="font-medium">Export as Excel</div>
+                        <div className="text-xs text-gray-500 dark:text-zinc-500">Detailed data in spreadsheet</div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => handleExport('html')}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
+                    >
+                      <FileDown className="w-4 h-4 text-blue-600" />
+                      <div className="flex-1">
+                        <div className="font-medium">Export as HTML</div>
+                        <div className="text-xs text-gray-500 dark:text-zinc-500">Interactive web report</div>
+                      </div>
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </div>
+
+            {/* Save Merge Button */}
+            <button className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors flex items-center gap-1.5">
+              <Save className="w-3.5 h-3.5" />
+              Save Merge
+            </button>
+          </div>
         </div>
       </div>
 

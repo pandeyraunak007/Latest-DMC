@@ -70,7 +70,8 @@
       "mcp__ide__getDiagnostics",
       "Bash(\"C:\\Users\\pande\\OneDrive\\Documents\\Raunak\\forGit\\DMPro\\src\\components\\CompleteCompare2.tsx\")",
       "Bash(del nul)",
-      "Bash(del:*)"
+      "Bash(del:*)",
+      "WebFetch(domain:hackolade.com)"
     ],
     "deny": [],
     "ask": []
