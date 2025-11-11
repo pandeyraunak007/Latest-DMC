@@ -95,6 +95,28 @@ const CompleteCompare2 = () => {
   const [leftSourceType, setLeftSourceType] = useState<SourceType>('mart');
   const [rightSourceType, setRightSourceType] = useState<SourceType>('mart');
 
+  // File source state
+  const [leftFilePath, setLeftFilePath] = useState('');
+  const [rightFilePath, setRightFilePath] = useState('');
+
+  // Database connection state
+  const [leftDbConfig, setLeftDbConfig] = useState({
+    workspace: '',
+    username: '',
+    password: '',
+    environmentType: '' as 'lakehouse' | 'warehouse' | '',
+    selectedEnvironment: ''
+  });
+  const [rightDbConfig, setRightDbConfig] = useState({
+    workspace: '',
+    username: '',
+    password: '',
+    environmentType: '' as 'lakehouse' | 'warehouse' | '',
+    selectedEnvironment: ''
+  });
+  const [leftConnectionStatus, setLeftConnectionStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+  const [rightConnectionStatus, setRightConnectionStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+
   // Step 2: Comparison Configuration
   const [selectedComparisonProfile, setSelectedComparisonProfile] = useState<string>('');
   const [isComparing, setIsComparing] = useState(false);
@@ -210,6 +232,21 @@ const CompleteCompare2 = () => {
     }
   };
 
+  // Connection handlers
+  const handleTestLeftConnection = async () => {
+    setLeftConnectionStatus('testing');
+    // Simulate connection test
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    setLeftConnectionStatus('success');
+  };
+
+  const handleTestRightConnection = async () => {
+    setRightConnectionStatus('testing');
+    // Simulate connection test
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    setRightConnectionStatus('success');
+  };
+
   const handleComparisonProfileChange = (profile: string) => {
     setSelectedComparisonProfile(profile);
     if (profile === 'complete') {
@@ -232,6 +269,14 @@ const CompleteCompare2 = () => {
     { id: '2', name: 'Customer_Order_Model_v2', source: 'mart', entities: 10, relationships: 15 },
     { id: '3', name: 'E_Commerce_Base', source: 'mart', entities: 15, relationships: 23 },
     { id: '4', name: 'Product_Catalog', source: 'mart', entities: 12, relationships: 18 }
+  ];
+
+  // Mock data for warehouses/lakehouses
+  const mockEnvironments = [
+    { id: 'lh-1', name: 'Customer Lakehouse', type: 'lakehouse' },
+    { id: 'lh-2', name: 'Product Lakehouse', type: 'lakehouse' },
+    { id: 'wh-1', name: 'Sales Warehouse', type: 'warehouse' },
+    { id: 'wh-2', name: 'Analytics Warehouse', type: 'warehouse' }
   ];
 
   // Mock comparison results
@@ -655,6 +700,214 @@ const CompleteCompare2 = () => {
               )}
             </motion.div>
           )}
+
+          {/* File Source Selection */}
+          {leftSourceType === 'file' && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-3"
+            >
+              <label className="block text-[11px] font-semibold text-gray-500 dark:text-zinc-500 mb-2 uppercase tracking-wide">
+                Model File
+              </label>
+              <div className="border-2 border-dashed border-gray-300 dark:border-zinc-700 rounded p-6 text-center hover:border-purple-500 transition-colors">
+                <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400 dark:text-zinc-500" />
+                <p className="text-xs text-gray-600 dark:text-zinc-400 mb-3">
+                  Drop model file or browse (.dmf, .xml, .json)
+                </p>
+                <input
+                  type="text"
+                  className="w-full bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded px-3 py-2 text-sm text-gray-900 dark:text-zinc-100 placeholder-gray-400 dark:placeholder-zinc-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none mb-2"
+                  placeholder="File path..."
+                  value={leftFilePath}
+                  onChange={(e) => setLeftFilePath(e.target.value)}
+                />
+                <button
+                  onClick={() => {
+                    if (leftFilePath) {
+                      setLeftModel({
+                        id: 'file-left',
+                        name: leftFilePath.split('/').pop() || 'Model File',
+                        source: 'file',
+                        path: leftFilePath,
+                        entities: 0,
+                        relationships: 0
+                      });
+                    }
+                  }}
+                  className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded text-xs font-medium"
+                >
+                  Load File
+                </button>
+              </div>
+
+              {leftModel && leftModel.source === 'file' && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="p-3 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/30 rounded-lg"
+                >
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    <span className="text-sm font-medium">{leftModel.name}</span>
+                  </div>
+                </motion.div>
+              )}
+            </motion.div>
+          )}
+
+          {/* Database Source Selection */}
+          {leftSourceType === 'database' && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-3"
+            >
+              {/* Platform */}
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-500 dark:text-zinc-500 mb-2 uppercase tracking-wide">
+                  Platform
+                </label>
+                <div className="inline-flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/30 rounded">
+                  <Database className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span className="text-sm font-medium text-blue-900 dark:text-blue-100">Microsoft Fabric</span>
+                </div>
+              </div>
+
+              {/* Environment Type */}
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-500 dark:text-zinc-500 mb-2 uppercase tracking-wide">
+                  Environment Type
+                </label>
+                <div className="inline-flex bg-gray-100 dark:bg-zinc-900 rounded p-0.5 gap-0.5">
+                  <button
+                    onClick={() => setLeftDbConfig({ ...leftDbConfig, environmentType: 'lakehouse', selectedEnvironment: '' })}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-medium transition-all ${
+                      leftDbConfig.environmentType === 'lakehouse'
+                        ? 'bg-white dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 shadow-sm'
+                        : 'text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-zinc-200'
+                    }`}
+                  >
+                    <Database className="w-3.5 h-3.5" />
+                    Lakehouse
+                  </button>
+                  <button
+                    onClick={() => setLeftDbConfig({ ...leftDbConfig, environmentType: 'warehouse', selectedEnvironment: '' })}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-medium transition-all ${
+                      leftDbConfig.environmentType === 'warehouse'
+                        ? 'bg-white dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 shadow-sm'
+                        : 'text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-zinc-200'
+                    }`}
+                  >
+                    <Warehouse className="w-3.5 h-3.5" />
+                    Warehouse
+                  </button>
+                </div>
+              </div>
+
+              {/* Connection Form */}
+              {leftDbConfig.environmentType && leftConnectionStatus !== 'success' && (
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-semibold text-gray-500 dark:text-zinc-500 mb-2 uppercase tracking-wide">
+                    Connection
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded px-3 py-2 text-sm text-gray-900 dark:text-zinc-100 placeholder-gray-400 dark:placeholder-zinc-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
+                    placeholder="Workspace URL"
+                    value={leftDbConfig.workspace}
+                    onChange={(e) => setLeftDbConfig({ ...leftDbConfig, workspace: e.target.value })}
+                  />
+                  <input
+                    type="text"
+                    className="w-full bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded px-3 py-2 text-sm text-gray-900 dark:text-zinc-100 placeholder-gray-400 dark:placeholder-zinc-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
+                    placeholder="Username"
+                    value={leftDbConfig.username}
+                    onChange={(e) => setLeftDbConfig({ ...leftDbConfig, username: e.target.value })}
+                  />
+                  <input
+                    type="password"
+                    className="w-full bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded px-3 py-2 text-sm text-gray-900 dark:text-zinc-100 placeholder-gray-400 dark:placeholder-zinc-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
+                    placeholder="Password"
+                    value={leftDbConfig.password}
+                    onChange={(e) => setLeftDbConfig({ ...leftDbConfig, password: e.target.value })}
+                  />
+                  <button
+                    onClick={handleTestLeftConnection}
+                    disabled={leftConnectionStatus === 'testing' || !leftDbConfig.workspace}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 dark:disabled:bg-zinc-700 disabled:cursor-not-allowed text-white rounded text-xs font-medium transition-colors"
+                  >
+                    {leftConnectionStatus === 'testing' ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Testing...
+                      </>
+                    ) : (
+                      <>
+                        <Database className="w-3.5 h-3.5" />
+                        Test Connection
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* Connected Status */}
+              {leftDbConfig.environmentType && leftConnectionStatus === 'success' && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 rounded">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-500" />
+                    <span className="text-sm font-medium text-emerald-900 dark:text-emerald-100">
+                      Connected to workspace
+                    </span>
+                  </div>
+
+                  {/* Environment Dropdown */}
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-500 dark:text-zinc-500 mb-2 uppercase tracking-wide">
+                      Select {leftDbConfig.environmentType === 'lakehouse' ? 'Lakehouse' : 'Warehouse'}
+                    </label>
+                    <select
+                      value={leftDbConfig.selectedEnvironment}
+                      onChange={(e) => {
+                        setLeftDbConfig({ ...leftDbConfig, selectedEnvironment: e.target.value });
+                        const env = mockEnvironments.find(env => env.id === e.target.value);
+                        if (env) {
+                          setLeftModel({
+                            id: env.id,
+                            name: env.name,
+                            source: 'database',
+                            entities: 0,
+                            relationships: 0
+                          });
+                        }
+                      }}
+                      className="w-full bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded px-3 py-2 text-sm text-gray-900 dark:text-zinc-100 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
+                    >
+                      <option value="">Choose {leftDbConfig.environmentType === 'lakehouse' ? 'a lakehouse' : 'a warehouse'}...</option>
+                      {mockEnvironments
+                        .filter(env => env.type === leftDbConfig.environmentType)
+                        .map((env) => (
+                          <option key={env.id} value={env.id}>
+                            {env.name}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+
+                  {leftModel && leftModel.source === 'database' && (
+                    <div className="p-3 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/30 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                        <span className="text-sm font-medium">{leftModel.name}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </motion.div>
+          )}
         </div>
 
         {/* Right Model */}
@@ -747,6 +1000,214 @@ const CompleteCompare2 = () => {
                     <div>{rightModel.relationships} Relationships</div>
                   </div>
                 </motion.div>
+              )}
+            </motion.div>
+          )}
+
+          {/* File Source Selection - Right */}
+          {rightSourceType === 'file' && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-3"
+            >
+              <label className="block text-[11px] font-semibold text-gray-500 dark:text-zinc-500 mb-2 uppercase tracking-wide">
+                Model File
+              </label>
+              <div className="border-2 border-dashed border-gray-300 dark:border-zinc-700 rounded p-6 text-center hover:border-emerald-500 transition-colors">
+                <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400 dark:text-zinc-500" />
+                <p className="text-xs text-gray-600 dark:text-zinc-400 mb-3">
+                  Drop model file or browse (.dmf, .xml, .json)
+                </p>
+                <input
+                  type="text"
+                  className="w-full bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded px-3 py-2 text-sm text-gray-900 dark:text-zinc-100 placeholder-gray-400 dark:placeholder-zinc-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none mb-2"
+                  placeholder="File path..."
+                  value={rightFilePath}
+                  onChange={(e) => setRightFilePath(e.target.value)}
+                />
+                <button
+                  onClick={() => {
+                    if (rightFilePath) {
+                      setRightModel({
+                        id: 'file-right',
+                        name: rightFilePath.split('/').pop() || 'Model File',
+                        source: 'file',
+                        path: rightFilePath,
+                        entities: 0,
+                        relationships: 0
+                      });
+                    }
+                  }}
+                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-medium"
+                >
+                  Load File
+                </button>
+              </div>
+
+              {rightModel && rightModel.source === 'file' && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 rounded-lg"
+                >
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span className="text-sm font-medium">{rightModel.name}</span>
+                  </div>
+                </motion.div>
+              )}
+            </motion.div>
+          )}
+
+          {/* Database Source Selection - Right */}
+          {rightSourceType === 'database' && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-3"
+            >
+              {/* Platform */}
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-500 dark:text-zinc-500 mb-2 uppercase tracking-wide">
+                  Platform
+                </label>
+                <div className="inline-flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/30 rounded">
+                  <Database className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span className="text-sm font-medium text-blue-900 dark:text-blue-100">Microsoft Fabric</span>
+                </div>
+              </div>
+
+              {/* Environment Type */}
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-500 dark:text-zinc-500 mb-2 uppercase tracking-wide">
+                  Environment Type
+                </label>
+                <div className="inline-flex bg-gray-100 dark:bg-zinc-900 rounded p-0.5 gap-0.5">
+                  <button
+                    onClick={() => setRightDbConfig({ ...rightDbConfig, environmentType: 'lakehouse', selectedEnvironment: '' })}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-medium transition-all ${
+                      rightDbConfig.environmentType === 'lakehouse'
+                        ? 'bg-white dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 shadow-sm'
+                        : 'text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-zinc-200'
+                    }`}
+                  >
+                    <Database className="w-3.5 h-3.5" />
+                    Lakehouse
+                  </button>
+                  <button
+                    onClick={() => setRightDbConfig({ ...rightDbConfig, environmentType: 'warehouse', selectedEnvironment: '' })}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-medium transition-all ${
+                      rightDbConfig.environmentType === 'warehouse'
+                        ? 'bg-white dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 shadow-sm'
+                        : 'text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-zinc-200'
+                    }`}
+                  >
+                    <Warehouse className="w-3.5 h-3.5" />
+                    Warehouse
+                  </button>
+                </div>
+              </div>
+
+              {/* Connection Form */}
+              {rightDbConfig.environmentType && rightConnectionStatus !== 'success' && (
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-semibold text-gray-500 dark:text-zinc-500 mb-2 uppercase tracking-wide">
+                    Connection
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded px-3 py-2 text-sm text-gray-900 dark:text-zinc-100 placeholder-gray-400 dark:placeholder-zinc-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+                    placeholder="Workspace URL"
+                    value={rightDbConfig.workspace}
+                    onChange={(e) => setRightDbConfig({ ...rightDbConfig, workspace: e.target.value })}
+                  />
+                  <input
+                    type="text"
+                    className="w-full bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded px-3 py-2 text-sm text-gray-900 dark:text-zinc-100 placeholder-gray-400 dark:placeholder-zinc-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+                    placeholder="Username"
+                    value={rightDbConfig.username}
+                    onChange={(e) => setRightDbConfig({ ...rightDbConfig, username: e.target.value })}
+                  />
+                  <input
+                    type="password"
+                    className="w-full bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded px-3 py-2 text-sm text-gray-900 dark:text-zinc-100 placeholder-gray-400 dark:placeholder-zinc-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+                    placeholder="Password"
+                    value={rightDbConfig.password}
+                    onChange={(e) => setRightDbConfig({ ...rightDbConfig, password: e.target.value })}
+                  />
+                  <button
+                    onClick={handleTestRightConnection}
+                    disabled={rightConnectionStatus === 'testing' || !rightDbConfig.workspace}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 dark:disabled:bg-zinc-700 disabled:cursor-not-allowed text-white rounded text-xs font-medium transition-colors"
+                  >
+                    {rightConnectionStatus === 'testing' ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Testing...
+                      </>
+                    ) : (
+                      <>
+                        <Database className="w-3.5 h-3.5" />
+                        Test Connection
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* Connected Status */}
+              {rightDbConfig.environmentType && rightConnectionStatus === 'success' && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 rounded">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-500" />
+                    <span className="text-sm font-medium text-emerald-900 dark:text-emerald-100">
+                      Connected to workspace
+                    </span>
+                  </div>
+
+                  {/* Environment Dropdown */}
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-500 dark:text-zinc-500 mb-2 uppercase tracking-wide">
+                      Select {rightDbConfig.environmentType === 'lakehouse' ? 'Lakehouse' : 'Warehouse'}
+                    </label>
+                    <select
+                      value={rightDbConfig.selectedEnvironment}
+                      onChange={(e) => {
+                        setRightDbConfig({ ...rightDbConfig, selectedEnvironment: e.target.value });
+                        const env = mockEnvironments.find(env => env.id === e.target.value);
+                        if (env) {
+                          setRightModel({
+                            id: env.id,
+                            name: env.name,
+                            source: 'database',
+                            entities: 0,
+                            relationships: 0
+                          });
+                        }
+                      }}
+                      className="w-full bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded px-3 py-2 text-sm text-gray-900 dark:text-zinc-100 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+                    >
+                      <option value="">Choose {rightDbConfig.environmentType === 'lakehouse' ? 'a lakehouse' : 'a warehouse'}...</option>
+                      {mockEnvironments
+                        .filter(env => env.type === rightDbConfig.environmentType)
+                        .map((env) => (
+                          <option key={env.id} value={env.id}>
+                            {env.name}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+
+                  {rightModel && rightModel.source === 'database' && (
+                    <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-sm font-medium">{rightModel.name}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </motion.div>
           )}
