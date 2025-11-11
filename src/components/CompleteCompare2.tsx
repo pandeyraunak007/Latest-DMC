@@ -45,7 +45,14 @@ import {
   MoreVertical,
   Save,
   FolderOpen,
-  Package
+  Package,
+  List,
+  Shield,
+  Code,
+  Hash,
+  BookOpen,
+  Box,
+  Workflow
 } from 'lucide-react';
 
 // Type definitions
@@ -66,7 +73,9 @@ interface Model {
 interface ComparisonObject {
   id: string;
   name: string;
-  type: 'entity' | 'attribute' | 'relationship' | 'key' | 'index';
+  type: 'model' | 'subject-area' | 'entity' | 'attribute' | 'relationship' | 'key' | 'index' |
+        'trigger' | 'view' | 'procedure' | 'function' | 'constraint' | 'domain' | 'udt' |
+        'annotation' | 'diagram' | 'sequence' | 'synonym' | 'package' | 'type' | 'schema';
   status: ObjectStatus;
   leftValue?: any;
   rightValue?: any;
@@ -90,6 +99,10 @@ const CompleteCompare2 = () => {
   const [selectedComparisonProfile, setSelectedComparisonProfile] = useState<string>('');
   const [isComparing, setIsComparing] = useState(false);
   const [showComparisonAdvanced, setShowComparisonAdvanced] = useState(false);
+
+  // Comparison View State
+  const [viewMode, setViewMode] = useState<'compare' | 'merge'>('merge');
+  const [selectedObject, setSelectedObject] = useState<ComparisonObject | null>(null);
 
   // Comparison Options
   const [comparisonOptions, setComparisonOptions] = useState({
@@ -223,70 +236,236 @@ const CompleteCompare2 = () => {
 
   // Mock comparison results
   const mockComparisonResults: ComparisonObject[] = [
+    // Subject Area: Customer Management
     {
-      id: '1',
-      name: 'Customer',
-      type: 'entity',
+      id: 'sa-1',
+      name: 'Customer Management',
+      type: 'subject-area',
       status: 'different',
       expanded: true,
       children: [
+        // Entity: Customer
         {
-          id: '1-1',
-          name: 'CustomerID',
-          type: 'attribute',
-          status: 'equal',
-          leftValue: { type: 'INT', nullable: false, pk: true },
-          rightValue: { type: 'INT', nullable: false, pk: true },
-          mergeValue: { type: 'INT', nullable: false, pk: true }
-        },
-        {
-          id: '1-2',
-          name: 'CustomerName',
-          type: 'attribute',
+          id: 'e-1',
+          name: 'Customer',
+          type: 'entity',
           status: 'different',
-          leftValue: { type: 'VARCHAR(100)', nullable: false },
-          rightValue: { type: 'VARCHAR(255)', nullable: false },
-          mergeValue: { type: 'VARCHAR(255)', nullable: false }
+          expanded: true,
+          children: [
+            // Attributes
+            {
+              id: 'e-1-attr-1',
+              name: 'CustomerID',
+              type: 'attribute',
+              status: 'equal',
+              leftValue: { type: 'INT', nullable: false, pk: true },
+              rightValue: { type: 'INT', nullable: false, pk: true },
+              mergeValue: { type: 'INT', nullable: false, pk: true }
+            },
+            {
+              id: 'e-1-attr-2',
+              name: 'CustomerName',
+              type: 'attribute',
+              status: 'different',
+              leftValue: { type: 'VARCHAR(100)', nullable: false },
+              rightValue: { type: 'VARCHAR(255)', nullable: false },
+              mergeValue: { type: 'VARCHAR(255)', nullable: false }
+            },
+            {
+              id: 'e-1-attr-3',
+              name: 'Email',
+              type: 'attribute',
+              status: 'conflict',
+              leftValue: { type: 'VARCHAR(100)', nullable: true },
+              rightValue: { type: 'VARCHAR(255)', nullable: false },
+              mergeValue: null
+            },
+            // Primary Key
+            {
+              id: 'e-1-pk-1',
+              name: 'PK_Customer',
+              type: 'key',
+              status: 'equal',
+              leftValue: { columns: ['CustomerID'], type: 'PRIMARY KEY' },
+              rightValue: { columns: ['CustomerID'], type: 'PRIMARY KEY' },
+              mergeValue: { columns: ['CustomerID'], type: 'PRIMARY KEY' }
+            },
+            // Indexes
+            {
+              id: 'e-1-idx-1',
+              name: 'IDX_Customer_Email',
+              type: 'index',
+              status: 'different',
+              leftValue: { columns: ['Email'], unique: false },
+              rightValue: { columns: ['Email'], unique: true },
+              mergeValue: { columns: ['Email'], unique: true }
+            },
+            // Triggers
+            {
+              id: 'e-1-trg-1',
+              name: 'TRG_Customer_Audit',
+              type: 'trigger',
+              status: 'left-only',
+              leftValue: { event: 'AFTER UPDATE', action: 'Log to audit table' }
+            },
+            // Constraints
+            {
+              id: 'e-1-chk-1',
+              name: 'CHK_Email_Format',
+              type: 'constraint',
+              status: 'different',
+              leftValue: { type: 'CHECK', expression: 'Email LIKE "%@%"' },
+              rightValue: { type: 'CHECK', expression: 'Email LIKE "%@%.%"' },
+              mergeValue: { type: 'CHECK', expression: 'Email LIKE "%@%.%"' }
+            }
+          ]
         },
+        // Entity: Address
         {
-          id: '1-3',
-          name: 'Email',
-          type: 'attribute',
-          status: 'conflict',
-          leftValue: { type: 'VARCHAR(100)', nullable: true },
-          rightValue: { type: 'VARCHAR(255)', nullable: false },
-          mergeValue: null
-        },
-        {
-          id: '1-4',
-          name: 'PhoneNumber',
-          type: 'attribute',
-          status: 'right-only',
-          rightValue: { type: 'VARCHAR(20)', nullable: true }
+          id: 'e-2',
+          name: 'Address',
+          type: 'entity',
+          status: 'equal',
+          expanded: false,
+          children: []
         }
       ]
     },
+
+    // Relationships
     {
-      id: '2',
-      name: 'Order',
-      type: 'entity',
+      id: 'rel-1',
+      name: 'Customer_Places_Order',
+      type: 'relationship',
+      status: 'different',
+      leftValue: { cardinality: '1:N', from: 'Customer', to: 'Order' },
+      rightValue: { cardinality: '1:M', from: 'Customer', to: 'Order' },
+      mergeValue: { cardinality: '1:M', from: 'Customer', to: 'Order' }
+    },
+    {
+      id: 'rel-2',
+      name: 'Order_Contains_Product',
+      type: 'relationship',
       status: 'equal',
-      expanded: false,
-      children: []
+      leftValue: { cardinality: 'M:N', from: 'Order', to: 'Product' },
+      rightValue: { cardinality: 'M:N', from: 'Order', to: 'Product' },
+      mergeValue: { cardinality: 'M:N', from: 'Order', to: 'Product' }
+    },
+
+    // Views
+    {
+      id: 'view-1',
+      name: 'VW_CustomerOrders',
+      type: 'view',
+      status: 'different',
+      leftValue: { definition: 'SELECT c.*, o.* FROM Customer c LEFT JOIN Order o ON c.CustomerID = o.CustomerID' },
+      rightValue: { definition: 'SELECT c.*, o.*, p.* FROM Customer c LEFT JOIN Order o ON c.CustomerID = o.CustomerID LEFT JOIN Product p ON o.ProductID = p.ProductID' },
+      mergeValue: { definition: 'SELECT c.*, o.*, p.* FROM Customer c LEFT JOIN Order o ON c.CustomerID = o.CustomerID LEFT JOIN Product p ON o.ProductID = p.ProductID' }
     },
     {
-      id: '3',
-      name: 'Product',
-      type: 'entity',
+      id: 'view-2',
+      name: 'VW_ProductInventory',
+      type: 'view',
       status: 'left-only',
-      leftValue: { description: 'Product catalog table' }
+      leftValue: { definition: 'SELECT * FROM Product WHERE Quantity > 0' }
+    },
+
+    // Stored Procedures
+    {
+      id: 'proc-1',
+      name: 'SP_GetCustomerOrders',
+      type: 'procedure',
+      status: 'conflict',
+      leftValue: { parameters: ['@CustomerID INT'], returns: 'TABLE' },
+      rightValue: { parameters: ['@CustomerID INT', '@StartDate DATE'], returns: 'TABLE' },
+      mergeValue: null
     },
     {
-      id: '4',
-      name: 'Invoice',
-      type: 'entity',
+      id: 'proc-2',
+      name: 'SP_UpdateInventory',
+      type: 'procedure',
+      status: 'equal',
+      leftValue: { parameters: ['@ProductID INT', '@Quantity INT'], returns: 'INT' },
+      rightValue: { parameters: ['@ProductID INT', '@Quantity INT'], returns: 'INT' },
+      mergeValue: { parameters: ['@ProductID INT', '@Quantity INT'], returns: 'INT' }
+    },
+
+    // Functions
+    {
+      id: 'func-1',
+      name: 'FN_CalculateDiscount',
+      type: 'function',
+      status: 'different',
+      leftValue: { parameters: ['@Amount DECIMAL'], returns: 'DECIMAL' },
+      rightValue: { parameters: ['@Amount DECIMAL', '@DiscountRate DECIMAL'], returns: 'DECIMAL' },
+      mergeValue: { parameters: ['@Amount DECIMAL', '@DiscountRate DECIMAL'], returns: 'DECIMAL' }
+    },
+    {
+      id: 'func-2',
+      name: 'FN_GetTaxRate',
+      type: 'function',
       status: 'right-only',
-      rightValue: { description: 'Invoice tracking table' }
+      rightValue: { parameters: ['@State VARCHAR(2)'], returns: 'DECIMAL' }
+    },
+
+    // Domains / UDT
+    {
+      id: 'domain-1',
+      name: 'EmailAddress',
+      type: 'domain',
+      status: 'equal',
+      leftValue: { baseType: 'VARCHAR(255)', constraint: 'CHECK (value LIKE "%@%")' },
+      rightValue: { baseType: 'VARCHAR(255)', constraint: 'CHECK (value LIKE "%@%")' },
+      mergeValue: { baseType: 'VARCHAR(255)', constraint: 'CHECK (value LIKE "%@%")' }
+    },
+    {
+      id: 'domain-2',
+      name: 'PhoneNumber',
+      type: 'domain',
+      status: 'different',
+      leftValue: { baseType: 'VARCHAR(15)', pattern: '^[0-9]{10}$' },
+      rightValue: { baseType: 'VARCHAR(20)', pattern: '^\\+?[0-9]{10,15}$' },
+      mergeValue: { baseType: 'VARCHAR(20)', pattern: '^\\+?[0-9]{10,15}$' }
+    },
+
+    // Sequences
+    {
+      id: 'seq-1',
+      name: 'SEQ_OrderID',
+      type: 'sequence',
+      status: 'equal',
+      leftValue: { start: 1000, increment: 1, minValue: 1, maxValue: 999999 },
+      rightValue: { start: 1000, increment: 1, minValue: 1, maxValue: 999999 },
+      mergeValue: { start: 1000, increment: 1, minValue: 1, maxValue: 999999 }
+    },
+
+    // Annotations
+    {
+      id: 'ann-1',
+      name: 'Customer Module Documentation',
+      type: 'annotation',
+      status: 'different',
+      leftValue: { text: 'This module handles customer data and authentication' },
+      rightValue: { text: 'This module handles customer data, authentication, and profile management' },
+      mergeValue: { text: 'This module handles customer data, authentication, and profile management' }
+    },
+
+    // ER Diagrams
+    {
+      id: 'diag-1',
+      name: 'Customer Domain Model',
+      type: 'diagram',
+      status: 'equal',
+      leftValue: { entities: 5, relationships: 8 },
+      rightValue: { entities: 5, relationships: 8 },
+      mergeValue: { entities: 5, relationships: 8 }
+    },
+    {
+      id: 'diag-2',
+      name: 'Order Processing Flow',
+      type: 'diagram',
+      status: 'left-only',
+      leftValue: { entities: 3, relationships: 4 }
     }
   ];
 
@@ -1038,29 +1217,200 @@ const CompleteCompare2 = () => {
     );
   };
 
-  const renderComparisonView = () => {
+  const getObjectIcon = (type: ComparisonObject['type']) => {
+    const iconClass = "w-3.5 h-3.5";
+    switch (type) {
+      case 'model':
+        return <Database className={`${iconClass} text-gray-600 dark:text-zinc-400`} />;
+      case 'subject-area':
+        return <FolderOpen className={`${iconClass} text-blue-600 dark:text-blue-400`} />;
+      case 'entity':
+        return <Table className={`${iconClass} text-emerald-600 dark:text-emerald-400`} />;
+      case 'attribute':
+        return <FileText className={`${iconClass} text-gray-500 dark:text-zinc-500`} />;
+      case 'relationship':
+        return <GitBranch className={`${iconClass} text-purple-600 dark:text-purple-400`} />;
+      case 'key':
+        return <Key className={`${iconClass} text-amber-600 dark:text-amber-400`} />;
+      case 'index':
+        return <List className={`${iconClass} text-cyan-600 dark:text-cyan-400`} />;
+      case 'trigger':
+        return <Zap className={`${iconClass} text-yellow-600 dark:text-yellow-400`} />;
+      case 'view':
+        return <Eye className={`${iconClass} text-indigo-600 dark:text-indigo-400`} />;
+      case 'procedure':
+        return <Code className={`${iconClass} text-pink-600 dark:text-pink-400`} />;
+      case 'function':
+        return <Settings className={`${iconClass} text-orange-600 dark:text-orange-400`} />;
+      case 'constraint':
+        return <Shield className={`${iconClass} text-red-600 dark:text-red-400`} />;
+      case 'domain':
+      case 'udt':
+        return <Package className={`${iconClass} text-violet-600 dark:text-violet-400`} />;
+      case 'annotation':
+        return <BookOpen className={`${iconClass} text-teal-600 dark:text-teal-400`} />;
+      case 'diagram':
+        return <Workflow className={`${iconClass} text-rose-600 dark:text-rose-400`} />;
+      case 'sequence':
+        return <Hash className={`${iconClass} text-lime-600 dark:text-lime-400`} />;
+      case 'synonym':
+      case 'package':
+      case 'type':
+      case 'schema':
+        return <Box className={`${iconClass} text-slate-600 dark:text-slate-400`} />;
+      default:
+        return <Database className={`${iconClass} text-gray-500 dark:text-zinc-500`} />;
+    }
+  };
+
+  const renderObjectRow = (obj: ComparisonObject, depth: number = 0) => {
     return (
-    <div className="space-y-4">
-      {/* Header with filters */}
-      <div className="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-zinc-800">
+      <div key={obj.id}>
+        <button
+          onClick={() => setSelectedObject(obj)}
+          className={`w-full flex items-center gap-1.5 px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors text-left ${
+            selectedObject?.id === obj.id ? 'bg-blue-50 dark:bg-blue-950/30 border-l-2 border-blue-600' : ''
+          }`}
+          style={{ paddingLeft: `${depth * 16 + 8}px` }}
+        >
+          {/* Expand/Collapse Button */}
+          {obj.children && obj.children.length > 0 ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleExpand(obj.id);
+              }}
+              className="flex-shrink-0 hover:bg-gray-200 dark:hover:bg-zinc-700 rounded p-0.5"
+            >
+              {obj.expanded ? (
+                <ChevronDown className="w-3 h-3 text-gray-500" />
+              ) : (
+                <ChevronRight className="w-3 h-3 text-gray-500" />
+              )}
+            </button>
+          ) : (
+            <div className="w-4" />
+          )}
+
+          {/* Object Icon */}
+          {getObjectIcon(obj.type)}
+
+          {/* Object Name */}
+          <span className="text-xs font-medium text-gray-900 dark:text-zinc-100 flex-1 truncate">{obj.name}</span>
+
+          {/* Presence Indicators */}
+          <div className="flex items-center gap-0.5">
+            {obj.status !== 'right-only' && (
+              <div className="w-1.5 h-1.5 rounded-full bg-purple-500" title="In left model" />
+            )}
+            {obj.status !== 'left-only' && (
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" title="In right model" />
+            )}
+          </div>
+
+          {/* Status Indicator */}
+          <div className={`w-1.5 h-1.5 rounded-full ${
+            obj.status === 'conflict' ? 'bg-red-500 animate-pulse' :
+            obj.status === 'different' ? 'bg-amber-500' :
+            obj.status === 'left-only' ? 'bg-purple-500' :
+            obj.status === 'right-only' ? 'bg-blue-500' :
+            'bg-emerald-500'
+          }`} />
+        </button>
+
+        {/* Render children recursively */}
+        {obj.expanded && obj.children && obj.children.map(child => renderObjectRow(child, depth + 1))}
+      </div>
+    );
+  };
+
+  const getFilteredResults = () => {
+    const filterRecursive = (objects: ComparisonObject[]): ComparisonObject[] => {
+      return objects.filter(obj => {
+        // Check if object matches filter
+        const matchesFilter =
+          filterType === 'all' ||
+          (filterType === 'conflicts' && obj.status === 'conflict') ||
+          (filterType === 'different' && obj.status === 'different') ||
+          (filterType === 'equals' && obj.status === 'equal') ||
+          (filterType === 'left-only' && obj.status === 'left-only') ||
+          (filterType === 'right-only' && obj.status === 'right-only');
+
+        // If has children, recursively filter them
+        if (obj.children && obj.children.length > 0) {
+          const filteredChildren = filterRecursive(obj.children);
+          // Include parent if it matches OR if any children match
+          if (matchesFilter || filteredChildren.length > 0) {
+            return true;
+          }
+        }
+
+        return matchesFilter;
+      }).map(obj => {
+        // For objects with children, filter children recursively
+        if (obj.children && obj.children.length > 0) {
+          return {
+            ...obj,
+            children: filterRecursive(obj.children)
+          };
+        }
+        return obj;
+      });
+    };
+
+    return filterRecursive(comparisonResults);
+  };
+
+  const renderComparisonView = () => {
+    const totalObjects = comparisonResults.length;
+    const conflicts = comparisonResults.filter(obj => obj.status === 'conflict').length;
+    const modified = comparisonResults.filter(obj => obj.status === 'different').length;
+
+    return (
+    <div className="flex flex-col h-[calc(100vh-200px)]">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-zinc-800">
         <div className="flex items-center gap-3">
-          {/* Filter Buttons */}
+          {/* View Mode Toggle */}
+          <div className="flex items-center gap-1 bg-gray-100 dark:bg-zinc-800 p-1 rounded-lg">
+            <button
+              onClick={() => setViewMode('compare')}
+              className={`px-3 py-1 text-xs font-medium rounded transition-all ${
+                viewMode === 'compare'
+                  ? 'bg-white dark:bg-zinc-700 text-gray-900 dark:text-zinc-100 shadow-sm'
+                  : 'text-gray-600 dark:text-zinc-400'
+              }`}
+            >
+              2-Pane Compare
+            </button>
+            <button
+              onClick={() => setViewMode('merge')}
+              className={`px-3 py-1 text-xs font-medium rounded transition-all ${
+                viewMode === 'merge'
+                  ? 'bg-white dark:bg-zinc-700 text-gray-900 dark:text-zinc-100 shadow-sm'
+                  : 'text-gray-600 dark:text-zinc-400'
+              }`}
+            >
+              3-Pane Merge
+            </button>
+          </div>
+
+          <div className="w-px h-5 bg-gray-300 dark:border-zinc-700" />
+
+          {/* Filter Badges */}
           <div className="flex items-center gap-1">
             {[
-              { value: 'all', label: 'All', count: 15 },
-              { value: 'conflicts', label: 'Conflicts', count: 1 },
-              { value: 'different', label: 'Different', count: 3 },
-              { value: 'equals', label: 'Equals', count: 8 },
-              { value: 'left-only', label: 'Left Only', count: 2 },
-              { value: 'right-only', label: 'Right Only', count: 1 }
+              { value: 'all', label: 'All', count: totalObjects, color: 'gray' },
+              { value: 'conflicts', label: 'Conflicts', count: conflicts, color: 'red' },
+              { value: 'different', label: 'Modified', count: modified, color: 'amber' }
             ].map(filter => (
               <button
                 key={filter.value}
                 onClick={() => setFilterType(filter.value as FilterType)}
-                className={`px-3 py-1 rounded text-xs font-medium transition-all ${
+                className={`px-2 py-1 rounded text-[11px] font-semibold transition-all ${
                   filterType === filter.value
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 hover:bg-gray-200 dark:hover:bg-zinc-700'
+                    ? `bg-${filter.color}-100 dark:bg-${filter.color}-950/40 text-${filter.color}-700 dark:text-${filter.color}-400 ring-2 ring-${filter.color}-500`
+                    : 'bg-white dark:bg-zinc-900 text-gray-600 dark:text-zinc-400 hover:bg-gray-50 dark:hover:bg-zinc-800 border border-gray-200 dark:border-zinc-700'
                 }`}
               >
                 {filter.label} ({filter.count})
@@ -1069,226 +1419,171 @@ const CompleteCompare2 = () => {
           </div>
         </div>
 
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 dark:text-zinc-500" />
-          <input
-            type="text"
-            placeholder="Search objects..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-gray-100 dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 border border-gray-300 dark:border-zinc-700 rounded pl-8 pr-3 py-1.5 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none w-64"
-          />
+        {/* Actions */}
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-gray-100 dark:bg-zinc-800 border-0 rounded pl-7 pr-3 py-1.5 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none w-40"
+            />
+          </div>
+          <button
+            onClick={() => setStep('selection')}
+            className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded transition-colors"
+          >
+            <ChevronLeft className="w-3 h-3 inline mr-1" />
+            Back
+          </button>
+          <button className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors">
+            <Save className="w-3.5 h-3.5 inline mr-1" />
+            Save Merge
+          </button>
         </div>
       </div>
 
-      {/* Comparison Table */}
-      <div className="border border-gray-200 dark:border-zinc-800 rounded-lg overflow-hidden">
-        {/* Table Header */}
-        <div className="grid grid-cols-12 bg-gray-50 dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800 text-xs font-semibold text-gray-700 dark:text-zinc-300">
-          <div className="col-span-3 p-3 border-r border-gray-200 dark:border-zinc-800">
-            <div className="flex items-center gap-2">
-              <Layers className="w-4 h-4" />
-              Model Tree
+      {/* Split-Pane Layout */}
+      <div className="flex-1 flex flex-col mt-3 border border-gray-200 dark:border-zinc-800 rounded-lg overflow-hidden bg-white dark:bg-zinc-900">
+        {/* Upper Section: Object Hierarchies Side-by-Side */}
+        <div className="flex-1 flex overflow-hidden" style={{ height: '60%' }}>
+          {/* Left Model Pane */}
+          <div className="flex-1 flex flex-col border-r border-gray-200 dark:border-zinc-800">
+            <div className="px-3 py-2 bg-purple-50 dark:bg-purple-950/20 border-b border-gray-200 dark:border-zinc-800 flex items-center gap-2">
+              <div className="w-2 h-2 bg-purple-600 rounded-full" />
+              <span className="text-xs font-bold text-purple-700 dark:text-purple-400">LEFT MODEL</span>
+              <span className="text-[10px] text-gray-600 dark:text-zinc-400">({leftModel?.name})</span>
+            </div>
+            <div className="flex-1 overflow-y-auto p-2">
+              {getFilteredResults().map(obj => renderObjectRow(obj, 0))}
             </div>
           </div>
-          <div className="col-span-3 p-3 border-r border-gray-200 dark:border-zinc-800">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-4 bg-purple-600 dark:bg-purple-400 rounded" />
-              Left Model
+
+          {viewMode === 'merge' && (
+            // Merge Model Pane (only in 3-pane mode)
+            <div className="flex-1 flex flex-col border-r border-gray-200 dark:border-zinc-800 bg-blue-50/30 dark:bg-blue-950/10">
+              <div className="px-3 py-2 bg-blue-50 dark:bg-blue-950/20 border-b border-gray-200 dark:border-zinc-800 flex items-center gap-2">
+                <GitMerge className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                <span className="text-xs font-bold text-blue-700 dark:text-blue-400">MERGE MODEL</span>
+                <span className="text-[10px] text-gray-600 dark:text-zinc-400">(Result)</span>
+              </div>
+              <div className="flex-1 overflow-y-auto p-2">
+                {getFilteredResults().map(obj => renderObjectRow(obj, 0))}
+              </div>
             </div>
-          </div>
-          <div className="col-span-3 p-3 border-r border-gray-200 dark:border-zinc-800">
-            <div className="flex items-center gap-2">
-              <GitMerge className="w-4 h-4" />
-              Merge Model
+          )}
+
+          {/* Right Model Pane */}
+          <div className="flex-1 flex flex-col">
+            <div className="px-3 py-2 bg-emerald-50 dark:bg-emerald-950/20 border-b border-gray-200 dark:border-zinc-800 flex items-center gap-2">
+              <div className="w-2 h-2 bg-emerald-600 rounded-full" />
+              <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">RIGHT MODEL</span>
+              <span className="text-[10px] text-gray-600 dark:text-zinc-400">({rightModel?.name})</span>
             </div>
-          </div>
-          <div className="col-span-3 p-3">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-4 bg-emerald-600 dark:bg-emerald-400 rounded" />
-              Right Model
+            <div className="flex-1 overflow-y-auto p-2">
+              {getFilteredResults().map(obj => renderObjectRow(obj, 0))}
             </div>
           </div>
         </div>
 
-        {/* Table Body */}
-        <div className="divide-y divide-gray-200 dark:divide-zinc-800 max-h-[600px] overflow-y-auto">
-          {comparisonResults.map(obj => (
-            <React.Fragment key={obj.id}>
-              {/* Parent Row */}
-              <div className={`grid grid-cols-12 hover:bg-gray-50 dark:hover:bg-zinc-900/50 transition-colors ${
-                obj.status === 'conflict' ? 'bg-red-50/50 dark:bg-red-950/10' : ''
-              }`}>
-                {/* Model Tree Column */}
-                <div className="col-span-3 p-3 border-r border-gray-200 dark:border-zinc-800">
-                  <div className="flex items-center gap-2">
-                    {obj.children && obj.children.length > 0 && (
-                      <button
-                        onClick={() => toggleExpand(obj.id)}
-                        className="hover:bg-gray-200 dark:hover:bg-zinc-700 rounded p-0.5 transition-colors"
-                      >
-                        {obj.expanded ? (
-                          <ChevronDown className="w-3.5 h-3.5" />
-                        ) : (
-                          <ChevronRight className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                    )}
-                    <div className={`flex items-center gap-1.5 ${getStatusColor(obj.status)}`}>
-                      {getStatusIcon(obj.status)}
-                      <span className="text-sm font-medium">{obj.name}</span>
-                    </div>
-                    <span className="text-[10px] text-gray-500 dark:text-zinc-500 uppercase">{obj.type}</span>
-                  </div>
+        {/* Lower Section: Properties Detail Panel */}
+        <div className="border-t-2 border-gray-300 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-900/50" style={{ height: '40%' }}>
+          <div className="px-3 py-2 bg-gray-100 dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Info className="w-4 h-4 text-gray-600 dark:text-zinc-400" />
+                <span className="text-xs font-bold text-gray-700 dark:text-zinc-300">PROPERTIES</span>
+                {selectedObject && (
+                  <>
+                    <span className="text-xs text-gray-500 dark:text-zinc-500">-</span>
+                    <span className="text-xs font-medium text-gray-900 dark:text-zinc-100">{selectedObject.name}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 bg-gray-200 dark:bg-zinc-700 text-gray-600 dark:text-zinc-400 rounded uppercase font-bold">
+                      {selectedObject.type}
+                    </span>
+                  </>
+                )}
+              </div>
+              {selectedObject && (
+                <div className="text-[10px] px-2 py-1 rounded font-semibold ${
+                  selectedObject.status === 'conflict' ? 'bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-400' :
+                  selectedObject.status === 'different' ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400' :
+                  selectedObject.status === 'left-only' ? 'bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400' :
+                  selectedObject.status === 'right-only' ? 'bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400' :
+                  'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400'
+                }">
+                  {selectedObject.status.toUpperCase()}
                 </div>
+              )}
+            </div>
+          </div>
 
-                {/* Left Model Column */}
-                <div className="col-span-3 p-3 border-r border-gray-200 dark:border-zinc-800">
-                  {obj.status !== 'right-only' && (
-                    <div className="flex items-center justify-between">
-                      {renderValue(obj.leftValue)}
-                      {obj.status === 'different' && (
-                        <button
-                          className="p-1 hover:bg-purple-100 dark:hover:bg-purple-900/20 rounded transition-colors"
-                          title="Copy to merge"
-                        >
-                          <ArrowRight className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Merge Model Column */}
-                <div className="col-span-3 p-3 border-r border-gray-200 dark:border-zinc-800 bg-blue-50/30 dark:bg-blue-950/10">
-                  <div className="flex items-center justify-between gap-2">
-                    {obj.status === 'conflict' ? (
-                      <div className="flex-1">
-                        <select className="w-full bg-white dark:bg-zinc-900 border border-red-300 dark:border-red-700 rounded px-2 py-1 text-xs">
-                          <option>Choose resolution...</option>
-                          <option>Use left value</option>
-                          <option>Use right value</option>
-                          <option>Edit manually</option>
-                        </select>
-                      </div>
+          <div className="overflow-y-auto p-4" style={{ height: 'calc(100% - 45px)' }}>
+            {selectedObject ? (
+              <div className="grid grid-cols-3 gap-4">
+                {/* Left Value */}
+                <div className="space-y-2">
+                  <div className="text-[11px] font-bold text-purple-700 dark:text-purple-400 uppercase">Left Value</div>
+                  <div className="bg-white dark:bg-zinc-900 rounded-lg p-3 border border-gray-200 dark:border-zinc-800">
+                    {selectedObject.status !== 'right-only' ? (
+                      renderValue(selectedObject.leftValue)
                     ) : (
-                      renderValue(obj.mergeValue || obj.leftValue || obj.rightValue)
+                      <span className="text-xs text-gray-400 dark:text-zinc-600 italic">Not in left model</span>
                     )}
                   </div>
                 </div>
 
-                {/* Right Model Column */}
-                <div className="col-span-3 p-3">
-                  {obj.status !== 'left-only' && (
-                    <div className="flex items-center justify-between">
-                      {obj.status === 'different' && (
-                        <button
-                          className="p-1 hover:bg-emerald-100 dark:hover:bg-emerald-900/20 rounded transition-colors"
-                          title="Copy to merge"
-                        >
-                          <ArrowLeft className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                        </button>
+                {/* Merge Value (only in 3-pane mode) */}
+                {viewMode === 'merge' && (
+                  <div className="space-y-2">
+                    <div className="text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase">Merge Value</div>
+                    <div className="bg-blue-50/50 dark:bg-blue-950/20 rounded-lg p-3 border border-blue-200 dark:border-blue-900">
+                      {selectedObject.status === 'conflict' ? (
+                        <div className="space-y-2">
+                          <select className="w-full bg-white dark:bg-zinc-900 border border-red-300 dark:border-red-700 rounded px-2 py-1.5 text-xs">
+                            <option>Choose resolution...</option>
+                            <option>Use left value</option>
+                            <option>Use right value</option>
+                            <option>Edit manually</option>
+                          </select>
+                          <div className="flex gap-1">
+                            <button className="flex-1 px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-semibold rounded transition-colors">
+                              Accept Left
+                            </button>
+                            <button className="flex-1 px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-semibold rounded transition-colors">
+                              Accept Right
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        renderValue(selectedObject.mergeValue || selectedObject.leftValue || selectedObject.rightValue)
                       )}
-                      {renderValue(obj.rightValue)}
                     </div>
-                  )}
+                  </div>
+                )}
+
+                {/* Right Value */}
+                <div className="space-y-2">
+                  <div className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase">Right Value</div>
+                  <div className="bg-white dark:bg-zinc-900 rounded-lg p-3 border border-gray-200 dark:border-zinc-800">
+                    {selectedObject.status !== 'left-only' ? (
+                      renderValue(selectedObject.rightValue)
+                    ) : (
+                      <span className="text-xs text-gray-400 dark:text-zinc-600 italic">Not in right model</span>
+                    )}
+                  </div>
                 </div>
               </div>
-
-              {/* Child Rows */}
-              {obj.expanded && obj.children && obj.children.map(child => (
-                <div
-                  key={child.id}
-                  className={`grid grid-cols-12 hover:bg-gray-50 dark:hover:bg-zinc-900/50 transition-colors ${
-                    child.status === 'conflict' ? 'bg-red-50/50 dark:bg-red-950/10' : ''
-                  }`}
-                >
-                  {/* Model Tree Column */}
-                  <div className="col-span-3 p-3 border-r border-gray-200 dark:border-zinc-800 pl-12">
-                    <div className="flex items-center gap-2">
-                      <div className={`flex items-center gap-1.5 ${getStatusColor(child.status)}`}>
-                        {getStatusIcon(child.status)}
-                        <span className="text-xs">{child.name}</span>
-                      </div>
-                      <span className="text-[9px] text-gray-500 dark:text-zinc-500 uppercase">{child.type}</span>
-                    </div>
-                  </div>
-
-                  {/* Left Model Column */}
-                  <div className="col-span-3 p-3 border-r border-gray-200 dark:border-zinc-800">
-                    {child.status !== 'right-only' && (
-                      <div className="flex items-center justify-between">
-                        {renderValue(child.leftValue)}
-                        {child.status === 'different' && (
-                          <button
-                            className="p-1 hover:bg-purple-100 dark:hover:bg-purple-900/20 rounded transition-colors"
-                            title="Copy to merge"
-                          >
-                            <ArrowRight className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Merge Model Column */}
-                  <div className="col-span-3 p-3 border-r border-gray-200 dark:border-zinc-800 bg-blue-50/30 dark:bg-blue-950/10">
-                    {child.status === 'conflict' ? (
-                      <div className="flex items-center gap-1">
-                        <select className="flex-1 bg-white dark:bg-zinc-900 border border-red-300 dark:border-red-700 rounded px-2 py-1 text-xs">
-                          <option>Choose...</option>
-                          <option>Left</option>
-                          <option>Right</option>
-                        </select>
-                      </div>
-                    ) : (
-                      renderValue(child.mergeValue || child.leftValue || child.rightValue)
-                    )}
-                  </div>
-
-                  {/* Right Model Column */}
-                  <div className="col-span-3 p-3">
-                    {child.status !== 'left-only' && (
-                      <div className="flex items-center justify-between">
-                        {child.status === 'different' && (
-                          <button
-                            className="p-1 hover:bg-emerald-100 dark:hover:bg-emerald-900/20 rounded transition-colors"
-                            title="Copy to merge"
-                          >
-                            <ArrowLeft className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                          </button>
-                        )}
-                        {renderValue(child.rightValue)}
-                      </div>
-                    )}
-                  </div>
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-400 dark:text-zinc-600">
+                <div className="text-center">
+                  <Info className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Select an object above to view properties</p>
                 </div>
-              ))}
-            </React.Fragment>
-          ))}
-        </div>
-      </div>
-
-      {/* Bottom Actions */}
-      <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-zinc-800">
-        <button
-          onClick={() => setStep('selection')}
-          className="px-4 py-2 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 hover:bg-gray-200 dark:hover:bg-zinc-700 rounded-lg font-medium text-sm flex items-center gap-2 transition-colors"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Back to Selection
-        </button>
-
-        <div className="flex items-center gap-2">
-          <button className="px-4 py-2 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 hover:bg-gray-200 dark:hover:bg-zinc-700 rounded-lg font-medium text-sm flex items-center gap-2 transition-colors">
-            <Download className="w-4 h-4" />
-            Export Report
-          </button>
-          <button className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium text-sm flex items-center gap-2 transition-colors">
-            <Save className="w-4 h-4" />
-            Save Merge Model
-          </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

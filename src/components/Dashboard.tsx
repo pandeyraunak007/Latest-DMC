@@ -7,6 +7,7 @@ import FabricForwardEngineering from './FabricForwardEngineering';
 import ModelExplorer from './ModelExplorer';
 import CompleteCompare from './CompleteCompare';
 import CompleteCompare2 from './CompleteCompare2';
+import QuickCompare from './QuickCompare';
 import Settings from './Settings';
 import Diagram from './Diagram';
 import Diagrammer from './Diagrammer';
@@ -548,7 +549,7 @@ const CompleteCompareCard = ({ onClick }: { onClick?: () => void }) => {
 
 export default function Dashboard() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [currentPage, setCurrentPage] = useState<'dashboard' | 'mart-catalog' | 'model-explorer' | 'reverse-engineering' | 'forward-engineering' | 'complete-compare' | 'complete-compare-2' | 'settings' | 'diagram' | 'diagrammer' | 'property-editor'>('dashboard');
+  const [currentPage, setCurrentPage] = useState<'dashboard' | 'mart-catalog' | 'model-explorer' | 'reverse-engineering' | 'forward-engineering' | 'complete-compare' | 'complete-compare-2' | 'quick-compare' | 'settings' | 'diagram' | 'diagrammer' | 'property-editor'>('dashboard');
 
   const sidebarItems = [
     {
@@ -592,6 +593,12 @@ export default function Dashboard() {
       label: 'Complete Compare 2',
       page: 'complete-compare-2' as const,
       active: currentPage === 'complete-compare-2'
+    },
+    {
+      icon: <Zap className="w-4 h-4" />,
+      label: 'Quick Compare',
+      page: 'quick-compare' as const,
+      active: currentPage === 'quick-compare'
     },
     {
       icon: <SettingsIcon className="w-4 h-4" />,
@@ -843,6 +850,7 @@ export default function Dashboard() {
               {currentPage === 'forward-engineering' && <FabricForwardEngineering />}
               {currentPage === 'complete-compare' && <CompleteCompare />}
               {currentPage === 'complete-compare-2' && <CompleteCompare2 />}
+              {currentPage === 'quick-compare' && <QuickCompare />}
               {currentPage === 'settings' && <Settings />}
               {currentPage === 'diagram' && <Diagram />}
               {currentPage === 'diagrammer' && <Diagrammer />}
