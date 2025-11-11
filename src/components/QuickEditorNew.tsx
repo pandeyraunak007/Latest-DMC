@@ -27,7 +27,9 @@ import {
   ArrowUpDown,
   Copy,
   Clock,
-  GripVertical
+  GripVertical,
+  ChevronDown,
+  X
 } from 'lucide-react';
 
 // Import types from parent component
@@ -628,7 +630,7 @@ export function QuickEditor({ tables, onTablesUpdate, isDark }: QuickEditorProps
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex-1 bg-zinc-950 overflow-auto"
+      className={`flex-1 overflow-auto ${isDark ? 'bg-zinc-950' : 'bg-gray-50'}`}
     >
       <div className="h-full flex flex-col">
         {/* Dynamic Toolbar */}
@@ -775,6 +777,9 @@ function TableListView({
   onSortChange
 }: TableListViewProps) {
   const [editingTableId, setEditingTableId] = useState<string | null>(null);
+  const [selectedTables, setSelectedTables] = useState<string[]>([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [dropdownSearchTerm, setDropdownSearchTerm] = useState('');
   const [columnWidths, setColumnWidths] = useState({
     tableName: 250,
     schema: 100,
@@ -823,6 +828,48 @@ function TableListView({
     }
   }, [resizingColumn, startX, startWidth]);
 
+  // Multiselect handlers
+  const toggleTableSelection = (tableName: string) => {
+    setSelectedTables(prev =>
+      prev.includes(tableName)
+        ? prev.filter(name => name !== tableName)
+        : [...prev, tableName]
+    );
+  };
+
+  const removeSelectedTable = (tableName: string) => {
+    setSelectedTables(prev => prev.filter(name => name !== tableName));
+  };
+
+  const clearAllSelections = () => {
+    setSelectedTables([]);
+  };
+
+  // Filter tables for dropdown based on search term
+  const filteredDropdownTables = tables.filter(table =>
+    table.name.toLowerCase().includes(dropdownSearchTerm.toLowerCase())
+  );
+
+  // Close dropdown when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.multiselect-dropdown')) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isDropdownOpen]);
+
+  // Filter tables based on multiselect
+  const displayedTables = selectedTables.length > 0
+    ? tables.filter(table => selectedTables.includes(table.name))
+    : tables;
+
   return (
     <motion.div
       key="table-list"
@@ -831,21 +878,136 @@ function TableListView({
       exit={{ opacity: 0, x: 20 }}
       className="max-w-7xl mx-auto"
     >
-      {/* Search Bar & Controls */}
+      {/* Multiselect Search Dropdown & Controls */}
       <div className="mb-6 space-y-4">
-        <div className="relative">
-          <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search tables..."
-            className={`w-full pl-10 pr-4 py-2.5 rounded-lg text-sm border ${
+        {/* Multiselect Dropdown */}
+        <div className="relative multiselect-dropdown">
+          <div
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className={`min-h-[42px] w-full pl-10 pr-10 py-2 rounded-lg text-sm border cursor-pointer transition-all ${
               isDark
-                ? 'bg-zinc-800 border-zinc-700 text-gray-100 placeholder-gray-500'
-                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
-            } focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-          />
+                ? 'bg-zinc-800 border-zinc-700 text-gray-100'
+                : 'bg-white border-gray-300 text-gray-900'
+            } ${isDropdownOpen ? 'ring-2 ring-indigo-500' : ''}`}
+          >
+            <Search className={`absolute left-3 top-3 w-4 h-4 pointer-events-none ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+            <ChevronDown className={`absolute right-3 top-3 w-4 h-4 pointer-events-none transition-transform ${isDropdownOpen ? 'rotate-180' : ''} ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+
+            <div className="flex flex-wrap gap-1.5">
+              {selectedTables.length === 0 ? (
+                <span className={isDark ? 'text-gray-500' : 'text-gray-400'}>
+                  Select tables to filter...
+                </span>
+              ) : (
+                <>
+                  {selectedTables.map(tableName => (
+                    <span
+                      key={tableName}
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
+                        isDark
+                          ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-600/30'
+                          : 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                      }`}
+                    >
+                      {tableName}
+                      <X
+                        className="w-3 h-3 cursor-pointer hover:opacity-70"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeSelectedTable(tableName);
+                        }}
+                      />
+                    </span>
+                  ))}
+                  {selectedTables.length > 0 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        clearAllSelections();
+                      }}
+                      className={`text-xs font-medium px-2 py-0.5 rounded hover:underline ${
+                        isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-600 hover:text-gray-700'
+                      }`}
+                    >
+                      Clear all
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Dropdown Menu */}
+          {isDropdownOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className={`absolute z-50 w-full mt-2 rounded-lg border shadow-lg overflow-hidden ${
+                isDark
+                  ? 'bg-zinc-800 border-zinc-700'
+                  : 'bg-white border-gray-300'
+              }`}
+            >
+              {/* Search input inside dropdown */}
+              <div className={`p-2 border-b ${isDark ? 'border-zinc-700' : 'border-gray-200'}`}>
+                <div className="relative">
+                  <Search className={`absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+                  <input
+                    type="text"
+                    value={dropdownSearchTerm}
+                    onChange={(e) => setDropdownSearchTerm(e.target.value)}
+                    placeholder="Search tables..."
+                    className={`w-full pl-8 pr-3 py-1.5 rounded text-xs border ${
+                      isDark
+                        ? 'bg-zinc-900 border-zinc-700 text-gray-100 placeholder-gray-500'
+                        : 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400'
+                    } focus:outline-none focus:ring-1 focus:ring-indigo-500`}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+              </div>
+
+              {/* Table list */}
+              <div className="max-h-64 overflow-y-auto">
+                {filteredDropdownTables.length === 0 ? (
+                  <div className={`p-3 text-xs text-center ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                    No tables found
+                  </div>
+                ) : (
+                  filteredDropdownTables.map(table => (
+                    <div
+                      key={table.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleTableSelection(table.name);
+                      }}
+                      className={`px-3 py-2 text-sm cursor-pointer transition-colors flex items-center justify-between ${
+                        selectedTables.includes(table.name)
+                          ? isDark
+                            ? 'bg-indigo-600/20 text-indigo-300'
+                            : 'bg-indigo-50 text-indigo-700'
+                          : isDark
+                          ? 'hover:bg-zinc-700 text-gray-300'
+                          : 'hover:bg-gray-50 text-gray-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Table2 className="w-3.5 h-3.5" />
+                        <span>{table.name}</span>
+                        <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                          ({table.columns.length} cols)
+                        </span>
+                      </div>
+                      {selectedTables.includes(table.name) && (
+                        <CheckCircle className="w-4 h-4" />
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          )}
         </div>
 
         {/* View Controls */}
@@ -901,22 +1063,22 @@ function TableListView({
                   : 'bg-white border-gray-300 text-gray-700'
               } focus:outline-none focus:ring-2 focus:ring-indigo-500`}
             >
-              <option value="name-asc">Name (A-Z)</option>
-              <option value="name-desc">Name (Z-A)</option>
-              <option value="columns-asc">Columns (Low-High)</option>
-              <option value="columns-desc">Columns (High-Low)</option>
-              <option value="recent">Recently Added</option>
+              <option value="name-asc" className={isDark ? 'bg-zinc-800 text-gray-300' : 'bg-white text-gray-700'}>Name (A-Z)</option>
+              <option value="name-desc" className={isDark ? 'bg-zinc-800 text-gray-300' : 'bg-white text-gray-700'}>Name (Z-A)</option>
+              <option value="columns-asc" className={isDark ? 'bg-zinc-800 text-gray-300' : 'bg-white text-gray-700'}>Columns (Low-High)</option>
+              <option value="columns-desc" className={isDark ? 'bg-zinc-800 text-gray-300' : 'bg-white text-gray-700'}>Columns (High-Low)</option>
+              <option value="recent" className={isDark ? 'bg-zinc-800 text-gray-300' : 'bg-white text-gray-700'}>Recently Added</option>
             </select>
           </div>
         </div>
       </div>
 
       {/* Tables Display */}
-      {tables.length === 0 ? (
+      {displayedTables.length === 0 ? (
         <div className={`text-center py-16 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
           <Database className="w-16 h-16 mx-auto mb-4 opacity-50" />
-          <p className="text-lg font-medium mb-2">No tables yet</p>
-          <p className="text-sm">Click "Add Table" to create your first table</p>
+          <p className="text-lg font-medium mb-2">{selectedTables.length > 0 ? 'No matching tables' : 'No tables yet'}</p>
+          <p className="text-sm">{selectedTables.length > 0 ? 'Try selecting different tables or clear your selection' : 'Click "Add Table" to create your first table'}</p>
         </div>
       ) : viewMode === 'list' ? (
         /* List View - Compact with Resizable Columns */
@@ -1009,7 +1171,7 @@ function TableListView({
               </tr>
             </thead>
             <tbody>
-              {tables.map((table, index) => {
+              {displayedTables.map((table, index) => {
                 const pkCount = table.columns.filter(c => c.isPK).length;
                 const fkCount = table.foreignKeys?.length || 0;
                 const indexCount = table.indexes?.length || 0;
@@ -1137,7 +1299,7 @@ function TableListView({
       ) : (
         /* Card View - Original */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {tables.map((table) => (
+          {displayedTables.map((table) => (
             <motion.div
               key={table.id}
               initial={{ opacity: 0, scale: 0.95 }}
@@ -1620,8 +1782,8 @@ function ColumnsTab({
                       type="text"
                       value={col.name}
                       onChange={(e) => onUpdateColumn(col.id, 'name', e.target.value)}
-                      className={`w-full min-w-[120px] bg-transparent border rounded px-2 py-1.5 text-xs focus:outline-none ${
-                        isDark ? 'border-zinc-700 text-gray-100 focus:border-indigo-500' : 'border-gray-300 text-gray-900 focus:border-indigo-500'
+                      className={`w-full min-w-[120px] border rounded px-2 py-1.5 text-xs focus:outline-none ${
+                        isDark ? 'bg-zinc-900 border-zinc-700 text-gray-100 focus:border-indigo-500' : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500'
                       }`}
                     />
                   </td>
@@ -1629,12 +1791,12 @@ function ColumnsTab({
                     <select
                       value={col.dataType}
                       onChange={(e) => onUpdateColumn(col.id, 'dataType', e.target.value)}
-                      className={`w-full min-w-[130px] bg-transparent border rounded px-2 py-1.5 text-xs focus:outline-none ${
-                        isDark ? 'border-zinc-700 text-gray-100 focus:border-indigo-500' : 'border-gray-300 text-gray-900 focus:border-indigo-500'
+                      className={`w-full min-w-[130px] border rounded px-2 py-1.5 text-xs focus:outline-none ${
+                        isDark ? 'bg-zinc-900 border-zinc-700 text-gray-100 focus:border-indigo-500' : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500'
                       }`}
                     >
                       {sqlServerDataTypes.map((type) => (
-                        <option key={type} value={type}>
+                        <option key={type} value={type} className={isDark ? 'bg-zinc-900 text-gray-100' : 'bg-white text-gray-900'}>
                           {type}
                         </option>
                       ))}
@@ -1670,8 +1832,8 @@ function ColumnsTab({
                       value={col.defaultValue || ''}
                       onChange={(e) => onUpdateColumn(col.id, 'defaultValue', e.target.value)}
                       placeholder="NULL"
-                      className={`w-full min-w-[100px] bg-transparent border rounded px-2 py-1.5 text-xs focus:outline-none ${
-                        isDark ? 'border-zinc-700 text-gray-100 focus:border-indigo-500 placeholder-gray-600' : 'border-gray-300 text-gray-900 focus:border-indigo-500 placeholder-gray-400'
+                      className={`w-full min-w-[100px] border rounded px-2 py-1.5 text-xs focus:outline-none ${
+                        isDark ? 'bg-zinc-900 border-zinc-700 text-gray-100 focus:border-indigo-500 placeholder-gray-600' : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500 placeholder-gray-400'
                       }`}
                     />
                   </td>
@@ -1681,8 +1843,8 @@ function ColumnsTab({
                       value={col.description || ''}
                       onChange={(e) => onUpdateColumn(col.id, 'description', e.target.value)}
                       placeholder="Description..."
-                      className={`w-full min-w-[150px] bg-transparent border rounded px-2 py-1.5 text-xs focus:outline-none ${
-                        isDark ? 'border-zinc-700 text-gray-100 focus:border-indigo-500 placeholder-gray-600' : 'border-gray-300 text-gray-900 focus:border-indigo-500 placeholder-gray-400'
+                      className={`w-full min-w-[150px] border rounded px-2 py-1.5 text-xs focus:outline-none ${
+                        isDark ? 'bg-zinc-900 border-zinc-700 text-gray-100 focus:border-indigo-500 placeholder-gray-600' : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500 placeholder-gray-400'
                       }`}
                     />
                   </td>
@@ -1796,9 +1958,9 @@ function IndexesTab({
                       isDark ? 'bg-zinc-800 border-zinc-700 text-gray-100' : 'bg-white border-gray-300 text-gray-900'
                     } focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                   >
-                    <option value="CLUSTERED">CLUSTERED</option>
-                    <option value="NONCLUSTERED">NONCLUSTERED</option>
-                    <option value="HASH">HASH</option>
+                    <option value="CLUSTERED" className={isDark ? 'bg-zinc-800 text-gray-100' : 'bg-white text-gray-900'}>CLUSTERED</option>
+                    <option value="NONCLUSTERED" className={isDark ? 'bg-zinc-800 text-gray-100' : 'bg-white text-gray-900'}>NONCLUSTERED</option>
+                    <option value="HASH" className={isDark ? 'bg-zinc-800 text-gray-100' : 'bg-white text-gray-900'}>HASH</option>
                   </select>
                 </div>
                 <div className="flex items-end gap-2">
@@ -1908,9 +2070,9 @@ function ForeignKeysTab({
                       isDark ? 'bg-zinc-800 border-zinc-700 text-gray-100' : 'bg-white border-gray-300 text-gray-900'
                     } focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                   >
-                    <option value="">Select column...</option>
+                    <option value="" className={isDark ? 'bg-zinc-800 text-gray-100' : 'bg-white text-gray-900'}>Select column...</option>
                     {table.columns.map((col) => (
-                      <option key={col.id} value={col.name}>
+                      <option key={col.id} value={col.name} className={isDark ? 'bg-zinc-800 text-gray-100' : 'bg-white text-gray-900'}>
                         {col.name}
                       </option>
                     ))}
@@ -1927,9 +2089,9 @@ function ForeignKeysTab({
                       isDark ? 'bg-zinc-800 border-zinc-700 text-gray-100' : 'bg-white border-gray-300 text-gray-900'
                     } focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                   >
-                    <option value="">Select table...</option>
+                    <option value="" className={isDark ? 'bg-zinc-800 text-gray-100' : 'bg-white text-gray-900'}>Select table...</option>
                     {allTables.filter(t => t.id !== table.id).map((t) => (
-                      <option key={t.id} value={t.name}>
+                      <option key={t.id} value={t.name} className={isDark ? 'bg-zinc-800 text-gray-100' : 'bg-white text-gray-900'}>
                         {t.name}
                       </option>
                     ))}
@@ -1946,10 +2108,10 @@ function ForeignKeysTab({
                       isDark ? 'bg-zinc-800 border-zinc-700 text-gray-100' : 'bg-white border-gray-300 text-gray-900'
                     } focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                   >
-                    <option value="CASCADE">CASCADE</option>
-                    <option value="SET NULL">SET NULL</option>
-                    <option value="NO ACTION">NO ACTION</option>
-                    <option value="RESTRICT">RESTRICT</option>
+                    <option value="CASCADE" className={isDark ? 'bg-zinc-800 text-gray-100' : 'bg-white text-gray-900'}>CASCADE</option>
+                    <option value="SET NULL" className={isDark ? 'bg-zinc-800 text-gray-100' : 'bg-white text-gray-900'}>SET NULL</option>
+                    <option value="NO ACTION" className={isDark ? 'bg-zinc-800 text-gray-100' : 'bg-white text-gray-900'}>NO ACTION</option>
+                    <option value="RESTRICT" className={isDark ? 'bg-zinc-800 text-gray-100' : 'bg-white text-gray-900'}>RESTRICT</option>
                   </select>
                 </div>
                 <div className="flex items-end">
@@ -2048,9 +2210,9 @@ function ConstraintsTab({
                       isDark ? 'bg-zinc-800 border-zinc-700 text-gray-100' : 'bg-white border-gray-300 text-gray-900'
                     } focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                   >
-                    <option value="CHECK">CHECK</option>
-                    <option value="UNIQUE">UNIQUE</option>
-                    <option value="DEFAULT">DEFAULT</option>
+                    <option value="CHECK" className={isDark ? 'bg-zinc-800 text-gray-100' : 'bg-white text-gray-900'}>CHECK</option>
+                    <option value="UNIQUE" className={isDark ? 'bg-zinc-800 text-gray-100' : 'bg-white text-gray-900'}>UNIQUE</option>
+                    <option value="DEFAULT" className={isDark ? 'bg-zinc-800 text-gray-100' : 'bg-white text-gray-900'}>DEFAULT</option>
                   </select>
                 </div>
                 <div className="col-span-2">
