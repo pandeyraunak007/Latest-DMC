@@ -975,7 +975,7 @@ const CompleteCompare = () => {
             return (
               <React.Fragment key={step.id}>
                 <button
-                  onClick={() => isClickable && setCurrentStep(step.id)}
+                  onClick={() => isClickable && setCurrentStep(step.id as CompareStep)}
                   disabled={!isClickable}
                   className={`flex items-center gap-2 ${
                     isClickable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
