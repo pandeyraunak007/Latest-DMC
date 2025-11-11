@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Database,
@@ -9,17 +9,17 @@ import {
   CheckCircle2,
   Loader2,
   AlertCircle,
-  Settings,
   Play,
   Download,
   FileText,
   Key,
   Filter,
   Shield,
-  Sparkles,
   ChevronRight,
-  ChevronLeft,
-  Info
+  ChevronDown,
+  Info,
+  Search,
+  X
 } from 'lucide-react';
 import {
   mockWorkspaces,
@@ -33,50 +33,229 @@ import {
 import Toast, { ToastType } from './shared/Toast';
 import ProgressBar from './shared/ProgressBar';
 
-type TabId = 'source' | 'configure' | 'validate';
-type TargetEnvironment = 'lakehouse' | 'warehouse' | 'datamart';
+type TargetEnvironment = 'lakehouse' | 'warehouse';
 type ExecutionMode = 'ddl' | 'deploy';
 
-interface Tab {
-  id: TabId;
-  label: string;
-  icon: React.ReactNode;
+interface SchemaGenerationOptions {
+  // Database & Schema
+  createDatabase: boolean;
+  dropDatabase: boolean;
+  createSchema: boolean;
+  dropSchema: boolean;
+
+  // Table Options
+  createTable: boolean;
+  dropTable: boolean;
+  entityIntegrity: boolean;
+  tableCheck: boolean;
+  tableValidation: boolean;
+  physicalStorage: boolean;
+  preScript: boolean;
+  postScript: boolean;
+
+  // Column Options
+  identityColumns: boolean;
+  defaultValues: boolean;
+  computedColumns: boolean;
+
+  // Index Options
+  createPrimaryKeyIndex: boolean;
+  createAlternateKeyIndex: boolean;
+  createForeignKeyIndex: boolean;
+  dropIndex: boolean;
+  clusteredIndex: boolean;
+
+  // View Options
+  createView: boolean;
+  dropView: boolean;
+  materializedView: boolean;
+
+  // Referential Integrity
+  foreignKeyConstraints: boolean;
+  dropForeignKey: boolean;
+  checkConstraints: boolean;
+  uniqueConstraints: boolean;
+
+  // Triggers
+  createTriggers: boolean;
+  dropTriggers: boolean;
+  relationshipOverrideTriggers: boolean;
+
+  // Security
+  grantPermissions: boolean;
+  revokePermissions: boolean;
+  createRoles: boolean;
+  createUsers: boolean;
+
+  // Other Options
+  constraintNames: boolean;
+  comments: boolean;
+  quoteNames: boolean;
+  ownerNames: boolean;
+  qualifyNames: boolean;
 }
 
-const tabs: Tab[] = [
-  { id: 'source', label: 'Select Source & Target', icon: <Database className="w-4 h-4" /> },
-  { id: 'configure', label: 'Configure & Filter', icon: <Settings className="w-4 h-4" /> },
-  { id: 'validate', label: 'Validate & Deploy', icon: <Play className="w-4 h-4" /> }
-];
+const DEFAULT_OPTION_SETS: Record<string, SchemaGenerationOptions> = {
+  complete: {
+    createDatabase: true,
+    dropDatabase: false,
+    createSchema: true,
+    dropSchema: false,
+    createTable: true,
+    dropTable: false,
+    entityIntegrity: true,
+    tableCheck: true,
+    tableValidation: true,
+    physicalStorage: true,
+    preScript: true,
+    postScript: true,
+    identityColumns: true,
+    defaultValues: true,
+    computedColumns: true,
+    createPrimaryKeyIndex: true,
+    createAlternateKeyIndex: true,
+    createForeignKeyIndex: true,
+    dropIndex: false,
+    clusteredIndex: true,
+    createView: true,
+    dropView: false,
+    materializedView: true,
+    foreignKeyConstraints: true,
+    dropForeignKey: false,
+    checkConstraints: true,
+    uniqueConstraints: true,
+    createTriggers: true,
+    dropTriggers: false,
+    relationshipOverrideTriggers: true,
+    grantPermissions: true,
+    revokePermissions: false,
+    createRoles: true,
+    createUsers: false,
+    constraintNames: true,
+    comments: true,
+    quoteNames: true,
+    ownerNames: true,
+    qualifyNames: true
+  },
+  tablesOnly: {
+    createDatabase: false,
+    dropDatabase: false,
+    createSchema: false,
+    dropSchema: false,
+    createTable: true,
+    dropTable: false,
+    entityIntegrity: true,
+    tableCheck: true,
+    tableValidation: false,
+    physicalStorage: true,
+    preScript: false,
+    postScript: false,
+    identityColumns: true,
+    defaultValues: true,
+    computedColumns: true,
+    createPrimaryKeyIndex: true,
+    createAlternateKeyIndex: false,
+    createForeignKeyIndex: false,
+    dropIndex: false,
+    clusteredIndex: true,
+    createView: false,
+    dropView: false,
+    materializedView: false,
+    foreignKeyConstraints: true,
+    dropForeignKey: false,
+    checkConstraints: true,
+    uniqueConstraints: true,
+    createTriggers: false,
+    dropTriggers: false,
+    relationshipOverrideTriggers: false,
+    grantPermissions: false,
+    revokePermissions: false,
+    createRoles: false,
+    createUsers: false,
+    constraintNames: true,
+    comments: true,
+    quoteNames: false,
+    ownerNames: false,
+    qualifyNames: false
+  },
+  minimal: {
+    createDatabase: false,
+    dropDatabase: false,
+    createSchema: false,
+    dropSchema: false,
+    createTable: true,
+    dropTable: false,
+    entityIntegrity: false,
+    tableCheck: false,
+    tableValidation: false,
+    physicalStorage: false,
+    preScript: false,
+    postScript: false,
+    identityColumns: true,
+    defaultValues: true,
+    computedColumns: false,
+    createPrimaryKeyIndex: true,
+    createAlternateKeyIndex: false,
+    createForeignKeyIndex: false,
+    dropIndex: false,
+    clusteredIndex: false,
+    createView: false,
+    dropView: false,
+    materializedView: false,
+    foreignKeyConstraints: false,
+    dropForeignKey: false,
+    checkConstraints: false,
+    uniqueConstraints: false,
+    createTriggers: false,
+    dropTriggers: false,
+    relationshipOverrideTriggers: false,
+    grantPermissions: false,
+    revokePermissions: false,
+    createRoles: false,
+    createUsers: false,
+    constraintNames: false,
+    comments: false,
+    quoteNames: false,
+    ownerNames: false,
+    qualifyNames: false
+  }
+};
 
 export default function FabricForwardEngineering() {
-  const [activeTab, setActiveTab] = useState<TabId>('source');
-  const [canProceed, setCanProceed] = useState(false);
+  // Step 1: Model Selection
+  const [selectedModel, setSelectedModel] = useState<string>('');
 
-  // Tab 1: Source & Target
-  const [modelType, setModelType] = useState('physical');
-  const [selectedWorkspace, setSelectedWorkspace] = useState('');
+  // Step 2: Execution Type
+  const [executionMode, setExecutionMode] = useState<ExecutionMode | null>(null);
+
+  // Step 3: Schema Generation Options
+  const [selectedOptionSet, setSelectedOptionSet] = useState<string>('');
+  const [schemaOptions, setSchemaOptions] = useState<SchemaGenerationOptions>(DEFAULT_OPTION_SETS.complete);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  const [optionsConfirmed, setOptionsConfirmed] = useState(false);
+
+  // Step 4: Connection (only for MS Fabric deployment)
   const [targetEnvironment, setTargetEnvironment] = useState<TargetEnvironment>('warehouse');
   const [targetWorkspace, setTargetWorkspace] = useState('');
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle');
   const [connectedUser, setConnectedUser] = useState('');
 
-  // Tab 2: Configure & Filter
-  const [options, setOptions] = useState({
-    includeConstraints: true,
-    includeIndexes: true,
-    includeRelationships: true,
-    applyNamingConvention: false,
-    validateBeforeDeploy: true
-  });
-  const [executionMode, setExecutionMode] = useState<ExecutionMode>('deploy');
-  const [selectedObjects, setSelectedObjects] = useState<Set<string>>(new Set(['obj-1', 'obj-2', 'obj-3', 'obj-6', 'obj-7']));
+  // Step 4: Schema/Table Selection
+  const [selectedObjects, setSelectedObjects] = useState<Set<string>>(new Set());
   const [expandedSchemas, setExpandedSchemas] = useState<Set<string>>(new Set(['dbo', 'sales']));
+  const [searchFilter, setSearchFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'table' | 'view'>('all');
 
-  // Tab 3: Validate & Deploy
+  // Step 5: Validation
   const [validationStatus, setValidationStatus] = useState<'idle' | 'validating' | 'complete'>('idle');
   const [validationProgress, setValidationProgress] = useState(0);
   const [validationMessage, setValidationMessage] = useState('');
+
+  // Step 6: DDL Preview
+  const [showDDLPreview, setShowDDLPreview] = useState(false);
+  const [ddlContent, setDdlContent] = useState('');
+
+  // Deployment
   const [deploymentStatus, setDeploymentStatus] = useState<'idle' | 'deploying' | 'complete'>('idle');
   const [deploymentProgress, setDeploymentProgress] = useState(0);
   const [deploymentMessage, setDeploymentMessage] = useState('');
@@ -93,13 +272,34 @@ export default function FabricForwardEngineering() {
     setToast({ visible: true, type, title, message });
   };
 
+  // Handle option set change
+  const handleOptionSetChange = (optionSetName: string) => {
+    setSelectedOptionSet(optionSetName);
+    setSchemaOptions(DEFAULT_OPTION_SETS[optionSetName]);
+  };
+
+  // Toggle individual option
+  const toggleSchemaOption = (optionKey: keyof SchemaGenerationOptions) => {
+    setSchemaOptions(prev => ({
+      ...prev,
+      [optionKey]: !prev[optionKey]
+    }));
+    setSelectedOptionSet('custom');
+  };
+
+  // Auto-validate when objects are selected
+  useEffect(() => {
+    if (selectedObjects.size > 0 && validationStatus === 'idle') {
+      handleValidate();
+    }
+  }, [selectedObjects]);
+
   const handleSSOConnect = async () => {
     setConnectionStatus('connecting');
     try {
       const result = await simulateSSOConnection(targetWorkspace);
       setConnectionStatus('connected');
       setConnectedUser(result.user);
-      setCanProceed(true);
       showToast('success', 'Connected Successfully', `Authenticated as ${result.user}`);
     } catch (error) {
       setConnectionStatus('error');
@@ -115,6 +315,37 @@ export default function FabricForwardEngineering() {
         setValidationMessage(message);
       });
       setValidationStatus('complete');
+
+      // Generate mock DDL
+      const mockDDL = `-- Forward Engineering DDL Script
+-- Generated: ${new Date().toLocaleString()}
+-- Target: Microsoft Fabric ${targetEnvironment === 'warehouse' ? 'Warehouse' : 'Lakehouse'}
+-- Objects: ${selectedObjects.size} selected
+
+${Array.from(selectedObjects).map(objId => {
+  const obj = Object.values(mockFabricObjects).flat().find(o => o.id === objId);
+  if (!obj) return '';
+
+  if (obj.type === 'table') {
+    return `-- Table: ${obj.name}
+CREATE TABLE [${obj.name}] (
+    [ID] INT PRIMARY KEY,
+    [Name] NVARCHAR(255),
+    [CreatedDate] DATETIME DEFAULT GETDATE()
+);
+GO\n`;
+  } else if (obj.type === 'view') {
+    return `-- View: ${obj.name}
+CREATE VIEW [${obj.name}] AS
+SELECT * FROM [dbo].[BaseTable];
+GO\n`;
+  }
+  return '';
+}).join('\n')}
+
+-- End of script`;
+
+      setDdlContent(mockDDL);
       showToast('success', 'Validation Complete', 'Found 2 errors and 2 warnings');
     } catch (error) {
       showToast('error', 'Validation Failed', 'An error occurred during validation');
@@ -124,7 +355,7 @@ export default function FabricForwardEngineering() {
   const handleDeploy = async () => {
     setDeploymentStatus('deploying');
     try {
-      const result = await simulateDeployment(executionMode, (progress, message) => {
+      const result = await simulateDeployment(executionMode!, (progress, message) => {
         setDeploymentProgress(progress);
         setDeploymentMessage(message);
       });
@@ -159,498 +390,865 @@ export default function FabricForwardEngineering() {
     });
   };
 
-  const canGoToNextTab = () => {
-    if (activeTab === 'source') return connectionStatus === 'connected';
-    if (activeTab === 'configure') return selectedObjects.size > 0;
-    return true;
+  const selectAllObjects = () => {
+    const allIds = Object.values(mockFabricObjects).flat().map(obj => obj.id);
+    setSelectedObjects(new Set(allIds));
   };
 
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'source':
-        return (
-          <motion.div
-            key="source"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-8"
-          >
-            {/* Select Model */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-blue-600" />
-                Select Model
-              </h3>
+  const clearAllObjects = () => {
+    setSelectedObjects(new Set());
+    setValidationStatus('idle');
+    setShowDDLPreview(false);
+  };
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Model Type
-                  </label>
-                  <select
-                    value={modelType}
-                    onChange={(e) => setModelType(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="logical">Logical Model</option>
-                    <option value="physical">Physical Model</option>
-                    <option value="semantic">Semantic Model</option>
-                  </select>
+  const filterObjects = (objects: any[]) => {
+    return objects.filter(obj => {
+      const matchesSearch = obj.name.toLowerCase().includes(searchFilter.toLowerCase());
+      const matchesType = typeFilter === 'all' || obj.type === typeFilter;
+      return matchesSearch && matchesType;
+    });
+  };
+
+  const canProceedToConnection = selectedModel && executionMode && optionsConfirmed;
+  const canProceedToObjects = optionsConfirmed && (executionMode === 'ddl' || (executionMode === 'deploy' && connectionStatus === 'connected'));
+  const canShowValidation = selectedObjects.size > 0;
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="max-w-7xl mx-auto p-6">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+            Forward Engineering to Microsoft Fabric
+          </h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Generate DDL or deploy your data models to Microsoft Fabric
+          </p>
+        </div>
+
+        {/* Main Content */}
+        <div className="space-y-6">
+          {/* Step 1: Model Selection */}
+          <AnimatePresence mode="wait">
+            {!selectedModel && (
+              <motion.div
+                key="model-selection"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold">
+                    1
+                  </div>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    Select Model
+                  </h2>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Workspace
-                  </label>
-                  <select
-                    value={selectedWorkspace}
-                    onChange={(e) => setSelectedWorkspace(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">Select workspace...</option>
-                    {mockWorkspaces.map(ws => (
-                      <option key={ws.id} value={ws.id}>{ws.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Model List */}
-              <div className="mt-4 space-y-2">
-                {mockModels.filter(m => m.type === modelType).map(model => (
-                  <div
-                    key={model.id}
-                    className="p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-500 dark:hover:border-blue-500 cursor-pointer transition-all"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium text-gray-900 dark:text-gray-100">{model.name}</h4>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {model.entityCount} entities • {model.lastModified}
-                        </p>
-                      </div>
-                      <CheckCircle2 className="w-5 h-5 text-blue-600" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Select Target Environment */}
-            <div className="space-y-4 pt-6 border-t border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                <Cloud className="w-5 h-5 text-blue-600" />
-                Select Target Environment
-              </h3>
-
-              {/* Target Type */}
-              <div className="grid grid-cols-3 gap-4">
-                {[
-                  { value: 'lakehouse', label: 'Lakehouse', icon: <Database className="w-5 h-5" /> },
-                  { value: 'warehouse', label: 'Warehouse', icon: <Warehouse className="w-5 h-5" /> },
-                  { value: 'datamart', label: 'Datamart', icon: <Cloud className="w-5 h-5" /> }
-                ].map(target => (
-                  <button
-                    key={target.value}
-                    onClick={() => setTargetEnvironment(target.value as TargetEnvironment)}
-                    className={`p-4 rounded-lg border-2 transition-all ${
-                      targetEnvironment === target.value
-                        ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
-                        : 'border-gray-300 dark:border-gray-600 hover:border-blue-400'
-                    }`}
-                  >
-                    <div className="flex flex-col items-center gap-2">
-                      <div className={targetEnvironment === target.value ? 'text-blue-600' : 'text-gray-600 dark:text-gray-400'}>
-                        {target.icon}
-                      </div>
-                      <span className={`text-sm font-medium ${
-                        targetEnvironment === target.value
-                          ? 'text-blue-600'
-                          : 'text-gray-900 dark:text-gray-100'
-                      }`}>
-                        {target.label}
-                      </span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-
-              {/* Target Workspace */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Target Workspace
-                </label>
-                <select
-                  value={targetWorkspace}
-                  onChange={(e) => setTargetWorkspace(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">Select target workspace...</option>
-                  {mockWorkspaces.map(ws => (
-                    <option key={ws.id} value={ws.id}>{ws.name} ({ws.region})</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* SSO Connection */}
-              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Key className="w-5 h-5 text-blue-600" />
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-gray-100">
-                        {connectionStatus === 'connected' ? 'Connected' : 'Connect using SSO'}
-                      </p>
-                      {connectedUser && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Authenticated as {connectedUser}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {connectionStatus !== 'connected' && (
-                    <button
-                      onClick={handleSSOConnect}
-                      disabled={connectionStatus === 'connecting' || !targetWorkspace}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors"
+                <div className="space-y-2">
+                  {mockModels.filter(m => m.type === 'physical').map(model => (
+                    <motion.div
+                      key={model.id}
+                      onClick={() => setSelectedModel(model.id)}
+                      whileHover={{ scale: 1.01 }}
+                      className="p-4 border-2 border-gray-200 dark:border-gray-700 hover:border-blue-400 rounded-lg cursor-pointer transition-all"
                     >
-                      {connectionStatus === 'connecting' ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Connecting...
-                        </>
-                      ) : (
-                        <>
-                          <Key className="w-4 h-4" />
-                          Connect
-                        </>
-                      )}
-                    </button>
-                  )}
-
-                  {connectionStatus === 'connected' && (
-                    <CheckCircle2 className="w-6 h-6 text-green-600" />
-                  )}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-semibold text-gray-900 dark:text-gray-100">{model.name}</h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {model.entityCount} entities • {model.lastModified}
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
                 </div>
-              </div>
-            </div>
-          </motion.div>
-        );
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-      case 'configure':
-        return (
-          <motion.div
-            key="configure"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-8"
-          >
-            {/* Option Settings */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                <Settings className="w-5 h-5 text-blue-600" />
-                Option Settings
-              </h3>
+          {/* Step 2: Execution Type */}
+          <AnimatePresence mode="wait">
+            {selectedModel && !executionMode && (
+              <motion.div
+                key="execution-type"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold">
+                    2
+                  </div>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    Select Execution Type
+                  </h2>
+                </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  { key: 'includeConstraints', label: 'Include Constraints' },
-                  { key: 'includeIndexes', label: 'Include Indexes' },
-                  { key: 'includeRelationships', label: 'Include Relationships' },
-                  { key: 'applyNamingConvention', label: 'Apply Naming Convention' },
-                  { key: 'validateBeforeDeploy', label: 'Validate Before Deploy' }
-                ].map(option => (
-                  <label key={option.key} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={options[option.key as keyof typeof options]}
-                      onChange={(e) => setOptions({ ...options, [option.key]: e.target.checked })}
-                      className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="font-medium text-gray-900 dark:text-gray-100">{option.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Execution Mode */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                <Play className="w-5 h-5 text-blue-600" />
-                Execution Mode
-              </h3>
-
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  { value: 'ddl', label: 'Generate DDL Script', icon: <FileText className="w-5 h-5" />, desc: 'Create SQL script file' },
-                  { value: 'deploy', label: 'Deploy to Fabric', icon: <Cloud className="w-5 h-5" />, desc: 'Direct deployment' }
-                ].map(mode => (
-                  <button
-                    key={mode.value}
-                    onClick={() => setExecutionMode(mode.value as ExecutionMode)}
-                    className={`p-4 rounded-lg border-2 text-left transition-all ${
-                      executionMode === mode.value
-                        ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
-                        : 'border-gray-300 dark:border-gray-600 hover:border-blue-400'
-                    }`}
+                <div className="grid grid-cols-2 gap-4">
+                  <motion.button
+                    onClick={() => setExecutionMode('ddl')}
+                    whileHover={{ scale: 1.02 }}
+                    className="p-6 rounded-lg border-2 border-gray-300 dark:border-gray-600 hover:border-blue-400 text-left transition-all"
                   >
                     <div className="flex items-center gap-3 mb-2">
-                      <div className={executionMode === mode.value ? 'text-blue-600' : 'text-gray-600 dark:text-gray-400'}>
-                        {mode.icon}
-                      </div>
-                      <span className={`font-medium ${
-                        executionMode === mode.value
-                          ? 'text-blue-600'
-                          : 'text-gray-900 dark:text-gray-100'
-                      }`}>
-                        {mode.label}
+                      <FileText className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+                      <span className="font-semibold text-gray-900 dark:text-gray-100">
+                        Generate DDL File
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{mode.desc}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Create a SQL script file for manual deployment
+                    </p>
+                  </motion.button>
 
-            {/* Filter Objects */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                <Filter className="w-5 h-5 text-blue-600" />
-                Filter Objects
-              </h3>
+                  <motion.button
+                    onClick={() => setExecutionMode('deploy')}
+                    whileHover={{ scale: 1.02 }}
+                    className="p-6 rounded-lg border-2 border-gray-300 dark:border-gray-600 hover:border-blue-400 text-left transition-all"
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <Cloud className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+                      <span className="font-semibold text-gray-900 dark:text-gray-100">
+                        Deploy to MS Fabric
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Deploy directly to Microsoft Fabric
+                    </p>
+                  </motion.button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-              <div className="space-y-2">
-                {Object.entries(mockFabricObjects).map(([schema, objects]) => (
-                  <div key={schema} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                    {/* Schema Header */}
-                    <button
-                      onClick={() => toggleSchemaExpanded(schema)}
-                      className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Database className="w-4 h-4 text-blue-600" />
-                        <span className="font-medium text-gray-900 dark:text-gray-100">{schema}</span>
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
-                          ({objects.filter(obj => selectedObjects.has(obj.id)).length}/{objects.length})
-                        </span>
-                      </div>
-                      <ChevronRight className={`w-5 h-5 transition-transform ${expandedSchemas.has(schema) ? 'rotate-90' : ''}`} />
-                    </button>
-
-                    {/* Objects List */}
-                    {expandedSchemas.has(schema) && (
-                      <div className="p-2 space-y-1">
-                        {objects.map(obj => (
-                          <label
-                            key={obj.id}
-                            className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-750 rounded cursor-pointer"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selectedObjects.has(obj.id)}
-                              onChange={() => toggleObjectSelection(obj.id)}
-                              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                            />
-                            <span className="text-sm text-gray-900 dark:text-gray-100">{obj.name}</span>
-                            <span className={`text-xs px-2 py-0.5 rounded ${
-                              obj.type === 'table'
-                                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                                : obj.type === 'view'
-                                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                            }`}>
-                              {obj.type}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
+          {/* Step 3: Schema Generation Options */}
+          <AnimatePresence mode="wait">
+            {executionMode && !optionsConfirmed && (
+              <motion.div
+                key="schema-options"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold">
+                    3
                   </div>
-                ))}
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {selectedObjects.size} objects selected
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      const allIds = Object.values(mockFabricObjects).flat().map(obj => obj.id);
-                      setSelectedObjects(new Set(allIds));
-                    }}
-                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                  >
-                    Select All
-                  </button>
-                  <button
-                    onClick={() => setSelectedObjects(new Set())}
-                    className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 font-medium"
-                  >
-                    Clear
-                  </button>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    Schema Generation Options
+                  </h2>
                 </div>
-              </div>
-            </div>
-          </motion.div>
-        );
 
-      case 'validate':
-        return (
-          <motion.div
-            key="validate"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-8"
-          >
-            {/* Validation */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                <Shield className="w-5 h-5 text-blue-600" />
-                Validation
-              </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Select a predefined option set or customize individual options for your schema generation
+                </p>
 
-              {validationStatus === 'idle' && (
-                <div className="text-center py-8">
-                  <button
-                    onClick={handleValidate}
-                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium flex items-center gap-2 mx-auto"
-                  >
-                    <Shield className="w-5 h-5" />
-                    Run Validation
-                  </button>
-                </div>
-              )}
-
-              {validationStatus === 'validating' && (
-                <div className="py-8">
-                  <ProgressBar
-                    progress={validationProgress}
-                    message={validationMessage}
-                    animated
-                  />
-                </div>
-              )}
-
-              {validationStatus === 'complete' && (
+                {/* Option Set Selection */}
                 <div className="space-y-4">
-                  {/* Errors */}
-                  {mockValidationResults.errors.length > 0 && (
-                    <div className="border border-red-200 dark:border-red-800 rounded-lg overflow-hidden">
-                      <div className="bg-red-50 dark:bg-red-900/20 px-4 py-3 border-b border-red-200 dark:border-red-800">
-                        <div className="flex items-center gap-2">
-                          <AlertCircle className="w-5 h-5 text-red-600" />
-                          <span className="font-semibold text-red-900 dark:text-red-100">
-                            {mockValidationResults.errors.length} Errors
-                          </span>
-                        </div>
-                      </div>
-                      <div className="p-2 space-y-1">
-                        {mockValidationResults.errors.map((item, idx) => (
-                          <div key={idx} className="flex items-start gap-2 p-2 text-sm">
-                            <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
-                            <div>
-                              <p className="text-gray-900 dark:text-gray-100">{item.message}</p>
-                              <p className="text-gray-600 dark:text-gray-400 text-xs">Object: {item.object}</p>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Select Option Set
+                    </label>
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        {
+                          value: 'complete',
+                          label: 'Complete Schema',
+                          description: 'All database objects including security, triggers, and views',
+                          icon: <Database className="w-5 h-5" />
+                        },
+                        {
+                          value: 'tablesOnly',
+                          label: 'Tables & Constraints',
+                          description: 'Tables with primary keys, foreign keys, and basic constraints',
+                          icon: <FileText className="w-5 h-5" />
+                        },
+                        {
+                          value: 'minimal',
+                          label: 'Minimal',
+                          description: 'Basic table structures with primary keys only',
+                          icon: <Filter className="w-5 h-5" />
+                        }
+                      ].map(optionSet => (
+                        <motion.button
+                          key={optionSet.value}
+                          onClick={() => handleOptionSetChange(optionSet.value)}
+                          whileHover={{ scale: 1.02 }}
+                          className={`p-4 rounded-lg border-2 text-left transition-all ${
+                            selectedOptionSet === optionSet.value
+                              ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
+                              : 'border-gray-300 dark:border-gray-600 hover:border-blue-400'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className={selectedOptionSet === optionSet.value ? 'text-blue-600' : 'text-gray-600 dark:text-gray-400'}>
+                              {optionSet.icon}
                             </div>
+                            <span className={`font-semibold text-sm ${
+                              selectedOptionSet === optionSet.value
+                                ? 'text-blue-600'
+                                : 'text-gray-900 dark:text-gray-100'
+                            }`}>
+                              {optionSet.label}
+                            </span>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Warnings */}
-                  {mockValidationResults.warnings.length > 0 && (
-                    <div className="border border-amber-200 dark:border-amber-800 rounded-lg overflow-hidden">
-                      <div className="bg-amber-50 dark:bg-amber-900/20 px-4 py-3 border-b border-amber-200 dark:border-amber-800">
-                        <div className="flex items-center gap-2">
-                          <AlertCircle className="w-5 h-5 text-amber-600" />
-                          <span className="font-semibold text-amber-900 dark:text-amber-100">
-                            {mockValidationResults.warnings.length} Warnings
-                          </span>
-                        </div>
-                      </div>
-                      <div className="p-2 space-y-1">
-                        {mockValidationResults.warnings.map((item, idx) => (
-                          <div key={idx} className="flex items-start gap-2 p-2 text-sm">
-                            <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                            <div>
-                              <p className="text-gray-900 dark:text-gray-100">{item.message}</p>
-                              <p className="text-gray-600 dark:text-gray-400 text-xs">Object: {item.object}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Info */}
-                  <div className="border border-blue-200 dark:border-blue-800 rounded-lg overflow-hidden">
-                    <div className="bg-blue-50 dark:bg-blue-900/20 px-4 py-3 border-b border-blue-200 dark:border-blue-800">
-                      <div className="flex items-center gap-2">
-                        <Info className="w-5 h-5 text-blue-600" />
-                        <span className="font-semibold text-blue-900 dark:text-blue-100">
-                          Summary
-                        </span>
-                      </div>
-                    </div>
-                    <div className="p-2 space-y-1">
-                      {mockValidationResults.info.map((item, idx) => (
-                        <div key={idx} className="flex items-start gap-2 p-2 text-sm">
-                          <CheckCircle2 className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                          <p className="text-gray-900 dark:text-gray-100">{item.message}</p>
-                        </div>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            {optionSet.description}
+                          </p>
+                        </motion.button>
                       ))}
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
 
-            {/* Deployment */}
-            {validationStatus === 'complete' && (
-              <div className="space-y-4 pt-6 border-t border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-blue-600" />
-                  {executionMode === 'deploy' ? 'Deployment' : 'DDL Generation'}
-                </h3>
+                  {/* Advanced Options Toggle */}
+                  <button
+                    onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+                    className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-750 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      Advanced Options {selectedOptionSet === 'custom' && '(Customized)'}
+                    </span>
+                    {showAdvancedOptions ? (
+                      <ChevronDown className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                    ) : (
+                      <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                    )}
+                  </button>
 
-                {deploymentStatus === 'idle' && (
-                  <div className="text-center py-8">
-                    <button
-                      onClick={handleDeploy}
-                      className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium flex items-center gap-2 mx-auto text-lg"
+                  {/* Advanced Options Panel */}
+                  <AnimatePresence>
+                    {showAdvancedOptions && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg space-y-4 max-h-96 overflow-y-auto">
+                          {/* Database & Schema */}
+                          <div>
+                            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                              <Database className="w-4 h-4" />
+                              Database & Schema
+                            </h4>
+                            <div className="grid grid-cols-2 gap-2 ml-6">
+                              {[
+                                { key: 'createDatabase', label: 'Create Database' },
+                                { key: 'dropDatabase', label: 'Drop Database' },
+                                { key: 'createSchema', label: 'Create Schema' },
+                                { key: 'dropSchema', label: 'Drop Schema' }
+                              ].map(opt => (
+                                <label key={opt.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={schemaOptions[opt.key as keyof SchemaGenerationOptions] as boolean}
+                                    onChange={() => toggleSchemaOption(opt.key as keyof SchemaGenerationOptions)}
+                                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  />
+                                  <span className="text-gray-700 dark:text-gray-300">{opt.label}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Table Options */}
+                          <div>
+                            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                              <FileText className="w-4 h-4" />
+                              Tables
+                            </h4>
+                            <div className="grid grid-cols-2 gap-2 ml-6">
+                              {[
+                                { key: 'createTable', label: 'Create Table' },
+                                { key: 'dropTable', label: 'Drop Table' },
+                                { key: 'entityIntegrity', label: 'Entity Integrity' },
+                                { key: 'tableCheck', label: 'Table Check Constraints' },
+                                { key: 'tableValidation', label: 'Table Validation' },
+                                { key: 'physicalStorage', label: 'Physical Storage' },
+                                { key: 'preScript', label: 'Pre-Scripts' },
+                                { key: 'postScript', label: 'Post-Scripts' }
+                              ].map(opt => (
+                                <label key={opt.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={schemaOptions[opt.key as keyof SchemaGenerationOptions] as boolean}
+                                    onChange={() => toggleSchemaOption(opt.key as keyof SchemaGenerationOptions)}
+                                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  />
+                                  <span className="text-gray-700 dark:text-gray-300">{opt.label}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Column Options */}
+                          <div>
+                            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Columns</h4>
+                            <div className="grid grid-cols-2 gap-2 ml-6">
+                              {[
+                                { key: 'identityColumns', label: 'Identity Columns' },
+                                { key: 'defaultValues', label: 'Default Values' },
+                                { key: 'computedColumns', label: 'Computed Columns' }
+                              ].map(opt => (
+                                <label key={opt.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={schemaOptions[opt.key as keyof SchemaGenerationOptions] as boolean}
+                                    onChange={() => toggleSchemaOption(opt.key as keyof SchemaGenerationOptions)}
+                                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  />
+                                  <span className="text-gray-700 dark:text-gray-300">{opt.label}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Index Options */}
+                          <div>
+                            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                              <Key className="w-4 h-4" />
+                              Indexes
+                            </h4>
+                            <div className="grid grid-cols-2 gap-2 ml-6">
+                              {[
+                                { key: 'createPrimaryKeyIndex', label: 'Primary Key Index' },
+                                { key: 'createAlternateKeyIndex', label: 'Alternate Key Index' },
+                                { key: 'createForeignKeyIndex', label: 'Foreign Key Index' },
+                                { key: 'dropIndex', label: 'Drop Index' },
+                                { key: 'clusteredIndex', label: 'Clustered Index' }
+                              ].map(opt => (
+                                <label key={opt.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={schemaOptions[opt.key as keyof SchemaGenerationOptions] as boolean}
+                                    onChange={() => toggleSchemaOption(opt.key as keyof SchemaGenerationOptions)}
+                                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  />
+                                  <span className="text-gray-700 dark:text-gray-300">{opt.label}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* View Options */}
+                          <div>
+                            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Views</h4>
+                            <div className="grid grid-cols-2 gap-2 ml-6">
+                              {[
+                                { key: 'createView', label: 'Create View' },
+                                { key: 'dropView', label: 'Drop View' },
+                                { key: 'materializedView', label: 'Materialized View' }
+                              ].map(opt => (
+                                <label key={opt.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={schemaOptions[opt.key as keyof SchemaGenerationOptions] as boolean}
+                                    onChange={() => toggleSchemaOption(opt.key as keyof SchemaGenerationOptions)}
+                                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  />
+                                  <span className="text-gray-700 dark:text-gray-300">{opt.label}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Referential Integrity */}
+                          <div>
+                            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                              <Shield className="w-4 h-4" />
+                              Referential Integrity
+                            </h4>
+                            <div className="grid grid-cols-2 gap-2 ml-6">
+                              {[
+                                { key: 'foreignKeyConstraints', label: 'Foreign Key Constraints' },
+                                { key: 'dropForeignKey', label: 'Drop Foreign Key' },
+                                { key: 'checkConstraints', label: 'Check Constraints' },
+                                { key: 'uniqueConstraints', label: 'Unique Constraints' }
+                              ].map(opt => (
+                                <label key={opt.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={schemaOptions[opt.key as keyof SchemaGenerationOptions] as boolean}
+                                    onChange={() => toggleSchemaOption(opt.key as keyof SchemaGenerationOptions)}
+                                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  />
+                                  <span className="text-gray-700 dark:text-gray-300">{opt.label}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Triggers */}
+                          <div>
+                            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Triggers</h4>
+                            <div className="grid grid-cols-2 gap-2 ml-6">
+                              {[
+                                { key: 'createTriggers', label: 'Create Triggers' },
+                                { key: 'dropTriggers', label: 'Drop Triggers' },
+                                { key: 'relationshipOverrideTriggers', label: 'Relationship Override Triggers' }
+                              ].map(opt => (
+                                <label key={opt.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={schemaOptions[opt.key as keyof SchemaGenerationOptions] as boolean}
+                                    onChange={() => toggleSchemaOption(opt.key as keyof SchemaGenerationOptions)}
+                                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  />
+                                  <span className="text-gray-700 dark:text-gray-300">{opt.label}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Security */}
+                          <div>
+                            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                              <Shield className="w-4 h-4" />
+                              Security
+                            </h4>
+                            <div className="grid grid-cols-2 gap-2 ml-6">
+                              {[
+                                { key: 'grantPermissions', label: 'Grant Permissions' },
+                                { key: 'revokePermissions', label: 'Revoke Permissions' },
+                                { key: 'createRoles', label: 'Create Roles' },
+                                { key: 'createUsers', label: 'Create Users' }
+                              ].map(opt => (
+                                <label key={opt.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={schemaOptions[opt.key as keyof SchemaGenerationOptions] as boolean}
+                                    onChange={() => toggleSchemaOption(opt.key as keyof SchemaGenerationOptions)}
+                                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  />
+                                  <span className="text-gray-700 dark:text-gray-300">{opt.label}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Other Options */}
+                          <div>
+                            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                              <Info className="w-4 h-4" />
+                              Other Options
+                            </h4>
+                            <div className="grid grid-cols-2 gap-2 ml-6">
+                              {[
+                                { key: 'constraintNames', label: 'Constraint Names' },
+                                { key: 'comments', label: 'Comments' },
+                                { key: 'quoteNames', label: 'Quote Names' },
+                                { key: 'ownerNames', label: 'Owner Names' },
+                                { key: 'qualifyNames', label: 'Qualify Names' }
+                              ].map(opt => (
+                                <label key={opt.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={schemaOptions[opt.key as keyof SchemaGenerationOptions] as boolean}
+                                    onChange={() => toggleSchemaOption(opt.key as keyof SchemaGenerationOptions)}
+                                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  />
+                                  <span className="text-gray-700 dark:text-gray-300">{opt.label}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Continue Button */}
+                  <div className="flex justify-center pt-4">
+                    <motion.button
+                      onClick={() => {
+                        setOptionsConfirmed(true);
+                        showToast('success', 'Options Selected', `Using ${selectedOptionSet === 'custom' ? 'custom' : selectedOptionSet} option set`);
+                      }}
+                      disabled={!selectedOptionSet}
+                      whileHover={{ scale: selectedOptionSet ? 1.05 : 1 }}
+                      className={`px-6 py-2 rounded-lg font-medium flex items-center gap-2 ${
+                        selectedOptionSet
+                          ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                          : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                      }`}
                     >
-                      {executionMode === 'deploy' ? (
-                        <>
-                          <Play className="w-5 h-5" />
-                          Deploy to Fabric
-                        </>
-                      ) : (
-                        <>
-                          <Download className="w-5 h-5" />
-                          Generate DDL Script
-                        </>
-                      )}
+                      Continue
+                      <ChevronRight className="w-5 h-5" />
+                    </motion.button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Step 4: Connection Settings (Only for MS Fabric deployment) */}
+          <AnimatePresence mode="wait">
+            {executionMode === 'deploy' && optionsConfirmed && connectionStatus !== 'connected' && (
+              <motion.div
+                key="connection-settings"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold">
+                    4
+                  </div>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    Connection Settings
+                  </h2>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Target Environment */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Target Environment
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { value: 'lakehouse', label: 'Lakehouse', icon: <Database className="w-5 h-5" /> },
+                        { value: 'warehouse', label: 'Warehouse', icon: <Warehouse className="w-5 h-5" /> }
+                      ].map(target => (
+                        <button
+                          key={target.value}
+                          onClick={() => setTargetEnvironment(target.value as TargetEnvironment)}
+                          className={`p-3 rounded-lg border-2 transition-all ${
+                            targetEnvironment === target.value
+                              ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
+                              : 'border-gray-300 dark:border-gray-600 hover:border-blue-400'
+                          }`}
+                        >
+                          <div className="flex items-center justify-center gap-2">
+                            <div className={targetEnvironment === target.value ? 'text-blue-600' : 'text-gray-600 dark:text-gray-400'}>
+                              {target.icon}
+                            </div>
+                            <span className={`text-sm font-medium ${
+                              targetEnvironment === target.value
+                                ? 'text-blue-600'
+                                : 'text-gray-900 dark:text-gray-100'
+                            }`}>
+                              {target.label}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Target Workspace */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Target Workspace
+                    </label>
+                    <select
+                      value={targetWorkspace}
+                      onChange={(e) => setTargetWorkspace(e.target.value)}
+                      className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Select target workspace...</option>
+                      {mockWorkspaces.map(ws => (
+                        <option key={ws.id} value={ws.id}>{ws.name} ({ws.region})</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* SSO Connection */}
+                  {targetWorkspace && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Key className="w-5 h-5 text-blue-600" />
+                          <div>
+                            <p className="font-medium text-gray-900 dark:text-gray-100">
+                              Connect using SSO
+                            </p>
+                            {connectedUser && (
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                Authenticated as {connectedUser}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={handleSSOConnect}
+                          disabled={connectionStatus === 'connecting'}
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors"
+                        >
+                          {connectionStatus === 'connecting' ? (
+                            <>
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                              Connecting...
+                            </>
+                          ) : (
+                            <>
+                              <Key className="w-5 h-5" />
+                              Connect
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Step 5: Schema/Table Selection */}
+          <AnimatePresence mode="wait">
+            {canProceedToObjects && selectedObjects.size === 0 && (
+              <motion.div
+                key="object-selection"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+              >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold">
+                  {executionMode === 'deploy' ? '5' : '4'}
+                </div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  Select Objects
+                </h2>
+              </div>
+
+              {/* Filters */}
+              <div className="mb-4 space-y-3">
+                <div className="flex gap-3">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Search objects..."
+                      value={searchFilter}
+                      onChange={(e) => setSearchFilter(e.target.value)}
+                      className="w-full pl-10 pr-10 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    {searchFilter && (
+                      <button
+                        onClick={() => setSearchFilter('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    )}
+                  </div>
+
+                  <select
+                    value={typeFilter}
+                    onChange={(e) => setTypeFilter(e.target.value as 'all' | 'table' | 'view')}
+                    className="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="all">All Types</option>
+                    <option value="table">Tables Only</option>
+                    <option value="view">Views Only</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {selectedObjects.size} objects selected
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={selectAllObjects}
+                      className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      Select All
+                    </button>
+                    <button
+                      onClick={clearAllObjects}
+                      className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 font-medium"
+                    >
+                      Clear
                     </button>
                   </div>
+                </div>
+              </div>
+
+              {/* Objects List */}
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {Object.entries(mockFabricObjects).map(([schema, objects]) => {
+                  const filteredObjects = filterObjects(objects);
+                  if (filteredObjects.length === 0) return null;
+
+                  return (
+                    <div key={schema} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                      {/* Schema Header */}
+                      <button
+                        onClick={() => toggleSchemaExpanded(schema)}
+                        className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Database className="w-5 h-5 text-blue-600" />
+                          <span className="font-medium text-gray-900 dark:text-gray-100">{schema}</span>
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            ({filteredObjects.filter(obj => selectedObjects.has(obj.id)).length}/{filteredObjects.length})
+                          </span>
+                        </div>
+                        {expandedSchemas.has(schema) ? (
+                          <ChevronDown className="w-5 h-5" />
+                        ) : (
+                          <ChevronRight className="w-5 h-5" />
+                        )}
+                      </button>
+
+                      {/* Objects List */}
+                      {expandedSchemas.has(schema) && (
+                        <div className="p-2 space-y-1">
+                          {filteredObjects.map(obj => (
+                            <label
+                              key={obj.id}
+                              className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-750 rounded cursor-pointer"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedObjects.has(obj.id)}
+                                onChange={() => toggleObjectSelection(obj.id)}
+                                className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              />
+                              <span className="text-sm text-gray-900 dark:text-gray-100 flex-1">{obj.name}</span>
+                              <span className={`text-xs px-2 py-0.5 rounded ${
+                                obj.type === 'table'
+                                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                                  : obj.type === 'view'
+                                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                              }`}>
+                                {obj.type}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Step 6: Validation Summary */}
+          <AnimatePresence mode="wait">
+            {canShowValidation && validationStatus !== 'idle' && validationStatus !== 'complete' && (
+              <motion.div
+                key="validation"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold">
+                    {executionMode === 'deploy' ? '6' : '5'}
+                  </div>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    Validating...
+                  </h2>
+                </div>
+
+                {validationStatus === 'validating' && (
+                  <div className="py-8">
+                    <ProgressBar
+                      progress={validationProgress}
+                      message={validationMessage}
+                      animated
+                    />
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Step 7: DDL Preview & Deploy */}
+          {canShowValidation && validationStatus === 'complete' && (
+            <motion.div
+              key="ddl-preview"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold">
+                    {executionMode === 'deploy' ? '7' : '6'}
+                  </div>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    DDL Preview
+                  </h2>
+                </div>
+                <button
+                  onClick={() => setShowDDLPreview(!showDDLPreview)}
+                  className="text-blue-600 hover:text-blue-700 font-medium text-sm"
+                >
+                  {showDDLPreview ? 'Hide' : 'Show'} Preview
+                </button>
+              </div>
+
+              <AnimatePresence>
+                {showDDLPreview && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <pre className="p-4 bg-gray-900 dark:bg-gray-950 text-gray-100 rounded-lg text-xs overflow-x-auto max-h-96 overflow-y-auto">
+                      {ddlContent}
+                    </pre>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Action Buttons */}
+              <div className="mt-6 flex justify-center gap-4">
+                {deploymentStatus === 'idle' && (
+                  <button
+                    onClick={handleDeploy}
+                    className="px-8 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium flex items-center gap-2 text-lg"
+                  >
+                    {executionMode === 'deploy' ? (
+                      <>
+                        <Play className="w-5 h-5" />
+                        Deploy to Fabric
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-5 h-5" />
+                        Download DDL Script
+                      </>
+                    )}
+                  </button>
                 )}
 
                 {deploymentStatus === 'deploying' && (
-                  <div className="py-8">
-                    <div className="text-center mb-6">
-                      <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-                      <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                        {executionMode === 'deploy' ? 'Deploying to Fabric...' : 'Generating DDL...'}
-                      </p>
-                    </div>
+                  <div className="text-center py-8">
+                    <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+                    <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                      {executionMode === 'deploy' ? 'Deploying to Fabric...' : 'Generating DDL...'}
+                    </p>
                     <ProgressBar
                       progress={deploymentProgress}
                       message={deploymentMessage}
@@ -670,108 +1268,12 @@ export default function FabricForwardEngineering() {
                       {executionMode === 'deploy' ? 'Deployment Successful!' : 'DDL Generated!'}
                     </h4>
                     <p className="text-gray-600 dark:text-gray-400 mb-6">
-                      5 tables and 2 views {executionMode === 'deploy' ? 'deployed successfully' : 'ready for deployment'}
+                      {selectedObjects.size} objects {executionMode === 'deploy' ? 'deployed successfully' : 'ready for deployment'}
                     </p>
-
-                    <div className="flex gap-4 justify-center">
-                      {executionMode === 'ddl' && (
-                        <button className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium flex items-center gap-2">
-                          <Download className="w-5 h-5" />
-                          Download Script
-                        </button>
-                      )}
-                      <button className="px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg font-medium">
-                        View Details
-                      </button>
-                    </div>
                   </motion.div>
                 )}
               </div>
-            )}
-          </motion.div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto p-6">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            Forward Engineering to Microsoft Fabric
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Deploy your data models to Fabric Lakehouse, Warehouse, or Datamart
-          </p>
-        </div>
-
-        {/* Tabs Header */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
-          <div className="flex">
-            {tabs.map((tab, index) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                disabled={index > 0 && !canProceed}
-                className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-medium transition-all relative ${
-                  activeTab === tab.id
-                    ? 'text-blue-600 dark:text-blue-400'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
-                } ${index > 0 && !canProceed ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                {tab.icon}
-                <span>{tab.label}</span>
-                {activeTab === tab.id && (
-                  <motion.div
-                    layoutId="activeTab"
-                    className="absolute bottom-0 left-0 right-0 h-1 bg-blue-600"
-                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                  />
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Tab Content */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8 min-h-[600px]">
-          <AnimatePresence mode="wait">
-            {renderTabContent()}
-          </AnimatePresence>
-        </div>
-
-        {/* Navigation Footer */}
-        <div className="mt-6 flex items-center justify-between">
-          <button
-            onClick={() => {
-              const currentIndex = tabs.findIndex(t => t.id === activeTab);
-              if (currentIndex > 0) setActiveTab(tabs[currentIndex - 1].id);
-            }}
-            disabled={activeTab === 'source'}
-            className="flex items-center gap-2 px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5" />
-            Previous
-          </button>
-
-          {activeTab !== 'validate' && (
-            <button
-              onClick={() => {
-                const currentIndex = tabs.findIndex(t => t.id === activeTab);
-                if (currentIndex < tabs.length - 1 && canGoToNextTab()) {
-                  setActiveTab(tabs[currentIndex + 1].id);
-                }
-              }}
-              disabled={!canGoToNextTab()}
-              className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium disabled:cursor-not-allowed transition-colors"
-            >
-              Next
-              <ChevronRight className="w-5 h-5" />
-            </button>
+            </motion.div>
           )}
         </div>
       </div>
