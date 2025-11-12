@@ -715,7 +715,7 @@ export function QuickEditor({ tables, onTablesUpdate, isDark }: QuickEditorProps
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
                             transition={{ duration: 0.15 }}
-                            className={`absolute z-50 w-full mt-1 rounded-md shadow-lg border overflow-hidden ${
+                            className={`absolute z-50 w-full min-w-[400px] mt-1 rounded-md shadow-lg border overflow-hidden ${
                               isDark
                                 ? 'bg-zinc-800 border-zinc-700'
                                 : 'bg-white border-gray-300'
@@ -791,10 +791,51 @@ export function QuickEditor({ tables, onTablesUpdate, isDark }: QuickEditorProps
                                   </button>
                                 ))
                               ) : (
-                                <div className={`px-3 py-6 text-center text-sm ${
+                                <div className={`px-6 py-8 text-center ${
                                   isDark ? 'text-gray-500' : 'text-gray-600'
                                 }`}>
-                                  No tables found
+                                  <p className="text-sm mb-4">No tables found</p>
+                                  {tableSearchTerm && (
+                                    <div className="flex flex-col items-center gap-3">
+                                      <p className={`text-xs ${isDark ? 'text-gray-600' : 'text-gray-500'}`}>
+                                        Create a new table with this name?
+                                      </p>
+                                      <button
+                                        onClick={() => {
+                                          const newTable: Table = {
+                                            id: `table-${Date.now()}`,
+                                            name: tableSearchTerm,
+                                            x: 200,
+                                            y: 200,
+                                            columns: [
+                                              { id: `col-${Date.now()}`, name: 'id', dataType: 'INT', isPK: true, isNullable: false }
+                                            ],
+                                            schema: 'dbo',
+                                            tableType: 'Disk Based',
+                                            indexes: [],
+                                            foreignKeys: [],
+                                            constraints: [],
+                                            businessTerms: [],
+                                            triggers: []
+                                          };
+                                          setLocalTables([...localTables, newTable]);
+                                          setSelectedTableId(newTable.id);
+                                          setActiveTab('columns');
+                                          setIsTableDropdownOpen(false);
+                                          setTableSearchTerm('');
+                                          setHasUnsavedChanges(true);
+                                        }}
+                                        className={`px-6 py-3 rounded-md text-sm font-medium transition-colors inline-flex items-center gap-2 shadow-sm ${
+                                          isDark
+                                            ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                                            : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                                        }`}
+                                      >
+                                        <Plus className="w-4 h-4" />
+                                        <span className="max-w-[280px] truncate">Create "{tableSearchTerm}"</span>
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -1682,24 +1723,6 @@ function TableEditorView({
                     : 'bg-white border-gray-300 text-gray-900'
                 } focus:outline-none focus:ring-1 focus:ring-indigo-500`}
               />
-            </div>
-            <div className="flex items-center gap-2">
-              <label className={`text-xs font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                Type:
-              </label>
-              <select
-                value={table.tableType || 'Disk Based'}
-                onChange={(e) => onUpdateProperty('tableType', e.target.value)}
-                className={`px-2 py-1 rounded text-sm border ${
-                  isDark
-                    ? 'bg-zinc-800 border-zinc-700 text-gray-100'
-                    : 'bg-white border-gray-300 text-gray-900'
-                } focus:outline-none focus:ring-1 focus:ring-indigo-500`}
-              >
-                <option>Disk Based</option>
-                <option>Memory Optimized</option>
-                <option>File Table</option>
-              </select>
             </div>
           </div>
         </div>
