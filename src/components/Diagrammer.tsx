@@ -87,6 +87,7 @@ type ViewMode = 'diagram' | 'quick-editor' | 'properties';
 type Tool = 'select' | 'table' | 'relationship' | 'note' | 'move';
 type EditorViewMode = 'table-list' | 'table-editor';
 type TableEditorTab = 'columns' | 'indexes' | 'foreignKeys' | 'constraints' | 'businessTerms' | 'triggers';
+type LockType = 'unlocked' | 'existence' | 'shared' | 'update' | 'exclusive';
 
 interface TableIndex {
   id: string;
@@ -200,6 +201,8 @@ export default function Diagrammer() {
   const [viewMode, setViewMode] = useState<ViewMode>('diagram');
   const [activeTool, setActiveTool] = useState<Tool>('select');
   const [isLocked, setIsLocked] = useState(false);
+  const [lockType, setLockType] = useState<LockType>('unlocked');
+  const [isLockDropdownOpen, setIsLockDropdownOpen] = useState(false);
   const [zoom, setZoom] = useState(100);
   const [tables, setTables] = useState<Table[]>(mockTables);
   const [relationships, setRelationships] = useState<Relationship[]>(mockRelationships);
@@ -425,17 +428,149 @@ export default function Diagrammer() {
 
           <div className={`w-px h-6 ${isDark ? 'bg-zinc-700' : 'bg-gray-300'}`} />
 
-          <button
-            onClick={() => setIsLocked(!isLocked)}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors ${
-              isLocked
-                ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                : isDark ? 'bg-zinc-800 text-gray-400 hover:bg-zinc-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            {isLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
-            {isLocked ? 'Locked' : 'Unlocked'}
-          </button>
+          {/* Lock Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setIsLockDropdownOpen(!isLockDropdownOpen)}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors ${
+                lockType !== 'unlocked'
+                  ? lockType === 'exclusive'
+                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                    : lockType === 'update'
+                    ? 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30'
+                    : lockType === 'shared'
+                    ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                    : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                  : isDark ? 'bg-zinc-800 text-gray-400 hover:bg-zinc-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {lockType !== 'unlocked' ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+              {lockType === 'unlocked' ? 'Unlocked' : lockType === 'existence' ? 'Existence' : lockType === 'shared' ? 'Shared' : lockType === 'update' ? 'Update' : 'Exclusive'}
+              <ChevronDown className={`w-3 h-3 transition-transform ${isLockDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Lock Dropdown Menu */}
+            <AnimatePresence>
+              {isLockDropdownOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.15 }}
+                  className={`absolute right-0 mt-1 w-56 rounded-md shadow-lg border z-50 ${
+                    isDark ? 'bg-zinc-900 border-zinc-700' : 'bg-white border-gray-200'
+                  }`}
+                >
+                  <div className="py-1">
+                    <button
+                      onClick={() => {
+                        setLockType('unlocked');
+                        setIsLocked(false);
+                        setIsLockDropdownOpen(false);
+                      }}
+                      className={`w-full px-3 py-2 text-left text-xs flex items-start gap-2 transition-colors ${
+                        lockType === 'unlocked'
+                          ? isDark ? 'bg-zinc-800 text-gray-100' : 'bg-gray-100 text-gray-900'
+                          : isDark ? 'text-gray-300 hover:bg-zinc-800' : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Unlock className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <div className="font-medium">Unlocked</div>
+                        <div className={`text-[10px] mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
+                          Model is editable by all users
+                        </div>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setLockType('existence');
+                        setIsLocked(true);
+                        setIsLockDropdownOpen(false);
+                      }}
+                      className={`w-full px-3 py-2 text-left text-xs flex items-start gap-2 transition-colors ${
+                        lockType === 'existence'
+                          ? isDark ? 'bg-zinc-800 text-gray-100' : 'bg-gray-100 text-gray-900'
+                          : isDark ? 'text-gray-300 hover:bg-zinc-800' : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Lock className="w-4 h-4 flex-shrink-0 mt-0.5 text-green-400" />
+                      <div>
+                        <div className="font-medium">Existence Lock</div>
+                        <div className={`text-[10px] mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
+                          Prevents deletion, allows edits
+                        </div>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setLockType('shared');
+                        setIsLocked(true);
+                        setIsLockDropdownOpen(false);
+                      }}
+                      className={`w-full px-3 py-2 text-left text-xs flex items-start gap-2 transition-colors ${
+                        lockType === 'shared'
+                          ? isDark ? 'bg-zinc-800 text-gray-100' : 'bg-gray-100 text-gray-900'
+                          : isDark ? 'text-gray-300 hover:bg-zinc-800' : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Lock className="w-4 h-4 flex-shrink-0 mt-0.5 text-blue-400" />
+                      <div>
+                        <div className="font-medium">Shared Lock</div>
+                        <div className={`text-[10px] mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
+                          Read-only mode, prevents editing
+                        </div>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setLockType('update');
+                        setIsLocked(true);
+                        setIsLockDropdownOpen(false);
+                      }}
+                      className={`w-full px-3 py-2 text-left text-xs flex items-start gap-2 transition-colors ${
+                        lockType === 'update'
+                          ? isDark ? 'bg-zinc-800 text-gray-100' : 'bg-gray-100 text-gray-900'
+                          : isDark ? 'text-gray-300 hover:bg-zinc-800' : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Lock className="w-4 h-4 flex-shrink-0 mt-0.5 text-orange-400" />
+                      <div>
+                        <div className="font-medium">Update Lock</div>
+                        <div className={`text-[10px] mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
+                          Only lock holder can edit
+                        </div>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setLockType('exclusive');
+                        setIsLocked(true);
+                        setIsLockDropdownOpen(false);
+                      }}
+                      className={`w-full px-3 py-2 text-left text-xs flex items-start gap-2 transition-colors ${
+                        lockType === 'exclusive'
+                          ? isDark ? 'bg-zinc-800 text-gray-100' : 'bg-gray-100 text-gray-900'
+                          : isDark ? 'text-gray-300 hover:bg-zinc-800' : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Lock className="w-4 h-4 flex-shrink-0 mt-0.5 text-red-400" />
+                      <div>
+                        <div className="font-medium">Exclusive Lock</div>
+                        <div className={`text-[10px] mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
+                          Prevents all other locks
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
           {/* Theme Toggle Button */}
           <button
