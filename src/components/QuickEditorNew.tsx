@@ -118,14 +118,37 @@ export function QuickEditor({ tables, onTablesUpdate, isDark }: QuickEditorProps
   const [activeTab, setActiveTab] = useState<TableEditorTab>('columns');
   const [viewMode, setViewMode] = useState<TableViewMode>('list');
   const [sortOption, setSortOption] = useState<SortOption>('name-asc');
+  const [isTableDropdownOpen, setIsTableDropdownOpen] = useState(false);
+  const [tableSearchTerm, setTableSearchTerm] = useState('');
 
   // Sync external tables to local state
   useEffect(() => {
     setLocalTables(tables);
   }, [tables]);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (isTableDropdownOpen && !target.closest('.table-dropdown-container')) {
+        setIsTableDropdownOpen(false);
+        setTableSearchTerm('');
+      }
+    };
+
+    if (isTableDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isTableDropdownOpen]);
+
   // Get selected table
   const selectedTable = selectedTableId ? localTables.find(t => t.id === selectedTableId) : null;
+
+  // Filter tables for dropdown search
+  const filteredTablesForDropdown = localTables.filter(table =>
+    table.name.toLowerCase().includes(tableSearchTerm.toLowerCase())
+  );
 
   // SQL Server data types
   const sqlServerDataTypes = [
@@ -648,15 +671,139 @@ export function QuickEditor({ tables, onTablesUpdate, isDark }: QuickEditorProps
                 </button>
               )}
 
-              <div>
-                <h2 className={`text-lg font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
-                  {editorMode === 'table-list' ? 'Quick Editor - Tables' : `Editing: ${selectedTable?.name || ''}`}
+              <div className="flex-1">
+                <h2 className={`text-sm font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+                  {editorMode === 'table-list' ? 'Quick Editor - Tables' : 'Table Editor'}
                 </h2>
                 <p className={`text-xs mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
                   {editorMode === 'table-list'
                     ? `${localTables.length} ${localTables.length === 1 ? 'table' : 'tables'} in model`
-                    : 'Configure table properties and structure'}
+                    : 'Configure table properties'}
                 </p>
+
+                {/* Table Selector Dropdown - Only show in table-editor mode */}
+                {editorMode === 'table-editor' && localTables.length > 0 && (
+                  <div className="mt-3 relative table-dropdown-container">
+                    <label className={`text-xs font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'} block mb-1`}>
+                      Select Table to Edit
+                    </label>
+                    <div className="relative">
+                      <button
+                        onClick={() => setIsTableDropdownOpen(!isTableDropdownOpen)}
+                        className={`w-full px-3 py-2.5 rounded-md text-sm border flex items-center justify-between ${
+                          isDark
+                            ? 'bg-zinc-800 border-zinc-700 text-gray-200 hover:border-zinc-600'
+                            : 'bg-white border-gray-300 text-gray-900 hover:border-gray-400'
+                        } focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors`}
+                      >
+                        <span className="truncate">
+                          {selectedTable?.name || 'Select a table'}
+                          {selectedTable && (
+                            <span className={`ml-2 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
+                              ({selectedTable.columns.length} column{selectedTable.columns.length !== 1 ? 's' : ''})
+                            </span>
+                          )}
+                        </span>
+                        <ChevronDown className={`w-4 h-4 ml-2 transition-transform ${isTableDropdownOpen ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {/* Custom Dropdown Panel */}
+                      <AnimatePresence>
+                        {isTableDropdownOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.15 }}
+                            className={`absolute z-50 w-full mt-1 rounded-md shadow-lg border overflow-hidden ${
+                              isDark
+                                ? 'bg-zinc-800 border-zinc-700'
+                                : 'bg-white border-gray-300'
+                            }`}
+                          >
+                            {/* Search Input */}
+                            <div className={`p-2 border-b ${isDark ? 'border-zinc-700' : 'border-gray-200'}`}>
+                              <div className="relative">
+                                <Search className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 ${
+                                  isDark ? 'text-gray-500' : 'text-gray-400'
+                                }`} />
+                                <input
+                                  type="text"
+                                  placeholder="Search tables..."
+                                  value={tableSearchTerm}
+                                  onChange={(e) => setTableSearchTerm(e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className={`w-full pl-8 pr-8 py-1.5 rounded text-xs border ${
+                                    isDark
+                                      ? 'bg-zinc-900 border-zinc-700 text-gray-200 placeholder-gray-600'
+                                      : 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-500'
+                                  } focus:outline-none focus:ring-1 focus:ring-blue-500`}
+                                />
+                                {tableSearchTerm && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setTableSearchTerm('');
+                                    }}
+                                    className={`absolute right-2.5 top-1/2 -translate-y-1/2 ${
+                                      isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'
+                                    }`}
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Table List */}
+                            <div className="max-h-[calc(100vh-20rem)] overflow-y-auto">
+                              {filteredTablesForDropdown.length > 0 ? (
+                                filteredTablesForDropdown.map((table) => (
+                                  <button
+                                    key={table.id}
+                                    onClick={() => {
+                                      setSelectedTableId(table.id);
+                                      setActiveTab('columns');
+                                      setIsTableDropdownOpen(false);
+                                      setTableSearchTerm('');
+                                    }}
+                                    className={`w-full px-3 py-2.5 text-left text-sm transition-colors border-b last:border-b-0 ${
+                                      selectedTableId === table.id
+                                        ? isDark
+                                          ? 'bg-blue-600/20 border-zinc-700 text-blue-400'
+                                          : 'bg-blue-50 border-gray-200 text-blue-600'
+                                        : isDark
+                                        ? 'hover:bg-zinc-750 border-zinc-800 text-gray-300'
+                                        : 'hover:bg-gray-50 border-gray-100 text-gray-900'
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                                        <Table2 className="w-4 h-4 flex-shrink-0" />
+                                        <span className="font-medium truncate">{table.name}</span>
+                                      </div>
+                                      <span className={`text-xs ml-2 flex-shrink-0 ${
+                                        isDark ? 'text-gray-500' : 'text-gray-600'
+                                      }`}>
+                                        {table.columns.length} col{table.columns.length !== 1 ? 's' : ''}
+                                      </span>
+                                    </div>
+                                  </button>
+                                ))
+                              ) : (
+                                <div className={`px-3 py-6 text-center text-sm ${
+                                  isDark ? 'text-gray-500' : 'text-gray-600'
+                                }`}>
+                                  No tables found
+                                </div>
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
