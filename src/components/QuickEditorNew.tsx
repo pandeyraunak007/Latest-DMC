@@ -99,7 +99,7 @@ export interface Table {
 }
 
 type EditorViewMode = 'table-list' | 'table-editor';
-type TableEditorTab = 'columns' | 'indexes' | 'foreignKeys' | 'constraints' | 'businessTerms' | 'triggers';
+type TableEditorTab = 'columns' | 'indexes' | 'foreignKeys' | 'constraints' | 'businessTerms' | 'triggers' | 'udp' | 'whereUsed';
 type TableViewMode = 'card' | 'list';
 type SortOption = 'name-asc' | 'name-desc' | 'columns-asc' | 'columns-desc' | 'recent';
 
@@ -1673,7 +1673,9 @@ function TableEditorView({
     { id: 'foreignKeys', label: 'Foreign Keys', icon: Link2 },
     { id: 'constraints', label: 'Constraints', icon: CheckCircle },
     { id: 'businessTerms', label: 'Business Terms', icon: FileText },
-    { id: 'triggers', label: 'Triggers', icon: Zap }
+    { id: 'triggers', label: 'Triggers', icon: Zap },
+    { id: 'udp', label: 'UDP', icon: SettingsIcon },
+    { id: 'whereUsed', label: 'Where Used', icon: Search }
   ];
 
   return (
@@ -1721,6 +1723,41 @@ function TableEditorView({
                   isDark
                     ? 'bg-zinc-800 border-zinc-700 text-gray-100'
                     : 'bg-white border-gray-300 text-gray-900'
+                } focus:outline-none focus:ring-1 focus:ring-indigo-500`}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className={`text-xs font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                SDI Indicator:
+              </label>
+              <select
+                value={(table as any).sdiIndicator || 'None'}
+                onChange={(e) => onUpdateProperty('sdiIndicator', e.target.value)}
+                className={`px-2 py-1 rounded text-sm border ${
+                  isDark
+                    ? 'bg-zinc-800 border-zinc-700 text-gray-100'
+                    : 'bg-white border-gray-300 text-gray-900'
+                } focus:outline-none focus:ring-1 focus:ring-indigo-500`}
+              >
+                <option>None</option>
+                <option>Dimension</option>
+                <option>Fact</option>
+                <option>Bridge</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-2 flex-1">
+              <label className={`text-xs font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                Definition:
+              </label>
+              <input
+                type="text"
+                value={(table as any).definition || ''}
+                onChange={(e) => onUpdateProperty('definition', e.target.value)}
+                placeholder="Table definition/description"
+                className={`flex-1 px-2 py-1 rounded text-sm border ${
+                  isDark
+                    ? 'bg-zinc-800 border-zinc-700 text-gray-100 placeholder-gray-600'
+                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                 } focus:outline-none focus:ring-1 focus:ring-indigo-500`}
               />
             </div>
@@ -1809,6 +1846,12 @@ function TableEditorView({
         )}
         {activeTab === 'triggers' && (
           <TriggersTab table={table} onUpdateProperty={onUpdateProperty} isDark={isDark} />
+        )}
+        {activeTab === 'udp' && (
+          <UDPTab table={table} onUpdateProperty={onUpdateProperty} isDark={isDark} />
+        )}
+        {activeTab === 'whereUsed' && (
+          <WhereUsedTab table={table} isDark={isDark} />
         )}
       </AnimatePresence>
     </motion.div>
@@ -2529,4 +2572,20 @@ function TriggersTab({
       </div>
     </motion.div>
   );
+}
+
+// UDP Tab (User Defined Properties)
+function UDPTab({ table, onUpdateProperty, isDark }: { table: Table; onUpdateProperty: (field: string, value: any) => void; isDark: boolean; }) {
+  const [udps, setUdps] = useState<{ key: string; value: string }[]>((table as any).udps || []);
+  const [newKey, setNewKey] = useState('');
+  const [newValue, setNewValue] = useState('');
+  const addUDP = () => { if (!newKey.trim()) return; const updatedUdps = [...udps, { key: newKey, value: newValue }]; setUdps(updatedUdps); onUpdateProperty('udps', updatedUdps); setNewKey(''); setNewValue(''); };
+  const removeUDP = (index: number) => { const updatedUdps = udps.filter((_, i) => i !== index); setUdps(updatedUdps); onUpdateProperty('udps', updatedUdps); };
+  const updateUDP = (index: number, field: 'key' | 'value', newVal: string) => { const updatedUdps = udps.map((udp, i) => i === index ? { ...udp, [field]: newVal } : udp); setUdps(updatedUdps); onUpdateProperty('udps', updatedUdps); };
+  return (<motion.div key="udp-tab" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className={`border rounded-lg p-6 ${isDark ? 'border-zinc-800 bg-zinc-900/50' : 'border-gray-200 bg-white'}`}><div className="space-y-4"><div className="flex items-center justify-between"><h3 className={`text-sm font-semibold ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>User Defined Properties</h3></div><div className="flex gap-2"><input type="text" value={newKey} onChange={(e) => setNewKey(e.target.value)} placeholder="Property name..." className={`flex-1 px-3 py-2 rounded-md text-sm border ${isDark ? 'bg-zinc-800 border-zinc-700 text-gray-100 placeholder-gray-600' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'} focus:outline-none focus:ring-2 focus:ring-indigo-500`} /><input type="text" value={newValue} onChange={(e) => setNewValue(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && addUDP()} placeholder="Property value..." className={`flex-1 px-3 py-2 rounded-md text-sm border ${isDark ? 'bg-zinc-800 border-zinc-700 text-gray-100 placeholder-gray-600' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'} focus:outline-none focus:ring-2 focus:ring-indigo-500`} /><button onClick={addUDP} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors inline-flex items-center gap-2"><Plus className="w-4 h-4" />Add</button></div>{udps.length > 0 ? (<div className={`border rounded-lg overflow-hidden ${isDark ? 'border-zinc-800' : 'border-gray-200'}`}><table className="w-full"><thead className={isDark ? 'bg-zinc-800/50' : 'bg-gray-50'}><tr><th className={`px-4 py-2 text-left text-xs font-semibold ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Property Name</th><th className={`px-4 py-2 text-left text-xs font-semibold ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Value</th><th className={`px-4 py-2 text-right text-xs font-semibold ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Actions</th></tr></thead><tbody>{udps.map((udp, index) => (<tr key={index} className={`border-t ${isDark ? 'border-zinc-800' : 'border-gray-200'}`}><td className="px-4 py-2"><input type="text" value={udp.key} onChange={(e) => updateUDP(index, 'key', e.target.value)} className={`w-full px-2 py-1 rounded text-sm border ${isDark ? 'bg-zinc-800 border-zinc-700 text-gray-100' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-1 focus:ring-indigo-500`} /></td><td className="px-4 py-2"><input type="text" value={udp.value} onChange={(e) => updateUDP(index, 'value', e.target.value)} className={`w-full px-2 py-1 rounded text-sm border ${isDark ? 'bg-zinc-800 border-zinc-700 text-gray-100' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-1 focus:ring-indigo-500`} /></td><td className="px-4 py-2 text-right"><button onClick={() => removeUDP(index)} className={`p-1.5 rounded transition-colors ${isDark ? 'hover:bg-zinc-800 text-gray-500 hover:text-red-400' : 'hover:bg-gray-100 text-gray-400 hover:text-red-500'}`}><Trash2 className="w-4 h-4" /></button></td></tr>))}</tbody></table></div>) : (<div className={`text-center py-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}><SettingsIcon className="w-12 h-12 mx-auto mb-3 opacity-50" /><p className="text-sm">No user defined properties yet</p></div>)}</div></motion.div>);
+}
+
+// Where Used Tab
+function WhereUsedTab({ table, isDark }: { table: Table; isDark: boolean; }) {
+  return (<motion.div key="whereused-tab" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className={`border rounded-lg p-6 ${isDark ? 'border-zinc-800 bg-zinc-900/50' : 'border-gray-200 bg-white'}`}><div className="space-y-4"><h3 className={`text-sm font-semibold ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>Where This Table Is Used</h3><div className={`text-center py-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}><Search className="w-12 h-12 mx-auto mb-3 opacity-50" /><p className="text-sm font-medium mb-2">Usage Analysis</p><p className="text-xs">Shows relationships, views, stored procedures, and other objects referencing this table</p><div className="mt-4 text-xs"><p className={isDark ? 'text-gray-600' : 'text-gray-500'}>Feature coming soon</p></div></div></div></motion.div>);
 }
