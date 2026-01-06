@@ -13,6 +13,8 @@ import Diagrammer from './Diagrammer';
 import MartCatalog from './MartCatalogManager';
 import PropertyEditor from './PropertyEditor';
 import ThemeToggle from './shared/ThemeToggle';
+import Homepage from './Homepage';
+import AIChat, { FloatingChatButton } from './AIChat';
 import {
   LayoutDashboard,
   Database,
@@ -53,7 +55,8 @@ import {
   PieChart,
   Brain,
   Sparkles,
-  Layers
+  Layers,
+  Home
 } from 'lucide-react';
 
 interface SidebarItemProps {
@@ -548,9 +551,16 @@ const CompleteCompareCard = ({ onClick }: { onClick?: () => void }) => {
 
 export default function Dashboard() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [currentPage, setCurrentPage] = useState<'dashboard' | 'mart-catalog' | 'model-explorer' | 'reverse-engineering' | 'forward-engineering' | 'complete-compare' | 'complete-compare-2' | 'settings' | 'diagram' | 'diagrammer' | 'property-editor'>('dashboard');
+  const [currentPage, setCurrentPage] = useState<'homepage' | 'dashboard' | 'mart-catalog' | 'model-explorer' | 'reverse-engineering' | 'forward-engineering' | 'complete-compare' | 'complete-compare-2' | 'settings' | 'diagram' | 'diagrammer' | 'property-editor'>('homepage');
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   const sidebarItems = [
+    {
+      icon: <Home className="w-4 h-4" />,
+      label: 'Homepage',
+      page: 'homepage' as const,
+      active: currentPage === 'homepage'
+    },
     {
       icon: <LayoutDashboard className="w-4 h-4" />,
       label: 'Dashboard',
@@ -678,6 +688,13 @@ export default function Dashboard() {
 
         {/* Page Content with Transitions */}
         <div className="flex-1 overflow-auto">
+          {currentPage === 'homepage' && (
+            <Homepage
+              onNavigate={(page) => setCurrentPage(page as typeof currentPage)}
+              onOpenChat={() => setIsChatOpen(true)}
+            />
+          )}
+
           {currentPage === 'dashboard' && (
             <div className="p-6">
               {/* Welcome Section */}
@@ -845,6 +862,10 @@ export default function Dashboard() {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* AI Chat - Available throughout the app */}
+      {!isChatOpen && <FloatingChatButton onClick={() => setIsChatOpen(true)} />}
+      <AIChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
     </div>
   );
 };
