@@ -12,28 +12,47 @@ import {
   Maximize2,
   Trash2,
   Copy,
-  Check
+  Check,
+  Play,
+  CheckCircle,
+  Database,
+  Table2,
+  Link2,
+  Columns,
+  AlertCircle
 } from 'lucide-react';
+import { DiagramContext, AIAction } from '@/types/aiActions';
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  actions?: AIAction[];
+  actionsExecuted?: boolean;
 }
 
 interface AIChatProps {
   isOpen: boolean;
   onClose: () => void;
   initialMessage?: string;
+  diagramContext?: DiagramContext;
+  onExecuteAction?: (action: AIAction) => Promise<boolean>;
 }
 
-export default function AIChat({ isOpen, onClose, initialMessage }: AIChatProps) {
+export default function AIChat({
+  isOpen,
+  onClose,
+  initialMessage,
+  diagramContext,
+  onExecuteAction
+}: AIChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [executingAction, setExecutingAction] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -81,6 +100,7 @@ export default function AIChat({ isOpen, onClose, initialMessage }: AIChatProps)
             role: m.role,
             content: m.content,
           })),
+          context: diagramContext,
         }),
       });
 
@@ -95,6 +115,8 @@ export default function AIChat({ isOpen, onClose, initialMessage }: AIChatProps)
         role: 'assistant',
         content: data.message,
         timestamp: new Date(),
+        actions: data.actions,
+        actionsExecuted: false,
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -129,10 +151,72 @@ export default function AIChat({ isOpen, onClose, initialMessage }: AIChatProps)
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const formatMessage = (content: string) => {
-    // Simple markdown-like formatting for code blocks
-    const parts = content.split(/(```[\s\S]*?```)/g);
-    return parts.map((part, index) => {
+  const executeActions = async (messageId: string, actions: AIAction[]) => {
+    if (!onExecuteAction) return;
+
+    setExecutingAction(messageId);
+
+    try {
+      for (const action of actions) {
+        const success = await onExecuteAction(action);
+        if (!success) {
+          console.error('Action failed:', action);
+        }
+      }
+
+      // Mark actions as executed
+      setMessages(prev => prev.map(m =>
+        m.id === messageId ? { ...m, actionsExecuted: true } : m
+      ));
+
+      // Add confirmation message
+      const confirmMessage: Message = {
+        id: (Date.now() + 2).toString(),
+        role: 'assistant',
+        content: `✓ Done! I've applied ${actions.length} change${actions.length > 1 ? 's' : ''} to your diagram. You can see the updates in the canvas.`,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, confirmMessage]);
+    } catch (error) {
+      console.error('Error executing actions:', error);
+    } finally {
+      setExecutingAction(null);
+    }
+  };
+
+  const getActionIcon = (type: string) => {
+    switch (type) {
+      case 'addTable':
+      case 'updateTable':
+      case 'deleteTable':
+        return <Table2 className="w-3 h-3" />;
+      case 'addColumn':
+      case 'updateColumn':
+      case 'deleteColumn':
+        return <Columns className="w-3 h-3" />;
+      case 'addRelationship':
+      case 'deleteRelationship':
+        return <Link2 className="w-3 h-3" />;
+      default:
+        return <Database className="w-3 h-3" />;
+    }
+  };
+
+  const getActionColor = (type: string) => {
+    if (type.startsWith('add')) return 'text-emerald-500 bg-emerald-500/10';
+    if (type.startsWith('update')) return 'text-blue-500 bg-blue-500/10';
+    if (type.startsWith('delete')) return 'text-red-500 bg-red-500/10';
+    return 'text-violet-500 bg-violet-500/10';
+  };
+
+  // Format message content, hiding action blocks but showing action UI
+  const formatMessage = (content: string, actions?: AIAction[], messageId?: string, actionsExecuted?: boolean) => {
+    // Remove action blocks from display
+    const cleanContent = content.replace(/```action[\s\S]*?```/g, '').trim();
+
+    // Split by code blocks
+    const parts = cleanContent.split(/(```[\s\S]*?```)/g);
+    const formattedParts = parts.map((part, index) => {
       if (part.startsWith('```') && part.endsWith('```')) {
         const code = part.slice(3, -3);
         const firstNewline = code.indexOf('\n');
@@ -164,6 +248,80 @@ export default function AIChat({ isOpen, onClose, initialMessage }: AIChatProps)
         </span>
       );
     });
+
+    return (
+      <>
+        <div className="whitespace-pre-wrap break-words">{formattedParts}</div>
+
+        {/* Action Cards */}
+        {actions && actions.length > 0 && messageId && (
+          <div className="mt-3 space-y-2">
+            <div className="text-xs text-gray-500 dark:text-zinc-400 font-medium">
+              Proposed Changes:
+            </div>
+            {actions.map((action, idx) => (
+              <div
+                key={idx}
+                className={`flex items-center gap-2 p-2 rounded-lg border ${
+                  actionsExecuted
+                    ? 'border-emerald-500/30 bg-emerald-500/5'
+                    : 'border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800/50'
+                }`}
+              >
+                <div className={`p-1 rounded ${getActionColor(action.type)}`}>
+                  {actionsExecuted ? <CheckCircle className="w-3 h-3 text-emerald-500" /> : getActionIcon(action.type)}
+                </div>
+                <span className="text-xs text-gray-700 dark:text-zinc-300 flex-1">
+                  {action.description}
+                </span>
+                {actionsExecuted && (
+                  <span className="text-xs text-emerald-500">Applied</span>
+                )}
+              </div>
+            ))}
+
+            {/* Apply Button */}
+            {!actionsExecuted && onExecuteAction && (
+              <button
+                onClick={() => executeActions(messageId, actions)}
+                disabled={executingAction === messageId}
+                className="w-full mt-2 py-2 px-4 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2"
+              >
+                {executingAction === messageId ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Applying...
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4" />
+                    Apply {actions.length} Change{actions.length > 1 ? 's' : ''}
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        )}
+      </>
+    );
+  };
+
+  // Context-aware suggestions
+  const getSuggestions = () => {
+    if (diagramContext && diagramContext.tables.length > 0) {
+      return [
+        'Add a Users table with id, email, and password',
+        `Add a created_at column to ${diagramContext.tables[0]?.name || 'a table'}`,
+        'Create a relationship between two tables',
+        'Suggest indexes for better performance',
+      ];
+    }
+    return [
+      'Create a Users table with common fields',
+      'Design an e-commerce database schema',
+      'What are best practices for primary keys?',
+      'Explain database normalization',
+    ];
   };
 
   if (!isOpen) return null;
@@ -173,7 +331,7 @@ export default function AIChat({ isOpen, onClose, initialMessage }: AIChatProps)
       className={`fixed z-50 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl shadow-2xl flex flex-col transition-all duration-200 ${
         isMinimized
           ? 'bottom-4 right-4 w-72 h-14'
-          : 'bottom-4 right-4 w-[420px] h-[600px] max-h-[80vh]'
+          : 'bottom-4 right-4 w-[440px] h-[650px] max-h-[85vh]'
       }`}
     >
       {/* Header */}
@@ -183,9 +341,11 @@ export default function AIChat({ isOpen, onClose, initialMessage }: AIChatProps)
             <Sparkles className="w-4 h-4 text-white" />
           </div>
           <div>
-            <h3 className="font-semibold text-sm text-gray-900 dark:text-zinc-100">DMPro AI Assistant</h3>
+            <h3 className="font-semibold text-sm text-gray-900 dark:text-zinc-100">DMPro AI Copilot</h3>
             {!isMinimized && (
-              <p className="text-xs text-gray-500 dark:text-zinc-400">Powered by Llama 3.3</p>
+              <p className="text-xs text-gray-500 dark:text-zinc-400">
+                {diagramContext ? `${diagramContext.totalTables} tables • ${diagramContext.totalRelationships} relationships` : 'Powered by Llama 3.3'}
+              </p>
             )}
           </div>
         </div>
@@ -223,16 +383,16 @@ export default function AIChat({ isOpen, onClose, initialMessage }: AIChatProps)
                 <div className="p-4 bg-violet-500/10 rounded-full mb-4">
                   <Bot className="w-8 h-8 text-violet-500" />
                 </div>
-                <h4 className="font-medium text-gray-900 dark:text-zinc-100 mb-2">How can I help you?</h4>
+                <h4 className="font-medium text-gray-900 dark:text-zinc-100 mb-2">
+                  {diagramContext ? 'Ready to help with your model!' : 'How can I help you?'}
+                </h4>
                 <p className="text-sm text-gray-500 dark:text-zinc-400 mb-4">
-                  Ask me about data modeling, database design, SQL, or any DMPro features.
+                  {diagramContext
+                    ? 'I can see your diagram. Ask me to add tables, columns, or relationships.'
+                    : 'Ask me about data modeling, or tell me to create tables and relationships.'}
                 </p>
                 <div className="grid grid-cols-1 gap-2 w-full max-w-xs">
-                  {[
-                    'How do I normalize a database?',
-                    'Best practices for naming tables',
-                    'Explain foreign key relationships',
-                  ].map((suggestion, idx) => (
+                  {getSuggestions().map((suggestion, idx) => (
                     <button
                       key={idx}
                       onClick={() => setInput(suggestion)}
@@ -274,11 +434,11 @@ export default function AIChat({ isOpen, onClose, initialMessage }: AIChatProps)
                           : 'bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 rounded-bl-sm'
                       }`}
                     >
-                      <div className="whitespace-pre-wrap break-words">
-                        {message.role === 'assistant' ? formatMessage(message.content) : message.content}
-                      </div>
+                      {message.role === 'assistant'
+                        ? formatMessage(message.content, message.actions, message.id, message.actionsExecuted)
+                        : message.content}
                     </div>
-                    {message.role === 'assistant' && (
+                    {message.role === 'assistant' && !message.actions && (
                       <button
                         onClick={() => copyToClipboard(message.content, message.id)}
                         className="mt-1 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 transition-colors"
@@ -316,7 +476,7 @@ export default function AIChat({ isOpen, onClose, initialMessage }: AIChatProps)
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask about data modeling..."
+                placeholder={diagramContext ? "Ask me to modify your diagram..." : "Ask about data modeling..."}
                 rows={1}
                 className="flex-1 resize-none bg-gray-100 dark:bg-zinc-800 border-0 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-zinc-100 placeholder-gray-500 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500 max-h-32"
                 style={{ minHeight: '42px' }}
@@ -330,7 +490,7 @@ export default function AIChat({ isOpen, onClose, initialMessage }: AIChatProps)
               </button>
             </div>
             <p className="text-xs text-gray-400 dark:text-zinc-500 mt-2 text-center">
-              Press Enter to send, Shift+Enter for new line
+              Press Enter to send • Shift+Enter for new line
             </p>
           </div>
         </>
@@ -345,7 +505,7 @@ export function FloatingChatButton({ onClick }: { onClick: () => void }) {
     <button
       onClick={onClick}
       className="fixed bottom-4 right-4 z-40 p-4 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 group"
-      title="Open AI Chat"
+      title="Open AI Copilot"
     >
       <Bot className="w-6 h-6" />
       <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white dark:border-zinc-900 animate-pulse" />

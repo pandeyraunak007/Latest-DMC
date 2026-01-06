@@ -1,6 +1,20 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useImperativeHandle, forwardRef, useCallback } from 'react';
+import {
+  AIAction,
+  DiagramContext,
+  AddTablePayload,
+  UpdateTablePayload,
+  DeleteTablePayload,
+  AddColumnPayload,
+  UpdateColumnPayload,
+  DeleteColumnPayload,
+  AddRelationshipPayload,
+  DeleteRelationshipPayload,
+  AddIndexPayload,
+  DeleteIndexPayload,
+} from '@/types/aiActions';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QuickEditor } from './QuickEditorNew';
 import {
@@ -79,7 +93,11 @@ import {
   History,
   Shield,
   FileStack,
-  Sliders
+  Sliders,
+  BarChart2,
+  Palette,
+  ExternalLink,
+  Columns
 } from 'lucide-react';
 
 // Types
@@ -197,7 +215,13 @@ const mockRelationships: Relationship[] = [
   { id: 'rel-1', fromTable: 'table-1', toTable: 'table-2', type: '1:N', relationshipType: 'identifying', fromSide: 'right', toSide: 'left' }
 ];
 
-export default function Diagrammer() {
+// Ref handle for AI action execution
+export interface DiagrammerHandle {
+  executeAIAction: (action: AIAction) => boolean;
+  getContext: () => DiagramContext;
+}
+
+const DiagrammerComponent = forwardRef<DiagrammerHandle, object>(function Diagrammer(_props, ref) {
   const [viewMode, setViewMode] = useState<ViewMode>('diagram');
   const [activeTool, setActiveTool] = useState<Tool>('select');
   const [isLocked, setIsLocked] = useState(false);
@@ -251,6 +275,241 @@ export default function Diagrammer() {
     };
     setTables([...tables, newTable]);
   };
+
+  // Get current diagram context for AI
+  const getContext = useCallback((): DiagramContext => {
+    return {
+      tables: tables.map(t => ({
+        id: t.id,
+        name: t.name,
+        columns: t.columns.map(c => ({
+          name: c.name,
+          dataType: c.dataType,
+          isPK: c.isPK,
+          isNullable: c.isNullable,
+          isFK: c.isFK,
+        })),
+        schema: t.schema,
+      })),
+      relationships: relationships.map(r => ({
+        fromTable: tables.find(t => t.id === r.fromTable)?.name || r.fromTable,
+        toTable: tables.find(t => t.id === r.toTable)?.name || r.toTable,
+        type: r.type,
+        relationshipType: r.relationshipType,
+      })),
+      selectedTableId: selectedTable,
+      selectedTableName: selectedTable ? tables.find(t => t.id === selectedTable)?.name || null : null,
+      modelType,
+      totalTables: tables.length,
+      totalRelationships: relationships.length,
+    };
+  }, [tables, relationships, selectedTable, modelType]);
+
+  // Execute AI action
+  const executeAIAction = useCallback((action: AIAction): boolean => {
+    try {
+      switch (action.type) {
+        case 'addTable': {
+          const payload = action.payload as AddTablePayload;
+          const newTable: Table = {
+            id: `table-${Date.now()}`,
+            name: payload.name,
+            x: 100 + (tables.length % 3) * 300,
+            y: 100 + Math.floor(tables.length / 3) * 250,
+            schema: payload.schema || 'dbo',
+            description: payload.description,
+            columns: payload.columns.map((col, idx) => ({
+              id: `col-${Date.now()}-${idx}`,
+              name: col.name,
+              dataType: col.dataType,
+              isPK: col.isPK || false,
+              isNullable: col.isNullable ?? true,
+              isFK: col.isFK,
+              defaultValue: col.defaultValue,
+              description: col.description,
+            })),
+          };
+          setTables(prev => [...prev, newTable]);
+          return true;
+        }
+
+        case 'updateTable': {
+          const payload = action.payload as UpdateTablePayload;
+          const updates = payload.updates || {};
+          setTables(prev => prev.map(t => {
+            if (t.name === payload.tableName) {
+              return {
+                ...t,
+                name: updates.name !== undefined ? updates.name : t.name,
+                schema: updates.schema !== undefined ? updates.schema : t.schema,
+                description: updates.description !== undefined ? updates.description : t.description,
+              };
+            }
+            return t;
+          }));
+          return true;
+        }
+
+        case 'deleteTable': {
+          const payload = action.payload as DeleteTablePayload;
+          const tableToDelete = tables.find(t => t.name === payload.tableName);
+          if (tableToDelete) {
+            setTables(prev => prev.filter(t => t.name !== payload.tableName));
+            // Also remove relationships involving this table
+            setRelationships(prev => prev.filter(
+              r => r.fromTable !== tableToDelete.id && r.toTable !== tableToDelete.id
+            ));
+          }
+          return true;
+        }
+
+        case 'addColumn': {
+          const payload = action.payload as AddColumnPayload;
+          setTables(prev => prev.map(t => {
+            if (t.name === payload.tableName) {
+              return {
+                ...t,
+                columns: [...t.columns, {
+                  id: `col-${Date.now()}`,
+                  name: payload.column.name,
+                  dataType: payload.column.dataType,
+                  isPK: payload.column.isPK || false,
+                  isNullable: payload.column.isNullable ?? true,
+                  isFK: payload.column.isFK,
+                  defaultValue: payload.column.defaultValue,
+                  description: payload.column.description,
+                }],
+              };
+            }
+            return t;
+          }));
+          return true;
+        }
+
+        case 'updateColumn': {
+          const payload = action.payload as UpdateColumnPayload;
+          const updates = payload.updates || {};
+          setTables(prev => prev.map(t => {
+            if (t.name === payload.tableName) {
+              return {
+                ...t,
+                columns: t.columns.map(c => {
+                  if (c.name === payload.columnName) {
+                    return {
+                      ...c,
+                      name: updates.name || c.name,
+                      dataType: updates.dataType || c.dataType,
+                      isPK: updates.isPK ?? c.isPK,
+                      isNullable: updates.isNullable ?? c.isNullable,
+                      isFK: updates.isFK ?? c.isFK,
+                      defaultValue: updates.defaultValue ?? c.defaultValue,
+                      description: updates.description ?? c.description,
+                    };
+                  }
+                  return c;
+                }),
+              };
+            }
+            return t;
+          }));
+          return true;
+        }
+
+        case 'deleteColumn': {
+          const payload = action.payload as DeleteColumnPayload;
+          setTables(prev => prev.map(t => {
+            if (t.name === payload.tableName) {
+              return {
+                ...t,
+                columns: t.columns.filter(c => c.name !== payload.columnName),
+              };
+            }
+            return t;
+          }));
+          return true;
+        }
+
+        case 'addRelationship': {
+          const payload = action.payload as AddRelationshipPayload;
+          const fromTable = tables.find(t => t.name === payload.fromTable);
+          const toTable = tables.find(t => t.name === payload.toTable);
+          if (fromTable && toTable) {
+            const newRelationship: Relationship = {
+              id: `rel-${Date.now()}`,
+              fromTable: fromTable.id,
+              toTable: toTable.id,
+              type: payload.type,
+              relationshipType: payload.relationshipType,
+              fromSide: 'right',
+              toSide: 'left',
+            };
+            setRelationships(prev => [...prev, newRelationship]);
+          }
+          return true;
+        }
+
+        case 'deleteRelationship': {
+          const payload = action.payload as DeleteRelationshipPayload;
+          const fromTable = tables.find(t => t.name === payload.fromTable);
+          const toTable = tables.find(t => t.name === payload.toTable);
+          if (fromTable && toTable) {
+            setRelationships(prev => prev.filter(
+              r => !(r.fromTable === fromTable.id && r.toTable === toTable.id)
+            ));
+          }
+          return true;
+        }
+
+        case 'addIndex': {
+          const payload = action.payload as AddIndexPayload;
+          setTables(prev => prev.map(t => {
+            if (t.name === payload.tableName) {
+              const newIndex: TableIndex = {
+                id: `idx-${Date.now()}`,
+                name: payload.indexName,
+                columns: payload.columns,
+                isUnique: payload.isUnique || false,
+                type: payload.type || 'NONCLUSTERED',
+              };
+              return {
+                ...t,
+                indexes: [...(t.indexes || []), newIndex],
+              };
+            }
+            return t;
+          }));
+          return true;
+        }
+
+        case 'deleteIndex': {
+          const payload = action.payload as DeleteIndexPayload;
+          setTables(prev => prev.map(t => {
+            if (t.name === payload.tableName) {
+              return {
+                ...t,
+                indexes: (t.indexes || []).filter(i => i.name !== payload.indexName),
+              };
+            }
+            return t;
+          }));
+          return true;
+        }
+
+        default:
+          console.warn('Unknown action type:', action.type);
+          return false;
+      }
+    } catch (error) {
+      console.error('Error executing AI action:', error);
+      return false;
+    }
+  }, [tables]);
+
+  // Expose methods via ref
+  useImperativeHandle(ref, () => ({
+    executeAIAction,
+    getContext,
+  }), [executeAIAction, getContext]);
 
   return (
     <div className={`h-full flex flex-col ${isDark ? 'bg-zinc-950' : 'bg-gray-50'}`}>
@@ -603,7 +862,7 @@ export default function Diagrammer() {
                 isDark ? 'border-zinc-800 bg-zinc-900' : 'border-gray-200 bg-white'
               }`}
             >
-              <LeftPanel isDark={isDark} />
+              <LeftPanel isDark={isDark} tables={tables} relationships={relationships} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -656,14 +915,27 @@ export default function Diagrammer() {
                 isDark ? 'border-zinc-800 bg-zinc-900' : 'border-gray-200 bg-white'
               }`}
             >
-              <RightPropertiesPanel table={tables.find(t => t.id === selectedTable)} isDark={isDark} />
+              <RightPropertiesPanel
+                key={`${selectedTable}-${JSON.stringify(tables.find(t => t.id === selectedTable))}`}
+                table={tables.find(t => t.id === selectedTable)}
+                isDark={isDark}
+                onTableUpdate={(tableId, updates) => {
+                  setTables(prev => prev.map(t =>
+                    t.id === tableId ? { ...t, ...updates } : t
+                  ));
+                }}
+                onOpenQuickEditor={(tableId) => {
+                  setSelectedTable(tableId);
+                  setViewMode('quick-editor');
+                }}
+              />
             </motion.div>
           )}
         </AnimatePresence>
       </div>
     </div>
   );
-}
+});
 
 // Toolbar Button Component
 const ToolbarButton = ({
@@ -1029,8 +1301,8 @@ const ViewControlsToolbar = ({
 };
 
 // Left Panel Component with Model Explorer Tree
-function LeftPanel({ isDark }: { isDark: boolean }) {
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set([]));
+function LeftPanel({ isDark, tables, relationships }: { isDark: boolean; tables: Table[]; relationships: Relationship[] }) {
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(['model', 'tables']));
   const [searchTerm, setSearchTerm] = useState('');
 
   const toggleExpanded = (id: string) => {
@@ -1043,358 +1315,146 @@ function LeftPanel({ isDark }: { isDark: boolean }) {
     setExpandedItems(newExpanded);
   };
 
+  // Generate dynamic table tree items from actual tables
+  const generateTableChildren = (table: Table) => {
+    const pkColumns = table.columns.filter(c => c.isPK);
+    const fkColumns = table.columns.filter(c => c.isFK);
+    const indexes = table.indexes || [];
+
+    return [
+      {
+        id: `table-${table.id}-columns`,
+        label: `Columns (${table.columns.length})`,
+        icon: <Hash className="w-4 h-4 text-gray-500" />,
+        type: 'folder',
+        children: table.columns.map(col => ({
+          id: `col-${table.id}-${col.name}`,
+          label: col.isPK ? `${col.name} (PK)` : col.isFK ? `${col.name} (FK)` : col.name,
+          icon: col.isPK ? <Key className="w-3.5 h-3.5 text-yellow-500" /> :
+                col.isFK ? <LinkIcon className="w-3.5 h-3.5 text-blue-500" /> :
+                <Type className="w-3.5 h-3.5 text-gray-500" />,
+          type: 'column'
+        }))
+      },
+      {
+        id: `table-${table.id}-keys`,
+        label: `Keys (${pkColumns.length + fkColumns.length})`,
+        icon: <KeyRound className="w-4 h-4 text-yellow-500" />,
+        type: 'folder',
+        children: [
+          ...pkColumns.map(pk => ({
+            id: `pk-${table.id}-${pk.name}`,
+            label: `PK_${table.name}`,
+            icon: <Key className="w-3.5 h-3.5 text-yellow-500" />,
+            type: 'key'
+          })),
+          ...fkColumns.map(fk => ({
+            id: `fk-${table.id}-${fk.name}`,
+            label: `FK_${table.name}_${fk.name}`,
+            icon: <LinkIcon className="w-3.5 h-3.5 text-blue-500" />,
+            type: 'key'
+          }))
+        ]
+      },
+      {
+        id: `table-${table.id}-indexes`,
+        label: `Indexes (${indexes.length})`,
+        icon: <Zap className="w-4 h-4 text-orange-500" />,
+        type: 'folder',
+        children: indexes.map(idx => ({
+          id: `idx-${table.id}-${idx.name}`,
+          label: idx.name,
+          icon: <Zap className="w-3.5 h-3.5 text-orange-500" />,
+          type: 'index'
+        }))
+      }
+    ];
+  };
+
+  // Generate dynamic relationship tree items
+  const identifyingRels = relationships.filter(r => r.relationshipType === 'identifying');
+  const nonIdentifyingRels = relationships.filter(r => r.relationshipType !== 'identifying');
+
   const treeData = [
     {
       id: 'model',
-      label: 'E-Commerce Model',
+      label: 'Data Model',
       icon: <Database className="w-4 h-4 text-blue-500" />,
       type: 'model',
       children: [
         {
-          id: 'subject-areas',
-          label: 'Subject Areas',
-          icon: <Folder className="w-4 h-4 text-purple-500" />,
-          type: 'folder',
-          children: [
-            {
-              id: 'sa-1',
-              label: 'Customer Management',
-              icon: <Component className="w-4 h-4 text-purple-400" />,
-              type: 'subject-area'
-            },
-            {
-              id: 'sa-2',
-              label: 'Order Processing',
-              icon: <Component className="w-4 h-4 text-purple-400" />,
-              type: 'subject-area'
-            }
-          ]
-        },
-        {
-          id: 'domains',
-          label: 'Domains',
-          icon: <Globe className="w-4 h-4 text-blue-500" />,
-          type: 'folder',
-          children: [
-            {
-              id: 'domain-1',
-              label: 'EmailAddress',
-              icon: <Type className="w-4 h-4 text-blue-400" />,
-              type: 'domain'
-            },
-            {
-              id: 'domain-2',
-              label: 'Currency',
-              icon: <Type className="w-4 h-4 text-blue-400" />,
-              type: 'domain'
-            }
-          ]
-        },
-        {
           id: 'tables',
-          label: 'Tables (2)',
+          label: `Tables (${tables.length})`,
           icon: <Table2 className="w-4 h-4 text-purple-500" />,
           type: 'folder',
-          children: [
-            {
-              id: 'table-users',
-              label: 'Users',
-              icon: <Users className="w-4 h-4 text-purple-500" />,
-              type: 'table',
-              children: [
-                {
-                  id: 'table-users-columns',
-                  label: 'Columns',
-                  icon: <Hash className="w-4 h-4 text-gray-500" />,
-                  type: 'folder',
-                  children: [
-                    {
-                      id: 'col-user-id',
-                      label: 'user_id (PK)',
-                      icon: <Key className="w-3.5 h-3.5 text-yellow-500" />,
-                      type: 'column'
-                    },
-                    {
-                      id: 'col-email',
-                      label: 'email',
-                      icon: <Type className="w-3.5 h-3.5 text-gray-500" />,
-                      type: 'column'
-                    },
-                    {
-                      id: 'col-name',
-                      label: 'name',
-                      icon: <Type className="w-3.5 h-3.5 text-gray-500" />,
-                      type: 'column'
-                    },
-                    {
-                      id: 'col-created-at',
-                      label: 'created_at',
-                      icon: <Type className="w-3.5 h-3.5 text-gray-500" />,
-                      type: 'column'
-                    }
-                  ]
-                },
-                {
-                  id: 'table-users-keys',
-                  label: 'Keys',
-                  icon: <KeyRound className="w-4 h-4 text-yellow-500" />,
-                  type: 'folder',
-                  children: [
-                    {
-                      id: 'key-users-pk',
-                      label: 'PK_Users',
-                      icon: <Key className="w-3.5 h-3.5 text-yellow-500" />,
-                      type: 'key'
-                    }
-                  ]
-                },
-                {
-                  id: 'table-users-indexes',
-                  label: 'Indexes',
-                  icon: <Zap className="w-4 h-4 text-orange-500" />,
-                  type: 'folder',
-                  children: [
-                    {
-                      id: 'idx-users-email',
-                      label: 'IDX_Users_Email',
-                      icon: <Zap className="w-3.5 h-3.5 text-orange-500" />,
-                      type: 'index'
-                    }
-                  ]
-                },
-                {
-                  id: 'table-users-triggers',
-                  label: 'Triggers',
-                  icon: <Zap className="w-4 h-4 text-red-500" />,
-                  type: 'folder',
-                  children: []
-                },
-                {
-                  id: 'table-users-constraints',
-                  label: 'Check Constraints',
-                  icon: <Lock className="w-4 h-4 text-blue-500" />,
-                  type: 'folder',
-                  children: [
-                    {
-                      id: 'chk-users-email',
-                      label: 'CHK_Users_Email',
-                      icon: <Lock className="w-3.5 h-3.5 text-blue-500" />,
-                      type: 'constraint'
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              id: 'table-orders',
-              label: 'Orders',
-              icon: <Table2 className="w-4 h-4 text-purple-500" />,
-              type: 'table',
-              children: [
-                {
-                  id: 'table-orders-columns',
-                  label: 'Columns',
-                  icon: <Hash className="w-4 h-4 text-gray-500" />,
-                  type: 'folder',
-                  children: [
-                    {
-                      id: 'col-order-id',
-                      label: 'order_id (PK)',
-                      icon: <Key className="w-3.5 h-3.5 text-yellow-500" />,
-                      type: 'column'
-                    },
-                    {
-                      id: 'col-user-id-fk',
-                      label: 'user_id (FK)',
-                      icon: <LinkIcon className="w-3.5 h-3.5 text-blue-500" />,
-                      type: 'column'
-                    },
-                    {
-                      id: 'col-order-date',
-                      label: 'order_date',
-                      icon: <Type className="w-3.5 h-3.5 text-gray-500" />,
-                      type: 'column'
-                    },
-                    {
-                      id: 'col-total',
-                      label: 'total_amount',
-                      icon: <Type className="w-3.5 h-3.5 text-gray-500" />,
-                      type: 'column'
-                    }
-                  ]
-                },
-                {
-                  id: 'table-orders-keys',
-                  label: 'Keys',
-                  icon: <KeyRound className="w-4 h-4 text-yellow-500" />,
-                  type: 'folder',
-                  children: [
-                    {
-                      id: 'key-orders-pk',
-                      label: 'PK_Orders',
-                      icon: <Key className="w-3.5 h-3.5 text-yellow-500" />,
-                      type: 'key'
-                    },
-                    {
-                      id: 'key-orders-fk',
-                      label: 'FK_Orders_Users',
-                      icon: <LinkIcon className="w-3.5 h-3.5 text-blue-500" />,
-                      type: 'key'
-                    }
-                  ]
-                },
-                {
-                  id: 'table-orders-indexes',
-                  label: 'Indexes',
-                  icon: <Zap className="w-4 h-4 text-orange-500" />,
-                  type: 'folder',
-                  children: [
-                    {
-                      id: 'idx-orders-date',
-                      label: 'IDX_Orders_Date',
-                      icon: <Zap className="w-3.5 h-3.5 text-orange-500" />,
-                      type: 'index'
-                    }
-                  ]
-                },
-                {
-                  id: 'table-orders-triggers',
-                  label: 'Triggers',
-                  icon: <Zap className="w-4 h-4 text-red-500" />,
-                  type: 'folder',
-                  children: []
-                },
-                {
-                  id: 'table-orders-constraints',
-                  label: 'Check Constraints',
-                  icon: <Lock className="w-4 h-4 text-blue-500" />,
-                  type: 'folder',
-                  children: []
-                }
-              ]
-            }
-          ]
+          children: tables.map(table => ({
+            id: `table-${table.id}`,
+            label: table.name,
+            icon: <Table2 className="w-4 h-4 text-purple-500" />,
+            type: 'table',
+            children: generateTableChildren(table)
+          }))
         },
         {
           id: 'relationships',
-          label: 'Relationships (2)',
+          label: `Relationships (${relationships.length})`,
           icon: <GitBranch className="w-4 h-4 text-green-500" />,
           type: 'folder',
           children: [
             {
               id: 'relationships-identifying',
-              label: 'Identifying',
+              label: `Identifying (${identifyingRels.length})`,
               icon: <GitBranch className="w-4 h-4 text-green-600" />,
               type: 'folder',
-              children: []
+              children: identifyingRels.map(rel => {
+                const fromTable = tables.find(t => t.id === rel.fromTable);
+                const toTable = tables.find(t => t.id === rel.toTable);
+                return {
+                  id: `rel-${rel.id}`,
+                  label: `${fromTable?.name || 'Unknown'} → ${toTable?.name || 'Unknown'}`,
+                  icon: <GitBranch className="w-4 h-4 text-green-500" />,
+                  type: 'relationship'
+                };
+              })
             },
             {
               id: 'relationships-non-identifying',
-              label: 'Non-identifying',
+              label: `Non-identifying (${nonIdentifyingRels.length})`,
               icon: <GitMerge className="w-4 h-4 text-green-600" />,
               type: 'folder',
-              children: [
-                {
-                  id: 'rel-users-orders',
-                  label: 'Users → Orders',
+              children: nonIdentifyingRels.map(rel => {
+                const fromTable = tables.find(t => t.id === rel.fromTable);
+                const toTable = tables.find(t => t.id === rel.toTable);
+                return {
+                  id: `rel-${rel.id}`,
+                  label: `${fromTable?.name || 'Unknown'} → ${toTable?.name || 'Unknown'}`,
                   icon: <GitMerge className="w-4 h-4 text-green-500" />,
                   type: 'relationship'
-                }
-              ]
+                };
+              })
             }
           ]
         },
         {
           id: 'views',
-          label: 'Views (2)',
+          label: 'Views',
           icon: <Eye className="w-4 h-4 text-cyan-500" />,
           type: 'folder',
-          children: [
-            {
-              id: 'views-logical',
-              label: 'Logical Views',
-              icon: <Eye className="w-4 h-4 text-cyan-600" />,
-              type: 'folder',
-              children: [
-                {
-                  id: 'view-customer-summary',
-                  label: 'CustomerSummary',
-                  icon: <Eye className="w-4 h-4 text-cyan-500" />,
-                  type: 'view'
-                }
-              ]
-            },
-            {
-              id: 'views-physical',
-              label: 'Physical Views',
-              icon: <FileCode className="w-4 h-4 text-cyan-600" />,
-              type: 'folder',
-              children: [
-                {
-                  id: 'view-order-details',
-                  label: 'VW_OrderDetails',
-                  icon: <FileCode className="w-4 h-4 text-cyan-500" />,
-                  type: 'view'
-                }
-              ]
-            }
-          ]
+          children: []
         },
         {
           id: 'stored-procedures',
           label: 'Stored Procedures',
           icon: <Command className="w-4 h-4 text-red-600" />,
           type: 'folder',
-          children: [
-            {
-              id: 'sp-get-user-orders',
-              label: 'sp_GetUserOrders',
-              icon: <Command className="w-4 h-4 text-red-500" />,
-              type: 'procedure'
-            }
-          ]
+          children: []
         },
         {
           id: 'functions',
           label: 'Functions',
           icon: <Code className="w-4 h-4 text-orange-600" />,
           type: 'folder',
-          children: [
-            {
-              id: 'fn-calculate-total',
-              label: 'fn_CalculateTotal',
-              icon: <Code className="w-4 h-4 text-orange-500" />,
-              type: 'function'
-            }
-          ]
-        },
-        {
-          id: 'sequences',
-          label: 'Sequences',
-          icon: <Hash className="w-4 h-4 text-purple-600" />,
-          type: 'folder',
-          children: [
-            {
-              id: 'seq-order-id',
-              label: 'seq_OrderId',
-              icon: <Hash className="w-4 h-4 text-purple-500" />,
-              type: 'sequence'
-            }
-          ]
-        },
-        {
-          id: 'user-types',
-          label: 'User Defined Types',
-          icon: <FileCode className="w-4 h-4 text-indigo-600" />,
-          type: 'folder',
-          children: [
-            {
-              id: 'udt-address',
-              label: 'AddressType',
-              icon: <FileCode className="w-4 h-4 text-indigo-500" />,
-              type: 'udt'
-            }
-          ]
+          children: []
         }
       ]
     }
@@ -2191,18 +2251,53 @@ function PropertiesView({ selectedTable, isDark }: { selectedTable?: Table; isDa
     modelDomain: 'Sales & Customer Management',
     modelOwner: 'Data Architecture Team',
     modelStatus: 'Active',
-    tableName: 'Users',
-    tableSchema: 'public',
-    tableDescription: 'Stores user account information...',
+    tableName: selectedTable?.name || 'Users',
+    tableSchema: selectedTable?.schema || 'public',
+    tableDescription: selectedTable?.description || 'Stores user account information...',
   });
 
+  // Sync properties with selectedTable when it changes
+  React.useEffect(() => {
+    if (selectedTable) {
+      setProperties(prev => ({
+        ...prev,
+        tableName: selectedTable.name,
+        tableSchema: selectedTable.schema || 'dbo',
+        tableDescription: selectedTable.description || '',
+      }));
+      // Also update columns from the selected table
+      setColumns(selectedTable.columns.map(col => ({
+        id: col.id,
+        name: col.name,
+        dataType: col.dataType,
+        isPK: col.isPK,
+        isFK: col.isFK || false,
+        isNullable: col.isNullable,
+        defaultValue: col.defaultValue || ''
+      })));
+    }
+  }, [selectedTable]);
+
   // Columns state for the selected table
-  const [columns, setColumns] = useState([
-    { id: 'col-1', name: 'user_id', dataType: 'INTEGER', isPK: true, isFK: false, isNullable: false, defaultValue: '' },
-    { id: 'col-2', name: 'username', dataType: 'VARCHAR(50)', isPK: false, isFK: false, isNullable: false, defaultValue: '' },
-    { id: 'col-3', name: 'email', dataType: 'VARCHAR(100)', isPK: false, isFK: false, isNullable: false, defaultValue: '' },
-    { id: 'col-4', name: 'created_at', dataType: 'TIMESTAMP', isPK: false, isFK: false, isNullable: false, defaultValue: 'CURRENT_TIMESTAMP' },
-  ]);
+  const [columns, setColumns] = useState(() => {
+    if (selectedTable) {
+      return selectedTable.columns.map(col => ({
+        id: col.id,
+        name: col.name,
+        dataType: col.dataType,
+        isPK: col.isPK,
+        isFK: col.isFK || false,
+        isNullable: col.isNullable,
+        defaultValue: col.defaultValue || ''
+      }));
+    }
+    return [
+      { id: 'col-1', name: 'user_id', dataType: 'INTEGER', isPK: true, isFK: false, isNullable: false, defaultValue: '' },
+      { id: 'col-2', name: 'username', dataType: 'VARCHAR(50)', isPK: false, isFK: false, isNullable: false, defaultValue: '' },
+      { id: 'col-3', name: 'email', dataType: 'VARCHAR(100)', isPK: false, isFK: false, isNullable: false, defaultValue: '' },
+      { id: 'col-4', name: 'created_at', dataType: 'TIMESTAMP', isPK: false, isFK: false, isNullable: false, defaultValue: 'CURRENT_TIMESTAMP' },
+    ];
+  });
 
   // Indexes state
   const [indexes, setIndexes] = useState([
@@ -4068,127 +4163,355 @@ function PropertiesView({ selectedTable, isDark }: { selectedTable?: Table; isDa
   );
 }
 
-// Right Properties Panel Component - Context-aware properties panel
-function RightPropertiesPanel({ table, isDark }: { table?: Table; isDark: boolean }) {
-  const [activeTab, setActiveTab] = useState('general');
+// ============================================
+// Right Properties Panel - Redesigned Component
+// ============================================
 
-  // Table tabs
-  const tableTabs = [
-    { id: 'general', label: 'General', icon: FileText },
-    { id: 'columns', label: 'Columns', icon: Table2 },
-    { id: 'keys', label: 'Keys', icon: KeyRound },
-    { id: 'display', label: 'Display', icon: Eye }
-  ];
+// Accordion Section Component
+function AccordionSection({
+  id,
+  title,
+  icon: Icon,
+  count,
+  isExpanded,
+  onToggle,
+  isDark,
+  actionButton,
+  children
+}: {
+  id: string;
+  title: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  count?: number;
+  isExpanded: boolean;
+  onToggle: (id: string) => void;
+  isDark: boolean;
+  actionButton?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={`border-b ${isDark ? 'border-zinc-800' : 'border-gray-200'}`}>
+      <button
+        onClick={() => onToggle(id)}
+        className={`w-full px-3 py-2 flex items-center justify-between transition-colors ${
+          isDark
+            ? 'hover:bg-zinc-800/50 text-gray-200'
+            : 'hover:bg-gray-50 text-gray-700'
+        }`}
+      >
+        <div className="flex items-center gap-2">
+          <motion.div
+            animate={{ rotate: isExpanded ? 0 : -90 }}
+            transition={{ duration: 0.2 }}
+          >
+            <ChevronDown className="w-3.5 h-3.5" />
+          </motion.div>
+          {Icon && <Icon className="w-3.5 h-3.5" />}
+          <span className="text-xs font-medium">{title}</span>
+          {count !== undefined && (
+            <span className={`text-xs px-1.5 py-0.5 rounded ${
+              isDark ? 'bg-zinc-800 text-gray-400' : 'bg-gray-100 text-gray-600'
+            }`}>
+              {count}
+            </span>
+          )}
+        </div>
+        {actionButton && (
+          <div onClick={e => e.stopPropagation()}>
+            {actionButton}
+          </div>
+        )}
+      </button>
 
-  // Model tabs (when no table selected)
-  const modelTabs = [
-    { id: 'general', label: 'General', icon: FileText },
-    { id: 'tables', label: 'Tables', icon: Table2 },
-    { id: 'settings', label: 'Settings', icon: Settings }
-  ];
-
-  const tabs = table ? tableTabs : modelTabs;
-
-  if (!table) {
-    // Model Properties
-    return (
-      <div className="flex h-full">
-        {/* Left Icon Strip */}
-        <div className={`w-6 border-r transition-colors flex flex-col ${
-          isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200'
-        }`}>
-          {modelTabs.map((tab) => (
-            <div
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`h-8 flex items-center justify-center cursor-pointer transition-all duration-200 ${
-                activeTab === tab.id
-                  ? `${isDark ? 'bg-indigo-500 text-white' : 'bg-indigo-600 text-white'} shadow-sm`
-                  : `${isDark ? 'text-gray-400 hover:text-gray-100 hover:bg-zinc-800/50' : 'text-gray-600 hover:text-gray-900 hover:bg-indigo-50/50'}`
-              }`}
-              title={tab.label}
-              style={{ marginBottom: '1px' }}
-            >
-              <tab.icon className="w-3.5 h-3.5" />
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="px-3 pb-3">
+              {children}
             </div>
-          ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// Editable Field Component
+function EditableField({
+  fieldKey,
+  label,
+  value,
+  type = 'text',
+  options,
+  isEditing,
+  editValue,
+  isDark,
+  onStartEdit,
+  onSave,
+  onCancel,
+  onChange
+}: {
+  fieldKey: string;
+  label: string;
+  value: string;
+  type?: 'text' | 'textarea' | 'select';
+  options?: string[];
+  isEditing: boolean;
+  editValue?: string;
+  isDark: boolean;
+  onStartEdit: (key: string, value: string) => void;
+  onSave: (key: string) => void;
+  onCancel: (key: string) => void;
+  onChange: (key: string, value: string) => void;
+}) {
+  const inputClasses = `w-full px-2 py-1.5 text-xs rounded border ${
+    isDark
+      ? 'bg-zinc-800 border-zinc-600 text-white focus:border-indigo-500'
+      : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500'
+  } focus:outline-none focus:ring-1 focus:ring-indigo-500/20`;
+
+  return (
+    <div className="mb-3">
+      <div className="flex items-center justify-between mb-1">
+        <label className={`text-xs font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+          {label}
+        </label>
+        {!isEditing && (
+          <button
+            onClick={() => onStartEdit(fieldKey, value)}
+            className={`p-1 rounded transition-colors ${
+              isDark
+                ? 'hover:bg-zinc-800 text-gray-500 hover:text-gray-300'
+                : 'hover:bg-gray-100 text-gray-400 hover:text-gray-600'
+            }`}
+          >
+            <Edit3 className="w-3 h-3" />
+          </button>
+        )}
+      </div>
+
+      {isEditing ? (
+        <div className="space-y-2">
+          {type === 'textarea' ? (
+            <textarea
+              value={editValue ?? value}
+              onChange={e => onChange(fieldKey, e.target.value)}
+              rows={3}
+              className={inputClasses}
+              autoFocus
+            />
+          ) : type === 'select' ? (
+            <select
+              value={editValue ?? value}
+              onChange={e => onChange(fieldKey, e.target.value)}
+              className={inputClasses}
+            >
+              {options?.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type="text"
+              value={editValue ?? value}
+              onChange={e => onChange(fieldKey, e.target.value)}
+              className={inputClasses}
+              autoFocus
+            />
+          )}
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={() => onCancel(fieldKey)}
+              className={`px-2 py-1 text-xs rounded ${
+                isDark
+                  ? 'bg-zinc-800 text-gray-300 hover:bg-zinc-700'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => onSave(fieldKey)}
+              className="px-2 py-1 text-xs rounded bg-indigo-600 text-white hover:bg-indigo-700"
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className={`px-2 py-1.5 text-xs rounded border ${
+          isDark
+            ? 'bg-zinc-800/50 border-zinc-700 text-gray-300'
+            : 'bg-gray-50 border-gray-200 text-gray-700'
+        }`}>
+          {value || <span className={`${isDark ? 'text-gray-500' : 'text-gray-400'} italic`}>Not set</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Horizontal Tab Bar Component
+type PropertiesTabId = 'general' | 'structure' | 'relations' | 'display';
+
+interface TabConfig {
+  id: PropertiesTabId;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+const TABLE_TABS: TabConfig[] = [
+  { id: 'general', label: 'General', icon: FileText },
+  { id: 'structure', label: 'Structure', icon: Table2 },
+  { id: 'relations', label: 'Relations', icon: GitBranch },
+  { id: 'display', label: 'Display', icon: Eye }
+];
+
+function HorizontalTabBar({
+  tabs,
+  activeTab,
+  onTabChange,
+  isDark
+}: {
+  tabs: TabConfig[];
+  activeTab: PropertiesTabId;
+  onTabChange: (tab: PropertiesTabId) => void;
+  isDark: boolean;
+}) {
+  return (
+    <div className={`flex border-b ${isDark ? 'border-zinc-800' : 'border-gray-200'}`}>
+      {tabs.map(tab => (
+        <button
+          key={tab.id}
+          onClick={() => onTabChange(tab.id)}
+          className={`flex-1 px-2 py-2 text-xs font-medium flex items-center justify-center gap-1.5 transition-colors border-b-2 ${
+            activeTab === tab.id
+              ? isDark
+                ? 'border-indigo-500 text-indigo-400 bg-indigo-500/10'
+                : 'border-indigo-600 text-indigo-600 bg-indigo-50'
+              : isDark
+                ? 'border-transparent text-gray-500 hover:text-gray-300 hover:bg-zinc-800/50'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+          }`}
+        >
+          <tab.icon className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">{tab.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// Right Properties Panel Component - Redesigned with Horizontal Tabs + Accordion
+function RightPropertiesPanel({
+  table,
+  isDark,
+  onTableUpdate,
+  onOpenQuickEditor
+}: {
+  table?: Table;
+  isDark: boolean;
+  onTableUpdate?: (tableId: string, updates: Partial<Table>) => void;
+  onOpenQuickEditor?: (tableId: string) => void;
+}) {
+  const [activeTab, setActiveTab] = useState<PropertiesTabId>('general');
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(
+    new Set(['general-info', 'columns'])
+  );
+  const [editingFields, setEditingFields] = useState<Set<string>>(new Set());
+  const [editValues, setEditValues] = useState<Record<string, string>>({});
+
+  // Toggle section expansion
+  const toggleSection = useCallback((sectionId: string) => {
+    setExpandedSections(prev => {
+      const next = new Set(prev);
+      if (next.has(sectionId)) {
+        next.delete(sectionId);
+      } else {
+        next.add(sectionId);
+      }
+      return next;
+    });
+  }, []);
+
+  // Start editing a field
+  const startEditing = useCallback((fieldKey: string, currentValue: string) => {
+    setEditingFields(prev => new Set(prev).add(fieldKey));
+    setEditValues(prev => ({ ...prev, [fieldKey]: currentValue }));
+  }, []);
+
+  // Cancel editing
+  const cancelEditing = useCallback((fieldKey: string) => {
+    setEditingFields(prev => {
+      const next = new Set(prev);
+      next.delete(fieldKey);
+      return next;
+    });
+    setEditValues(prev => {
+      const next = { ...prev };
+      delete next[fieldKey];
+      return next;
+    });
+  }, []);
+
+  // Save field
+  const saveField = useCallback((fieldKey: string) => {
+    if (table && onTableUpdate && editValues[fieldKey] !== undefined) {
+      onTableUpdate(table.id, { [fieldKey]: editValues[fieldKey] });
+    }
+    cancelEditing(fieldKey);
+  }, [table, onTableUpdate, editValues, cancelEditing]);
+
+  // Update edit value
+  const updateEditValue = useCallback((fieldKey: string, value: string) => {
+    setEditValues(prev => ({ ...prev, [fieldKey]: value }));
+  }, []);
+
+  // Model Properties (when no table selected)
+  if (!table) {
+    return (
+      <div className={`flex flex-col h-full ${isDark ? 'bg-zinc-900' : 'bg-white'}`}>
+        {/* Header */}
+        <div className={`px-3 py-2 border-b ${isDark ? 'border-zinc-800' : 'border-gray-200'}`}>
+          <div className="flex items-center gap-2">
+            <Database className={`w-4 h-4 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`} />
+            <h2 className={`text-sm font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+              Data Model
+            </h2>
+          </div>
         </div>
 
-        {/* Main Content Area */}
-        <div className={`flex-1 overflow-y-auto transition-colors ${
-          isDark ? 'bg-zinc-900' : 'bg-white'
-        }`}>
-          {/* Context Header */}
-          <div className={`p-2 border-b transition-colors ${
-            isDark ? 'border-zinc-800 bg-zinc-900' : 'border-gray-200 bg-gray-50'
-          }`}>
-            <div className="flex items-center gap-2">
-              {React.createElement(modelTabs.find(tab => tab.id === activeTab)!.icon, {
-                className: `w-4 h-4 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`
-              })}
-              <h2 className={`text-xs font-semibold ${
-                isDark ? 'text-gray-100' : 'text-gray-900'
-              }`}>
-                {modelTabs.find(t => t.id === activeTab)?.label} Properties
-              </h2>
-            </div>
-            <p className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-              Data Model
-            </p>
+        {/* Model Content */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-3">
+          <div>
+            <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              Model Name
+            </label>
+            <input
+              type="text"
+              defaultValue="Data Model"
+              className={`w-full px-2 py-1.5 text-xs rounded border ${
+                isDark ? 'bg-zinc-800 border-zinc-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+              }`}
+            />
           </div>
-
-          {/* Content */}
-          <div className="p-2 space-y-2">
-            {activeTab === 'general' && (
-              <div className="space-y-2">
-                <div>
-                  <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Model Name
-                  </label>
-                  <input
-                    type="text"
-                    defaultValue="Data Model"
-                    className={`w-full px-2 py-1 text-xs rounded border ${
-                      isDark ? 'bg-zinc-800 border-zinc-600 text-white' : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                  />
-                </div>
-                <div>
-                  <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Description
-                  </label>
-                  <textarea
-                    rows={2}
-                    className={`w-full px-2 py-1 text-xs rounded border ${
-                      isDark ? 'bg-zinc-800 border-zinc-600 text-white' : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                    placeholder="Model description..."
-                  />
-                </div>
-              </div>
-            )}
-            {activeTab === 'tables' && (
-              <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                <p>Total Tables: 2</p>
-                <p className="mt-1">Add tables from the toolbar</p>
-              </div>
-            )}
-            {activeTab === 'settings' && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <input type="checkbox" id="autoLayout" className="rounded" />
-                  <label htmlFor="autoLayout" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Auto Layout
-                  </label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <input type="checkbox" id="showGrid" defaultChecked className="rounded" />
-                  <label htmlFor="showGrid" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Show Grid
-                  </label>
-                </div>
-              </div>
-            )}
+          <div>
+            <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              Description
+            </label>
+            <textarea
+              rows={3}
+              className={`w-full px-2 py-1.5 text-xs rounded border ${
+                isDark ? 'bg-zinc-800 border-zinc-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+              }`}
+              placeholder="Model description..."
+            />
           </div>
         </div>
       </div>
@@ -4196,151 +4519,437 @@ function RightPropertiesPanel({ table, isDark }: { table?: Table; isDark: boolea
   }
 
   // Table Properties
+  const pkColumns = table.columns.filter(c => c.isPK);
+  const fkColumns = table.columns.filter(c => c.isFK);
+  const indexes = table.indexes || [];
+  const constraints = table.constraints || [];
+  const foreignKeys = table.foreignKeys || [];
+
   return (
-    <div className="flex h-full">
-      {/* Left Icon Strip */}
-      <div className={`w-6 border-r transition-colors flex flex-col ${
-        isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200'
-      }`}>
-        {tableTabs.map((tab) => (
-          <div
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`h-8 flex items-center justify-center cursor-pointer transition-all duration-200 ${
-              activeTab === tab.id
-                ? `${isDark ? 'bg-indigo-500 text-white' : 'bg-indigo-600 text-white'} shadow-sm`
-                : `${isDark ? 'text-gray-400 hover:text-gray-100 hover:bg-zinc-800/50' : 'text-gray-600 hover:text-gray-900 hover:bg-indigo-50/50'}`
-            }`}
-            title={tab.label}
-            style={{ marginBottom: '1px' }}
-          >
-            <tab.icon className="w-3.5 h-3.5" />
-          </div>
-        ))}
+    <div className={`flex flex-col h-full ${isDark ? 'bg-zinc-900' : 'bg-white'}`}>
+      {/* Header */}
+      <div className={`px-3 py-2 border-b ${isDark ? 'border-zinc-800' : 'border-gray-200'}`}>
+        <div className="flex items-center gap-2">
+          <Table2 className={`w-4 h-4 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`} />
+          <h2 className={`text-sm font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+            {table.name}
+          </h2>
+        </div>
+        <div className="flex items-center gap-2 mt-1">
+          <span className={`text-xs px-1.5 py-0.5 rounded ${
+            isDark ? 'bg-zinc-800 text-gray-400' : 'bg-gray-100 text-gray-600'
+          }`}>
+            {table.schema || 'dbo'}
+          </span>
+        </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className={`flex-1 overflow-y-auto transition-colors ${
-        isDark ? 'bg-zinc-900' : 'bg-white'
-      }`}>
-        {/* Context Header */}
-        <div className={`p-2 border-b transition-colors ${
-          isDark ? 'border-zinc-800 bg-zinc-900' : 'border-gray-200 bg-gray-50'
-        }`}>
-          <div className="flex items-center gap-2">
-            {React.createElement(tableTabs.find(tab => tab.id === activeTab)!.icon, {
-              className: `w-4 h-4 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`
-            })}
-            <h2 className={`text-xs font-semibold ${
-              isDark ? 'text-gray-100' : 'text-gray-900'
-            }`}>
-              {tableTabs.find(t => t.id === activeTab)?.label} Properties
-            </h2>
-          </div>
-          <p className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            {table.name}
-          </p>
-        </div>
+      {/* Horizontal Tabs */}
+      <HorizontalTabBar
+        tabs={TABLE_TABS}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        isDark={isDark}
+      />
 
-        {/* Content */}
-        <div className="p-2 space-y-2">
+      {/* Tab Content */}
+      <div className="flex-1 overflow-y-auto">
+        <AnimatePresence mode="wait">
+          {/* General Tab */}
           {activeTab === 'general' && (
-            <div className="space-y-2">
-              <div>
-                <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Table Name
-                </label>
-                <input
-                  type="text"
-                  defaultValue={table.name}
-                  className={`w-full px-2 py-1 text-xs rounded border ${
-                    isDark ? 'bg-zinc-800 border-zinc-600 text-white' : 'bg-white border-gray-300 text-gray-900'
-                  }`}
+            <motion.div
+              key="general"
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ duration: 0.15 }}
+            >
+              <AccordionSection
+                id="general-info"
+                title="General Info"
+                icon={FileText}
+                isExpanded={expandedSections.has('general-info')}
+                onToggle={toggleSection}
+                isDark={isDark}
+              >
+                <EditableField
+                  fieldKey="name"
+                  label="Table Name"
+                  value={table.name}
+                  isEditing={editingFields.has('name')}
+                  editValue={editValues.name}
+                  isDark={isDark}
+                  onStartEdit={startEditing}
+                  onSave={saveField}
+                  onCancel={cancelEditing}
+                  onChange={updateEditValue}
                 />
-              </div>
-              <div>
-                <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Definition
-                </label>
-                <textarea
-                  rows={2}
-                  className={`w-full px-2 py-1 text-xs rounded border ${
-                    isDark ? 'bg-zinc-800 border-zinc-600 text-white' : 'bg-white border-gray-300 text-gray-900'
-                  }`}
-                  placeholder="Table definition..."
+                <EditableField
+                  fieldKey="schema"
+                  label="Schema"
+                  value={table.schema || 'dbo'}
+                  type="select"
+                  options={['dbo', 'public', 'sales', 'hr', 'inventory']}
+                  isEditing={editingFields.has('schema')}
+                  editValue={editValues.schema}
+                  isDark={isDark}
+                  onStartEdit={startEditing}
+                  onSave={saveField}
+                  onCancel={cancelEditing}
+                  onChange={updateEditValue}
                 />
-              </div>
-            </div>
+                <EditableField
+                  fieldKey="description"
+                  label="Description"
+                  value={table.description || ''}
+                  type="textarea"
+                  isEditing={editingFields.has('description')}
+                  editValue={editValues.description}
+                  isDark={isDark}
+                  onStartEdit={startEditing}
+                  onSave={saveField}
+                  onCancel={cancelEditing}
+                  onChange={updateEditValue}
+                />
+              </AccordionSection>
+
+              <AccordionSection
+                id="statistics"
+                title="Statistics"
+                icon={BarChart2}
+                isExpanded={expandedSections.has('statistics')}
+                onToggle={toggleSection}
+                isDark={isDark}
+              >
+                <div className="grid grid-cols-2 gap-2">
+                  <div className={`p-2 rounded ${isDark ? 'bg-zinc-800' : 'bg-gray-50'}`}>
+                    <div className={`text-lg font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+                      {table.columns.length}
+                    </div>
+                    <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>Columns</div>
+                  </div>
+                  <div className={`p-2 rounded ${isDark ? 'bg-zinc-800' : 'bg-gray-50'}`}>
+                    <div className={`text-lg font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+                      {pkColumns.length}
+                    </div>
+                    <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>Primary Keys</div>
+                  </div>
+                  <div className={`p-2 rounded ${isDark ? 'bg-zinc-800' : 'bg-gray-50'}`}>
+                    <div className={`text-lg font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+                      {fkColumns.length}
+                    </div>
+                    <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>Foreign Keys</div>
+                  </div>
+                  <div className={`p-2 rounded ${isDark ? 'bg-zinc-800' : 'bg-gray-50'}`}>
+                    <div className={`text-lg font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+                      {indexes.length}
+                    </div>
+                    <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>Indexes</div>
+                  </div>
+                </div>
+              </AccordionSection>
+            </motion.div>
           )}
 
-          {activeTab === 'columns' && (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className={`text-xs font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Columns ({table.columns.length})
-                </label>
-                <button className={`text-xs ${isDark ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-700'}`}>
-                  <Plus className="w-3 h-3 inline mr-1" />
-                  Add
-                </button>
-              </div>
-              <div className="space-y-1 max-h-64 overflow-y-auto">
-                {table.columns.map(col => (
-                  <div
-                    key={col.id}
-                    className={`px-2 py-1.5 rounded text-xs ${
-                      isDark ? 'bg-zinc-800' : 'bg-gray-100'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-1.5">
+          {/* Structure Tab */}
+          {activeTab === 'structure' && (
+            <motion.div
+              key="structure"
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ duration: 0.15 }}
+            >
+              <AccordionSection
+                id="columns"
+                title="Columns"
+                icon={Columns}
+                count={table.columns.length}
+                isExpanded={expandedSections.has('columns')}
+                onToggle={toggleSection}
+                isDark={isDark}
+                actionButton={
+                  onOpenQuickEditor && (
+                    <button
+                      onClick={() => onOpenQuickEditor(table.id)}
+                      className={`text-xs px-2 py-1 rounded ${
+                        isDark
+                          ? 'bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30'
+                          : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
+                      }`}
+                    >
+                      Edit
+                    </button>
+                  )
+                }
+              >
+                <div className="space-y-1 max-h-48 overflow-y-auto">
+                  {table.columns.map(col => (
+                    <div
+                      key={col.id}
+                      className={`px-2 py-1.5 rounded text-xs flex items-center justify-between ${
+                        isDark ? 'bg-zinc-800' : 'bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
                         {col.isPK && (
                           <span className="px-1 py-0.5 bg-amber-500/20 text-amber-400 rounded text-xs font-bold">PK</span>
                         )}
+                        {col.isFK && (
+                          <span className="px-1 py-0.5 bg-blue-500/20 text-blue-400 rounded text-xs font-bold">FK</span>
+                        )}
                         <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{col.name}</span>
                       </div>
-                      <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{col.dataType}</span>
+                      <div className="flex items-center gap-2">
+                        <span className={`${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{col.dataType}</span>
+                        {!col.isNullable && (
+                          <span className={`text-xs ${isDark ? 'text-orange-400' : 'text-orange-600'}`}>NOT NULL</span>
+                        )}
+                      </div>
                     </div>
-                    <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
-                      {!col.isNullable && 'NOT NULL'}
+                  ))}
+                </div>
+                {onOpenQuickEditor && (
+                  <button
+                    onClick={() => onOpenQuickEditor(table.id)}
+                    className={`w-full mt-2 px-3 py-2 text-xs rounded border border-dashed flex items-center justify-center gap-2 transition-colors ${
+                      isDark
+                        ? 'border-zinc-700 text-gray-400 hover:border-indigo-500 hover:text-indigo-400'
+                        : 'border-gray-300 text-gray-500 hover:border-indigo-500 hover:text-indigo-600'
+                    }`}
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    Open in Quick Editor
+                  </button>
+                )}
+              </AccordionSection>
+
+              <AccordionSection
+                id="keys"
+                title="Keys"
+                icon={KeyRound}
+                count={pkColumns.length + fkColumns.length}
+                isExpanded={expandedSections.has('keys')}
+                onToggle={toggleSection}
+                isDark={isDark}
+              >
+                <div className="space-y-2">
+                  <div>
+                    <div className={`text-xs font-medium mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Primary Key
+                    </div>
+                    <div className={`px-2 py-1.5 rounded text-xs ${isDark ? 'bg-zinc-800 text-gray-300' : 'bg-gray-50 text-gray-700'}`}>
+                      {pkColumns.map(c => c.name).join(', ') || 'None'}
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'keys' && (
-            <div className="space-y-2">
-              <div>
-                <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Primary Key
-                </label>
-                <div className={`px-2 py-1.5 rounded text-xs ${isDark ? 'bg-zinc-800 text-gray-300' : 'bg-gray-100 text-gray-700'}`}>
-                  {table.columns.filter(c => c.isPK).map(c => c.name).join(', ') || 'None'}
+                  {fkColumns.length > 0 && (
+                    <div>
+                      <div className={`text-xs font-medium mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Foreign Keys
+                      </div>
+                      <div className="space-y-1">
+                        {fkColumns.map(fk => (
+                          <div key={fk.id} className={`px-2 py-1.5 rounded text-xs ${isDark ? 'bg-zinc-800 text-gray-300' : 'bg-gray-50 text-gray-700'}`}>
+                            {fk.name}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            </div>
+              </AccordionSection>
+
+              <AccordionSection
+                id="indexes"
+                title="Indexes"
+                icon={Zap}
+                count={indexes.length}
+                isExpanded={expandedSections.has('indexes')}
+                onToggle={toggleSection}
+                isDark={isDark}
+              >
+                {indexes.length > 0 ? (
+                  <div className="space-y-1">
+                    {indexes.map(idx => (
+                      <div key={idx.id} className={`px-2 py-1.5 rounded text-xs ${isDark ? 'bg-zinc-800' : 'bg-gray-50'}`}>
+                        <div className="flex items-center justify-between">
+                          <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{idx.name}</span>
+                          {idx.isUnique && (
+                            <span className="px-1 py-0.5 bg-purple-500/20 text-purple-400 rounded text-xs">UNIQUE</span>
+                          )}
+                        </div>
+                        <div className={`mt-1 ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                          {idx.columns.join(', ')}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>No indexes defined</div>
+                )}
+              </AccordionSection>
+
+              <AccordionSection
+                id="constraints"
+                title="Constraints"
+                icon={Lock}
+                count={constraints.length}
+                isExpanded={expandedSections.has('constraints')}
+                onToggle={toggleSection}
+                isDark={isDark}
+              >
+                {constraints.length > 0 ? (
+                  <div className="space-y-1">
+                    {constraints.map(con => (
+                      <div key={con.id} className={`px-2 py-1.5 rounded text-xs ${isDark ? 'bg-zinc-800' : 'bg-gray-50'}`}>
+                        <div className="flex items-center justify-between">
+                          <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{con.name}</span>
+                          <span className={`px-1 py-0.5 rounded text-xs ${
+                            con.type === 'CHECK' ? 'bg-green-500/20 text-green-400' :
+                            con.type === 'UNIQUE' ? 'bg-purple-500/20 text-purple-400' :
+                            'bg-blue-500/20 text-blue-400'
+                          }`}>{con.type}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>No constraints defined</div>
+                )}
+              </AccordionSection>
+            </motion.div>
           )}
 
-          {activeTab === 'display' && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <input type="checkbox" id="showInDiagram" defaultChecked className="rounded" />
-                <label htmlFor="showInDiagram" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Show in Diagram
-                </label>
-              </div>
-              <div className="flex items-center gap-2">
-                <input type="checkbox" id="expandColumns" className="rounded" />
-                <label htmlFor="expandColumns" className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Expand Columns
-                </label>
-              </div>
-            </div>
+          {/* Relations Tab */}
+          {activeTab === 'relations' && (
+            <motion.div
+              key="relations"
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ duration: 0.15 }}
+            >
+              <AccordionSection
+                id="foreign-keys"
+                title="Foreign Keys"
+                icon={Link2}
+                count={foreignKeys.length}
+                isExpanded={expandedSections.has('foreign-keys')}
+                onToggle={toggleSection}
+                isDark={isDark}
+              >
+                {foreignKeys.length > 0 ? (
+                  <div className="space-y-2">
+                    {foreignKeys.map(fk => (
+                      <div key={fk.id} className={`px-2 py-2 rounded text-xs ${isDark ? 'bg-zinc-800' : 'bg-gray-50'}`}>
+                        <div className={`font-medium mb-1 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{fk.name}</div>
+                        <div className={`${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          {fk.column} → {fk.referencedTable}.{fk.referencedColumn}
+                        </div>
+                        <div className={`mt-1 flex gap-2 ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                          <span>ON DELETE: {fk.onDelete}</span>
+                          <span>ON UPDATE: {fk.onUpdate}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>No foreign keys defined</div>
+                )}
+              </AccordionSection>
+
+              <AccordionSection
+                id="related-tables"
+                title="Related Tables"
+                icon={GitMerge}
+                isExpanded={expandedSections.has('related-tables')}
+                onToggle={toggleSection}
+                isDark={isDark}
+              >
+                <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                  View relationships in the diagram
+                </div>
+              </AccordionSection>
+            </motion.div>
           )}
-        </div>
+
+          {/* Display Tab */}
+          {activeTab === 'display' && (
+            <motion.div
+              key="display"
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ duration: 0.15 }}
+            >
+              <AccordionSection
+                id="visibility"
+                title="Visibility"
+                icon={Eye}
+                isExpanded={expandedSections.has('visibility')}
+                onToggle={toggleSection}
+                isDark={isDark}
+              >
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" defaultChecked className="rounded" />
+                    <span className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Show in Diagram</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" className="rounded" />
+                    <span className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Expand All Columns</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" defaultChecked className="rounded" />
+                    <span className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Show Data Types</span>
+                  </label>
+                </div>
+              </AccordionSection>
+
+              <AccordionSection
+                id="appearance"
+                title="Appearance"
+                icon={Palette}
+                isExpanded={expandedSections.has('appearance')}
+                onToggle={toggleSection}
+                isDark={isDark}
+              >
+                <div className="space-y-3">
+                  <div>
+                    <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Header Color
+                    </label>
+                    <input
+                      type="color"
+                      defaultValue="#6366f1"
+                      className={`w-full h-8 rounded border cursor-pointer ${
+                        isDark ? 'border-zinc-600' : 'border-gray-300'
+                      }`}
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Display Mode
+                    </label>
+                    <select
+                      defaultValue="normal"
+                      className={`w-full px-2 py-1.5 text-xs rounded border ${
+                        isDark ? 'bg-zinc-800 border-zinc-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                      }`}
+                    >
+                      <option value="compact">Compact</option>
+                      <option value="normal">Normal</option>
+                      <option value="expanded">Expanded</option>
+                    </select>
+                  </div>
+                </div>
+              </AccordionSection>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
 }
+
+export default DiagrammerComponent;

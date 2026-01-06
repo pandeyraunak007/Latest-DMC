@@ -1,7 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, forwardRef, useImperativeHandle, useCallback } from 'react';
 import { useTheme } from '@/context/ThemeContext';
+import {
+  AIAction,
+  DiagramContext,
+  AddTablePayload,
+  UpdateTablePayload,
+  DeleteTablePayload,
+  AddColumnPayload,
+  UpdateColumnPayload,
+  DeleteColumnPayload,
+  AddRelationshipPayload,
+  DeleteRelationshipPayload,
+} from '@/types/aiActions';
 import {
   Search,
   ChevronDown,
@@ -955,7 +967,8 @@ const PropertiesPanel = ({
                   </label>
                   <input
                     type="text"
-                    defaultValue={currentEntity?.name || ''}
+                    value={currentEntity?.name || ''}
+                    readOnly
                     className={`w-full p-1.5 text-xs rounded border ${
                       isDark
                         ? 'bg-zinc-800 border-zinc-600 text-white'
@@ -969,6 +982,8 @@ const PropertiesPanel = ({
                   </label>
                   <textarea
                     rows={2}
+                    value={currentEntity?.description || ''}
+                    readOnly
                     className={`w-full p-1.5 text-xs rounded border ${isDark ? 'bg-zinc-800 border-zinc-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
                     placeholder="Entity definition..."
                   />
@@ -1375,7 +1390,8 @@ const PropertiesPanel = ({
                   </label>
                   <input
                     type="text"
-                    defaultValue={currentEntity?.name || ''}
+                    value={currentEntity?.name || ''}
+                    readOnly
                     className={`w-full p-1.5 text-xs rounded border ${
                       isDark
                         ? 'bg-zinc-800 border-zinc-600 text-white'
@@ -1389,6 +1405,8 @@ const PropertiesPanel = ({
                   </label>
                   <textarea
                     rows={2}
+                    value={currentEntity?.description || ''}
+                    readOnly
                     className={`w-full p-1.5 text-xs rounded border ${isDark ? 'bg-zinc-800 border-zinc-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
                     placeholder="Entity definition..."
                   />
@@ -1782,6 +1800,7 @@ interface CanvasEntity {
   attributes?: Attribute[];
   text?: string; // For annotations
   category?: 'standard' | 'lookup' | 'view' | 'junction'; // Entity categories for color coding
+  description?: string; // Entity definition/description
 }
 
 interface Relationship {
@@ -1795,8 +1814,14 @@ interface Relationship {
   isOptional?: boolean; // For optionality visualization
 }
 
+// Ref handle for AI action execution
+export interface DiagramHandle {
+  executeAIAction: (action: AIAction) => boolean;
+  getContext: () => DiagramContext;
+}
+
 // Main Diagram Component
-const Diagram: React.FC = () => {
+const DiagramComponent = forwardRef<DiagramHandle, object>(function Diagram(_props, ref) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
@@ -1912,6 +1937,204 @@ const Diagram: React.FC = () => {
   // Relationship creation state
   const [relationshipSourceId, setRelationshipSourceId] = useState<string | null>(null);
   const [relationshipType, setRelationshipType] = useState<'identifying' | 'non-identifying' | null>(null);
+
+  // Get current diagram context for AI
+  const getContext = useCallback((): DiagramContext => {
+    return {
+      tables: entities.filter(e => e.type === 'entity').map(e => ({
+        id: e.id,
+        name: e.name,
+        columns: (e.attributes || []).map(a => ({
+          name: a.name,
+          dataType: a.type,
+          isPK: a.isPrimaryKey || false,
+          isNullable: a.allowNull ?? true,
+          isFK: a.isForeignKey,
+        })),
+        schema: undefined,
+      })),
+      relationships: relationships.map(r => ({
+        fromTable: entities.find(e => e.id === r.sourceEntityId)?.name || r.sourceEntityId,
+        toTable: entities.find(e => e.id === r.targetEntityId)?.name || r.targetEntityId,
+        type: r.targetCardinality?.includes('M') ? '1:N' : '1:1',
+        relationshipType: r.type,
+      })),
+      selectedTableId: selectedEntity,
+      selectedTableName: selectedEntity ? entities.find(e => e.id === selectedEntity)?.name || null : null,
+      modelType: 'physical',
+      totalTables: entities.filter(e => e.type === 'entity').length,
+      totalRelationships: relationships.length,
+    };
+  }, [entities, relationships, selectedEntity]);
+
+  // Execute AI action
+  const executeAIAction = useCallback((action: AIAction): boolean => {
+    try {
+      switch (action.type) {
+        case 'addTable': {
+          const payload = action.payload as AddTablePayload;
+          const entityCount = entities.filter(e => e.type === 'entity').length;
+          const newEntity: CanvasEntity = {
+            id: `entity-${Date.now()}`,
+            type: 'entity',
+            name: payload.name,
+            x: 100 + (entityCount % 3) * 300,
+            y: 100 + Math.floor(entityCount / 3) * 250,
+            width: 220,
+            height: Math.max(120, 60 + payload.columns.length * 24),
+            description: payload.description,
+            attributes: payload.columns.map(col => ({
+              name: col.name,
+              type: col.dataType,
+              isPrimaryKey: col.isPK || false,
+              isRequired: !col.isNullable,
+              allowNull: col.isNullable ?? true,
+              isForeignKey: col.isFK,
+            })),
+          };
+          setEntities(prev => [...prev, newEntity]);
+          return true;
+        }
+
+        case 'updateTable': {
+          const payload = action.payload as UpdateTablePayload;
+          const updates = payload.updates || {};
+          setEntities(prev => prev.map(e => {
+            if (e.name === payload.tableName) {
+              return {
+                ...e,
+                name: updates.name || e.name,
+                description: updates.description !== undefined ? updates.description : e.description,
+              };
+            }
+            return e;
+          }));
+          return true;
+        }
+
+        case 'deleteTable': {
+          const payload = action.payload as DeleteTablePayload;
+          const entityToDelete = entities.find(e => e.name === payload.tableName);
+          if (entityToDelete) {
+            setEntities(prev => prev.filter(e => e.name !== payload.tableName));
+            setRelationships(prev => prev.filter(
+              r => r.sourceEntityId !== entityToDelete.id && r.targetEntityId !== entityToDelete.id
+            ));
+          }
+          return true;
+        }
+
+        case 'addColumn': {
+          const payload = action.payload as AddColumnPayload;
+          setEntities(prev => prev.map(e => {
+            if (e.name === payload.tableName) {
+              const newAttr: Attribute = {
+                name: payload.column.name,
+                type: payload.column.dataType,
+                isPrimaryKey: payload.column.isPK || false,
+                isRequired: !payload.column.isNullable,
+                allowNull: payload.column.isNullable ?? true,
+                isForeignKey: payload.column.isFK,
+              };
+              return {
+                ...e,
+                attributes: [...(e.attributes || []), newAttr],
+                height: Math.max(e.height, 60 + ((e.attributes?.length || 0) + 1) * 24),
+              };
+            }
+            return e;
+          }));
+          return true;
+        }
+
+        case 'updateColumn': {
+          const payload = action.payload as UpdateColumnPayload;
+          const updates = payload.updates || {};
+          setEntities(prev => prev.map(e => {
+            if (e.name === payload.tableName) {
+              return {
+                ...e,
+                attributes: (e.attributes || []).map(a => {
+                  if (a.name === payload.columnName) {
+                    return {
+                      ...a,
+                      name: updates.name || a.name,
+                      type: updates.dataType || a.type,
+                      isPrimaryKey: updates.isPK ?? a.isPrimaryKey,
+                      allowNull: updates.isNullable ?? a.allowNull,
+                      isRequired: updates.isNullable !== undefined ? !updates.isNullable : a.isRequired,
+                      isForeignKey: updates.isFK ?? a.isForeignKey,
+                    };
+                  }
+                  return a;
+                }),
+              };
+            }
+            return e;
+          }));
+          return true;
+        }
+
+        case 'deleteColumn': {
+          const payload = action.payload as DeleteColumnPayload;
+          setEntities(prev => prev.map(e => {
+            if (e.name === payload.tableName) {
+              return {
+                ...e,
+                attributes: (e.attributes || []).filter(a => a.name !== payload.columnName),
+              };
+            }
+            return e;
+          }));
+          return true;
+        }
+
+        case 'addRelationship': {
+          const payload = action.payload as AddRelationshipPayload;
+          const sourceEntity = entities.find(e => e.name === payload.fromTable);
+          const targetEntity = entities.find(e => e.name === payload.toTable);
+          if (sourceEntity && targetEntity) {
+            const newRel: Relationship = {
+              id: `rel-${Date.now()}`,
+              type: payload.relationshipType === 'identifying' ? 'identifying' : 'non-identifying',
+              sourceEntityId: sourceEntity.id,
+              targetEntityId: targetEntity.id,
+              sourceCardinality: '1',
+              targetCardinality: payload.type === '1:N' ? '1..M' : '1',
+              name: `${payload.fromTable}_${payload.toTable}`,
+            };
+            setRelationships(prev => [...prev, newRel]);
+          }
+          return true;
+        }
+
+        case 'deleteRelationship': {
+          const payload = action.payload as DeleteRelationshipPayload;
+          const sourceEntity = entities.find(e => e.name === payload.fromTable);
+          const targetEntity = entities.find(e => e.name === payload.toTable);
+          if (sourceEntity && targetEntity) {
+            setRelationships(prev => prev.filter(
+              r => !(r.sourceEntityId === sourceEntity.id && r.targetEntityId === targetEntity.id)
+            ));
+          }
+          return true;
+        }
+
+        default:
+          console.warn('Unknown action type:', action.type);
+          return false;
+      }
+    } catch (error) {
+      console.error('Error executing AI action:', error);
+      return false;
+    }
+  }, [entities]);
+
+  // Expose methods via ref
+  useImperativeHandle(ref, () => ({
+    executeAIAction,
+    getContext,
+  }), [executeAIAction, getContext]);
 
   // Undo/Redo Functions
   const saveToHistory = () => {
@@ -3219,6 +3442,7 @@ const Diagram: React.FC = () => {
       {/* Properties Panel */}
       {showPropertiesPanel && (
         <PropertiesPanel
+          key={`${selectedEntity}-${entities.find(e => e.id === selectedEntity)?.attributes?.length}-${JSON.stringify(entities.find(e => e.id === selectedEntity)?.attributes?.map(a => a.name))}`}
           isDark={isDark}
           onClose={togglePropertiesPanel}
           selectedEntity={selectedEntity}
@@ -3237,6 +3461,6 @@ const Diagram: React.FC = () => {
       )}
     </div>
   );
-};
+});
 
-export default Diagram;
+export default DiagramComponent;

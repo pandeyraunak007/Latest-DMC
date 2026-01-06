@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { DiagramContext, AIAction } from '@/types/aiActions';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReverseEngineeringNew from './ReverseEngineeringNew';
 import FabricForwardEngineering from './FabricForwardEngineering';
@@ -8,8 +9,8 @@ import ModelExplorer from './ModelExplorer';
 import CompleteCompare from './CompleteCompare';
 import CompleteCompare2 from './CompleteCompare2';
 import Settings from './Settings';
-import Diagram from './Diagram';
-import Diagrammer from './Diagrammer';
+import Diagram, { DiagramHandle } from './Diagram';
+import Diagrammer, { DiagrammerHandle } from './Diagrammer';
 import MartCatalog from './MartCatalogManager';
 import PropertyEditor from './PropertyEditor';
 import ThemeToggle from './shared/ThemeToggle';
@@ -553,6 +554,56 @@ export default function Dashboard() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentPage, setCurrentPage] = useState<'homepage' | 'dashboard' | 'mart-catalog' | 'model-explorer' | 'reverse-engineering' | 'forward-engineering' | 'complete-compare' | 'complete-compare-2' | 'settings' | 'diagram' | 'diagrammer' | 'property-editor'>('homepage');
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [diagramContext, setDiagramContext] = useState<DiagramContext | undefined>(undefined);
+
+  // Refs to access Diagram and Diagrammer methods
+  const diagrammerRef = useRef<DiagrammerHandle>(null);
+  const diagramRef = useRef<DiagramHandle>(null);
+
+  // Check if on a diagram page
+  const isDiagramPage = currentPage === 'diagram' || currentPage === 'diagrammer';
+
+  // Get the active diagram ref
+  const getActiveDiagramRef = useCallback(() => {
+    if (currentPage === 'diagrammer') return diagrammerRef.current;
+    if (currentPage === 'diagram') return diagramRef.current;
+    return null;
+  }, [currentPage]);
+
+  // Update context periodically when chat is open and on a diagram page
+  useEffect(() => {
+    if (isChatOpen && isDiagramPage) {
+      const updateContext = () => {
+        const activeRef = getActiveDiagramRef();
+        if (activeRef) {
+          const context = activeRef.getContext();
+          if (context) {
+            setDiagramContext(context);
+          }
+        }
+      };
+
+      // Update immediately
+      updateContext();
+
+      // Update periodically while chat is open
+      const interval = setInterval(updateContext, 2000);
+      return () => clearInterval(interval);
+    }
+  }, [isChatOpen, isDiagramPage, getActiveDiagramRef]);
+
+  // Handle AI action execution
+  const handleExecuteAction = useCallback(async (action: AIAction): Promise<boolean> => {
+    const activeRef = getActiveDiagramRef();
+    if (activeRef) {
+      const success = activeRef.executeAIAction(action);
+      // Update context after action
+      const newContext = activeRef.getContext();
+      setDiagramContext(newContext);
+      return success;
+    }
+    return false;
+  }, [getActiveDiagramRef]);
 
   const sidebarItems = [
     {
@@ -855,8 +906,8 @@ export default function Dashboard() {
               {currentPage === 'complete-compare' && <CompleteCompare />}
               {currentPage === 'complete-compare-2' && <CompleteCompare2 />}
               {currentPage === 'settings' && <Settings />}
-              {currentPage === 'diagram' && <Diagram />}
-              {currentPage === 'diagrammer' && <Diagrammer />}
+              {currentPage === 'diagram' && <Diagram ref={diagramRef} />}
+              {currentPage === 'diagrammer' && <Diagrammer ref={diagrammerRef} />}
               {currentPage === 'property-editor' && <PropertyEditor onClose={() => setCurrentPage('dashboard')} />}
             </motion.div>
           </AnimatePresence>
@@ -865,7 +916,12 @@ export default function Dashboard() {
 
       {/* AI Chat - Available throughout the app */}
       {!isChatOpen && <FloatingChatButton onClick={() => setIsChatOpen(true)} />}
-      <AIChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+      <AIChat
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        diagramContext={isDiagramPage ? diagramContext : undefined}
+        onExecuteAction={isDiagramPage ? handleExecuteAction : undefined}
+      />
     </div>
   );
 };
