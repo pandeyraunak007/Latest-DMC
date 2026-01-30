@@ -29,6 +29,17 @@
    - [Benefits](#forward-engineering-benefits)
    - [Usage Examples](#forward-engineering-usage-examples)
 
+4. [Diagrammer](#diagrammer)
+   - [Overview](#diagrammer-overview)
+   - [User Flow](#diagrammer-user-flow)
+   - [UI Elements](#diagrammer-ui-elements)
+   - [Canvas Features](#diagrammer-canvas-features)
+   - [Table Management](#diagrammer-table-management)
+   - [Relationship Management](#diagrammer-relationship-management)
+   - [AI Integration](#diagrammer-ai-integration)
+   - [Benefits](#diagrammer-benefits)
+   - [Usage Examples](#diagrammer-usage-examples)
+
 ---
 
 # Complete Compare
@@ -1886,6 +1897,839 @@ tables:
 
 ---
 
+---
+
+# Diagrammer
+
+<a name="diagrammer-overview"></a>
+## Overview
+
+**Diagrammer** is the core visual database modeling environment in DMC. It provides a comprehensive canvas-based workspace for designing, editing, and managing database schemas with drag-and-drop functionality, real-time editing, and AI-powered assistance.
+
+The Diagrammer combines three integrated views:
+
+| View | Purpose | Best For |
+|------|---------|----------|
+| **Diagram View** | Visual canvas with tables and relationships | Schema visualization, relationship design |
+| **Quick Editor** | Tabular interface for rapid editing | Bulk column changes, index management |
+| **Properties Panel** | Detailed property configuration | Fine-tuning table settings, metadata |
+
+**Key Capabilities:**
+- Visual drag-and-drop table positioning
+- IDEF1X relationship notation with crow's foot symbols
+- 4 relationship types (identifying, non-identifying, sub-type, many-to-many)
+- Full CRUD for tables, columns, indexes, constraints
+- AI-powered natural language editing
+- Auto-save with visual feedback
+- Dark/Light theme support
+
+---
+
+<a name="diagrammer-user-flow"></a>
+## User Flow
+
+### Main Workspace Layout
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  TOP TOOLBAR                                                                 │
+│  [Diagram View] [Quick Editor] [Properties] │ View: [Entity ▼] │ [Physical ▼]│
+│  [🔓 Unlocked ▼]                            │                  │ [🌙 Dark]   │
+├──────────────┬──────────────────────────────────────────────┬───────────────┤
+│              │                                              │               │
+│   MODEL      │              CANVAS                          │  PROPERTIES   │
+│   EXPLORER   │                                              │    PANEL      │
+│              │    ┌─────────┐        ┌─────────┐           │               │
+│  ▼ Model     │    │ Users   │───────▶│ Orders  │           │  [General]    │
+│    ▼ Tables  │    │─────────│        │─────────│           │  [Columns]    │
+│      Users   │    │ user_id │        │ order_id│           │  [Indexes]    │
+│      Orders  │    │ username│        │ user_id │           │  [Keys]       │
+│      Products│    │ email   │        │ total   │           │               │
+│    ▶ Rels    │    └─────────┘        └─────────┘           │               │
+│              │                                              │               │
+│              │    ┌─────────┐                               │               │
+│              │    │Products │                               │               │
+│              │    │─────────│                               │               │
+│              │    │prod_id  │                               │               │
+│              │    │name     │                               │               │
+│              │    └─────────┘                               │               │
+│              │                                              │               │
+├──────────────┴──────────────────────────────────────────────┴───────────────┤
+│  CANVAS CONTROLS: [−] [100%] [+] [Fit] [Grid] [Snap] [Minimap] [Pan]       │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                                              ┌───────────────┐
+                                                              │   AI Chat 💬  │
+                                                              └───────────────┘
+```
+
+---
+
+### Workflow 1: Creating a New Table
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         CREATE NEW TABLE WORKFLOW                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+  │   Step 1    │────▶│   Step 2    │────▶│   Step 3    │────▶│   Step 4    │
+  │ Add Table   │     │ Name Table  │     │ Add Columns │     │   Save      │
+  └─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
+        │                   │                   │                   │
+        ▼                   ▼                   ▼                   ▼
+  Click + button      Enter table name    Define columns       Auto-save
+  or use toolbar      (auto: E1, E2...)   with data types      triggers
+```
+
+**Detailed Steps:**
+1. Click the **+** button in toolbar or Quick Editor
+2. New table appears on canvas with auto-generated name (E1, E2, etc.)
+3. Click table to select, open Quick Editor
+4. Switch to **Columns** tab
+5. Click **Add Column** button
+6. Enter column name, select data type, set PK/nullable
+7. Click **Save** or wait for auto-save (2 seconds)
+
+---
+
+### Workflow 2: Creating Relationships
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       CREATE RELATIONSHIP WORKFLOW                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+  │   Step 1    │────▶│   Step 2    │────▶│   Step 3    │────▶│   Step 4    │
+  │Select Tool  │     │Click Parent │     │Click Child  │     │ Relationship│
+  │             │     │  Table      │     │   Table     │     │  Created    │
+  └─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
+        │                   │                   │                   │
+        ▼                   ▼                   ▼                   ▼
+  Click relationship   Click connection    Click connection   SVG line drawn
+  icon in toolbar      point on parent     point on child     with notation
+```
+
+**Connection Point Locations:**
+```
+              ● (top)
+              │
+    (left) ●──┼──● (right)
+              │
+              ● (bottom)
+```
+
+**Relationship Types:**
+
+| Type | Visual | Line Style | Use Case |
+|------|--------|------------|----------|
+| **Identifying** | Solid line + filled dot | ─────● | Child depends on parent for identity |
+| **Non-Identifying** | Dashed line + hollow dot | - - - ○ | Child can exist independently |
+| **Sub-Type** | Special notation | ─────▷ | Inheritance/categorization |
+| **Many-to-Many** | N:M notation | ●─────● | Junction table relationships |
+
+---
+
+### Workflow 3: Using AI to Modify Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         AI-ASSISTED EDITING WORKFLOW                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  User: "Add a table called Inventory with columns product_id, quantity,
+         warehouse_id, and last_updated"
+
+  ┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+  │   Step 1    │────▶│   Step 2    │────▶│   Step 3    │────▶│   Step 4    │
+  │ Open Chat   │     │Send Command │     │ AI Processes│     │   Execute   │
+  └─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
+        │                   │                   │                   │
+        ▼                   ▼                   ▼                   ▼
+  Click AI Chat        Type natural        AI generates       Table appears
+  button (💬)          language request    AIAction payload   on canvas
+```
+
+**AI Can Execute:**
+- Add/Update/Delete Tables
+- Add/Update/Delete Columns
+- Add/Delete Relationships
+- Add/Delete Indexes
+- Modify table properties
+
+---
+
+<a name="diagrammer-ui-elements"></a>
+## UI Elements
+
+### Top Toolbar
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ [Diagram View] [Quick Editor] [Properties]  │  View: [Entity View ▼]       │
+│                                              │  Model: [Physical ▼]         │
+│ [🔓 Unlocked ▼]                             │  [🌙]                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+| Element | Type | Options/Function |
+|---------|------|------------------|
+| **View Mode Tabs** | Tab Group | Diagram View, Quick Editor, Properties |
+| **View Type Dropdown** | Dropdown | Entity, Column, Key, Icons, Definition |
+| **Model Type Toggle** | Toggle | Physical / Logical |
+| **Lock Dropdown** | Dropdown | Unlocked, Existence, Shared, Update, Exclusive |
+| **Theme Toggle** | Button | Dark / Light mode |
+
+### Lock Types Explained
+
+| Lock | Icon Color | Behavior |
+|------|------------|----------|
+| **Unlocked** | Default | Full editing enabled |
+| **Existence Lock** | Green | Prevents deletion, allows edits |
+| **Shared Lock** | Blue | Read-only mode |
+| **Update Lock** | Orange | Limited updates allowed |
+| **Exclusive Lock** | Red | No modifications allowed |
+
+### Left Panel - Model Explorer
+
+```
+┌─────────────────────────────┐
+│  🔍 Search...               │
+├─────────────────────────────┤
+│  ▼ 🗄️ Model                 │
+│    ▼ 📁 Subject Areas       │
+│    ▼ 📁 Domains             │
+│    ▼ 📁 Tables              │
+│      ▼ 📋 Users             │
+│        ├─ #️⃣ Columns (4)    │
+│        ├─ 🔑 Keys           │
+│        ├─ 📊 Indexes        │
+│        └─ ⚠️ Constraints    │
+│      ▶ 📋 Orders            │
+│      ▶ 📋 Products          │
+│    ▶ 🔗 Relationships       │
+└─────────────────────────────┘
+```
+
+| Element | Function |
+|---------|----------|
+| **Search Bar** | Filter all tree items by name |
+| **Model Node** | Root container for all objects |
+| **Tables Folder** | Contains all table definitions |
+| **Table Item** | Expandable to show columns, keys, indexes |
+| **Relationships Folder** | Lists all defined relationships |
+| **Chevron Icons** | Expand/collapse tree nodes |
+
+### Canvas Elements
+
+| Element | Appearance | Function |
+|---------|------------|----------|
+| **Table Node** | Rectangular card with header | Represents database table |
+| **Column List** | Rows inside table | Shows columns with types |
+| **PK Indicator** | 🔑 icon | Marks primary key columns |
+| **FK Indicator** | 🔗 icon | Marks foreign key columns |
+| **Connection Points** | Colored dots on edges | Anchor points for relationships |
+| **Relationship Lines** | SVG paths | Visual connections between tables |
+| **Grid Background** | Dot pattern | Alignment reference (20px) |
+| **Minimap** | Small overview | Navigation aid for large diagrams |
+
+### Table Node Structure
+
+```
+┌──────────────────────────┐
+│  🗄️  TableName           │  ← Header with icon
+├──────────────────────────┤
+│  🔑 column_id    INT     │  ← Primary key column
+│     column_name  VARCHAR │  ← Regular column
+│  🔗 foreign_id   INT     │  ← Foreign key column
+│     created_at   DATETIME│
+└──────────────────────────┘
+     ●      ●      ●          ← Connection points (visible in relationship mode)
+```
+
+### Right Properties Panel
+
+```
+┌─────────────────────────────┐
+│  TABLE: Users               │
+├─────────────────────────────┤
+│ [General][Columns][Indexes] │
+│ [Constraints][Business]     │
+├─────────────────────────────┤
+│  ▼ GENERAL INFO             │
+│    Name: [Users_________]   │
+│    Schema: [dbo ▼]          │
+│    Type: [Disk Based ▼]     │
+│    Description: [_______]   │
+├─────────────────────────────┤
+│  ▼ COLUMNS                  │
+│    user_id (PK, INT)        │
+│    username (VARCHAR)       │
+│    email (VARCHAR)          │
+│    [+ Add Column]           │
+├─────────────────────────────┤
+│  ▶ KEYS (collapsed)         │
+│  ▶ INDEXES (collapsed)      │
+│  ▶ FOREIGN KEYS (collapsed) │
+└─────────────────────────────┘
+```
+
+### Canvas Controls Toolbar (Bottom)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  [−] [100%] [+]  │  [Fit]  [Auto]  │  [Grid] [Snap]  │  [Map] [Pan]        │
+│   Zoom Out/In    │ Fit/Layout      │ Grid/Snap       │ Minimap/Pan         │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+| Control | Function |
+|---------|----------|
+| **Zoom Out (−)** | Decrease zoom by 10% (min: 50%) |
+| **Zoom Level** | Shows current zoom percentage |
+| **Zoom In (+)** | Increase zoom by 10% (max: 200%) |
+| **Fit to Screen** | Adjust zoom to show all tables |
+| **Auto Layout** | Arrange tables in grid pattern |
+| **Toggle Grid** | Show/hide background grid |
+| **Snap to Grid** | Enable 20px alignment snapping |
+| **Minimap** | Show/hide overview minimap |
+| **Pan Mode** | Enable hand tool for canvas panning |
+
+---
+
+<a name="diagrammer-canvas-features"></a>
+## Canvas Features
+
+### Zoom & Navigation
+
+| Feature | Range/Behavior |
+|---------|----------------|
+| **Zoom Range** | 50% - 200% |
+| **Zoom Step** | 10% increments |
+| **Default Zoom** | 100% |
+| **Fit to Screen** | Auto-calculates to show all tables |
+| **Pan Mode** | Click and drag to move viewport |
+| **Scroll Wheel** | (Standard browser zoom) |
+
+### Grid System
+
+```
+Grid Configuration:
+├── Pattern: Radial gradient dots
+├── Size: 20px × 20px
+├── Color (Dark): #3A3A3A
+├── Color (Light): #D1D5DB
+└── Snap Resolution: 20px alignment
+```
+
+### Auto-Layout Algorithm
+
+```
+Grid Arrangement:
+├── Columns: √(tableCount) rounded up
+├── Spacing: 300px horizontal, 300px vertical
+├── Start Position: (100, 100)
+└── Formula:
+    x = (index % columns) × 300 + 100
+    y = floor(index / columns) × 300 + 100
+```
+
+### Minimap
+
+```
+┌────────────────┐
+│  ·  ·  ·       │  ← Tables as dots
+│     ·     ·    │
+│  ·             │
+│           ·    │
+│  [viewport]    │  ← Current view area
+└────────────────┘
+  Position: Bottom-right
+  Scale: Canvas size ÷ 2000
+```
+
+---
+
+<a name="diagrammer-table-management"></a>
+## Table Management
+
+### Table Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| **Name** | String | Table identifier |
+| **Schema** | Dropdown | dbo, public, sales, hr, inventory |
+| **Table Type** | Dropdown | Disk Based, Memory Optimized, File Table |
+| **Description** | Text | Documentation text |
+| **Filegroup** | String | Storage filegroup name |
+| **Lock Escalation** | Dropdown | AUTO, TABLE, DISABLE |
+
+### Column Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| **Name** | String | Column identifier |
+| **Data Type** | Dropdown | 25+ SQL Server types |
+| **Primary Key** | Checkbox | Part of primary key |
+| **Nullable** | Checkbox | Allows NULL values |
+| **Default Value** | String | Default value expression |
+| **Is FK** | Checkbox | Foreign key reference |
+| **Description** | Text | Column documentation |
+| **Is Row GUID** | Checkbox | ROWGUIDCOL property |
+| **Is Sparse** | Checkbox | SPARSE column |
+| **Is Hidden** | Checkbox | Hidden column |
+| **Collation** | String | Text collation setting |
+| **Encryption Type** | Dropdown | Column encryption |
+
+### Supported Data Types
+
+```
+Numeric:        INT, BIGINT, SMALLINT, TINYINT, BIT
+                DECIMAL, NUMERIC, MONEY, SMALLMONEY, FLOAT, REAL
+
+Date/Time:      DATE, TIME, DATETIME, DATETIME2, SMALLDATETIME, DATETIMEOFFSET
+
+String:         CHAR, VARCHAR, TEXT, NCHAR, NVARCHAR, NTEXT
+
+Binary:         BINARY, VARBINARY, IMAGE
+
+Special:        UNIQUEIDENTIFIER, XML, JSON
+```
+
+### Index Management
+
+| Property | Options |
+|----------|---------|
+| **Name** | User-defined index name |
+| **Columns** | Multi-select from table columns |
+| **Is Unique** | Checkbox for unique constraint |
+| **Type** | CLUSTERED, NONCLUSTERED, HASH |
+
+### Constraint Types
+
+| Type | Description |
+|------|-------------|
+| **CHECK** | Validates column values against expression |
+| **UNIQUE** | Ensures column uniqueness |
+| **DEFAULT** | Specifies default value |
+
+### Foreign Key Configuration
+
+| Property | Options |
+|----------|---------|
+| **Name** | FK constraint name |
+| **Column** | Source column |
+| **Referenced Table** | Target table |
+| **Referenced Column** | Target column |
+| **On Delete** | CASCADE, SET NULL, NO ACTION, RESTRICT |
+| **On Update** | CASCADE, SET NULL, NO ACTION, RESTRICT |
+
+---
+
+<a name="diagrammer-relationship-management"></a>
+## Relationship Management
+
+### Relationship Structure
+
+```typescript
+interface Relationship {
+  id: string;                    // Unique identifier
+  fromTable: string;             // Parent table ID
+  toTable: string;               // Child table ID
+  type: '1:1' | '1:N' | 'N:M';  // Cardinality
+  relationshipType: 'identifying' | 'non-identifying' | 'sub-type' | 'many-to-many';
+  fromSide: 'top' | 'right' | 'bottom' | 'left';
+  toSide: 'top' | 'right' | 'bottom' | 'left';
+}
+```
+
+### Cardinality Types
+
+| Type | Notation | Description |
+|------|----------|-------------|
+| **One-to-One** | 1:1 | Single record matches single record |
+| **One-to-Many** | 1:N | Single parent, multiple children |
+| **Many-to-Many** | N:M | Multiple-to-multiple (junction table) |
+
+### IDEF1X Visual Notation
+
+```
+IDENTIFYING RELATIONSHIP (Solid line):
+┌─────────┐                  ┌─────────┐
+│ Parent  │─────────────────●│  Child  │
+│         │                  │  (PK)   │
+└─────────┘                  └─────────┘
+                             ↑ Filled dot = "many"
+
+NON-IDENTIFYING RELATIONSHIP (Dashed line):
+┌─────────┐                  ┌─────────┐
+│ Parent  │- - - - - - - - ○│  Child  │
+│         │                  │         │
+└─────────┘                  └─────────┘
+                             ↑ Hollow dot = "many"
+
+CROW'S FOOT NOTATION:
+    ──────●  = One (mandatory)
+    ──────○  = One (optional)
+    ────<●   = Many (mandatory)
+    ────<○   = Many (optional)
+```
+
+### Creating Relationships (Step-by-Step)
+
+1. **Select Relationship Tool** from toolbar
+2. **Choose Relationship Type** from dropdown (identifying, non-identifying, etc.)
+3. **Click Connection Point** on parent table (dot highlights green)
+4. **Click Connection Point** on child table
+5. **Relationship Created** - SVG line renders with proper notation
+6. **Edit Properties** in right panel if needed
+
+---
+
+<a name="diagrammer-ai-integration"></a>
+## AI Integration
+
+### Context Provided to AI
+
+When AI Chat is open on the Diagrammer page, it receives full diagram context:
+
+```typescript
+interface DiagramContext {
+  tables: {
+    id: string;
+    name: string;
+    columns: { name: string; dataType: string; isPK: boolean; isFK: boolean; }[];
+  }[];
+  relationships: {
+    fromTable: string;
+    toTable: string;
+    type: string;
+    relationshipType: string;
+  }[];
+  selectedTableId: string | null;
+  selectedTableName: string | null;
+  modelType: 'physical' | 'logical';
+  totalTables: number;
+  totalRelationships: number;
+}
+```
+
+### Supported AI Actions
+
+| Action | Description | Example Command |
+|--------|-------------|-----------------|
+| **addTable** | Create new table with columns | "Add a Users table with id, name, email" |
+| **updateTable** | Modify table properties | "Rename Users to Customers" |
+| **deleteTable** | Remove table and relationships | "Delete the TempData table" |
+| **addColumn** | Add column to existing table | "Add a phone column to Users" |
+| **updateColumn** | Modify column properties | "Make email column non-nullable" |
+| **deleteColumn** | Remove column from table | "Remove the legacy_field column" |
+| **addRelationship** | Create relationship between tables | "Add a 1:N relationship from Users to Orders" |
+| **deleteRelationship** | Remove relationship | "Delete the relationship between X and Y" |
+| **addIndex** | Create index on columns | "Add an index on email column in Users" |
+| **deleteIndex** | Remove index | "Delete the idx_email index" |
+
+### Example AI Interactions
+
+**Create Table:**
+```
+User: "Create a Products table with product_id as primary key,
+       name, price, and category_id as foreign key"
+
+AI Response: Creates table with:
+- product_id (INT, PK)
+- name (VARCHAR)
+- price (DECIMAL)
+- category_id (INT, FK)
+```
+
+**Add Relationship:**
+```
+User: "Add a one-to-many identifying relationship from
+       Categories to Products"
+
+AI Response: Creates relationship:
+- From: Categories
+- To: Products
+- Type: 1:N
+- Relationship: identifying
+```
+
+**Analyze Structure:**
+```
+User: "What tables reference the Users table?"
+
+AI Response: Analyzes relationships and lists:
+- Orders (via user_id FK)
+- Comments (via author_id FK)
+- Sessions (via user_id FK)
+```
+
+---
+
+### Quick Editor Panel
+
+The Quick Editor provides a tabular interface for rapid editing:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  QUICK EDITOR                                                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  🔍 Search tables...           [Card View] [List View]    Sort: [Name ▼]   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌───────────────────┐  ┌───────────────────┐  ┌───────────────────┐       │
+│  │ 📋 Users          │  │ 📋 Orders         │  │ 📋 Products       │       │
+│  │ 4 columns         │  │ 5 columns         │  │ 6 columns         │       │
+│  │ [Edit] [Delete]   │  │ [Edit] [Delete]   │  │ [Edit] [Delete]   │       │
+│  └───────────────────┘  └───────────────────┘  └───────────────────┘       │
+│                                                                             │
+│                         [+ Add New Table]                                   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Editor Tabs (when table selected):**
+
+| Tab | Contents |
+|-----|----------|
+| **Columns** | Column list with add/edit/delete |
+| **Indexes** | Index definitions |
+| **Foreign Keys** | FK relationships |
+| **Constraints** | CHECK, UNIQUE, DEFAULT |
+| **Business Terms** | Metadata tagging |
+| **Triggers** | Trigger documentation |
+| **UDP** | User-defined properties |
+| **Where Used** | Dependency analysis |
+
+---
+
+<a name="diagrammer-benefits"></a>
+## Benefits
+
+### For Database Designers
+
+| Benefit | Description |
+|---------|-------------|
+| **Visual Design** | Intuitive drag-and-drop interface for schema design |
+| **IDEF1X Notation** | Industry-standard relationship visualization |
+| **Multi-View** | Switch between Entity, Column, Key views |
+| **Physical/Logical** | Design at appropriate abstraction level |
+| **Documentation** | Built-in descriptions, business terms |
+
+### For Data Architects
+
+| Benefit | Description |
+|---------|-------------|
+| **Model Explorer** | Hierarchical view of entire model |
+| **Relationship Clarity** | Visual cardinality indicators |
+| **Constraint Management** | Define and visualize data integrity rules |
+| **Index Planning** | Visual index design for performance |
+| **Lock Controls** | Prevent accidental modifications |
+
+### For Development Teams
+
+| Benefit | Description |
+|---------|-------------|
+| **AI Assistance** | Natural language commands for schema changes |
+| **Quick Editor** | Rapid bulk editing capabilities |
+| **Auto-Save** | Never lose work with 2-second auto-save |
+| **Dark Mode** | Comfortable for extended editing sessions |
+| **Keyboard Shortcuts** | Ctrl+S save, Escape cancel |
+
+### For Collaboration
+
+| Benefit | Description |
+|---------|-------------|
+| **Lock Types** | 5 lock levels for access control |
+| **Visual Communication** | Share diagrams for design reviews |
+| **Consistent Notation** | Standard IDEF1X for universal understanding |
+| **Minimap Navigation** | Easy orientation in large models |
+
+### Key Feature Benefits
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  FEATURE                          │  BENEFIT                                │
+├───────────────────────────────────┼─────────────────────────────────────────┤
+│  Drag-and-drop tables             │  Intuitive visual positioning           │
+│  Connection points                │  Easy relationship creation             │
+│  IDEF1X notation                  │  Industry-standard visualization        │
+│  4 relationship types             │  Model any database pattern             │
+│  25+ data types                   │  Full SQL Server support                │
+│  AI integration                   │  Natural language editing               │
+│  Auto-save                        │  Never lose work                        │
+│  Grid & snap                      │  Professional diagram alignment         │
+│  Minimap                          │  Navigate large models easily           │
+│  Quick Editor                     │  Rapid bulk changes                     │
+│  5 lock types                     │  Team collaboration control             │
+│  Dark/Light themes                │  Comfortable for all users              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+<a name="diagrammer-usage-examples"></a>
+## Usage Examples
+
+### Example 1: Design E-Commerce Schema
+
+**Scenario:** Create a basic e-commerce database schema from scratch.
+
+**Steps:**
+1. Open **Diagrammer** from sidebar
+2. Click **+** to add first table
+3. Name it `Users`, add columns:
+   - user_id (INT, PK)
+   - username (VARCHAR(50))
+   - email (VARCHAR(100))
+   - created_at (DATETIME)
+4. Add second table `Products`:
+   - product_id (INT, PK)
+   - name (VARCHAR(255))
+   - price (DECIMAL(10,2))
+5. Add third table `Orders`:
+   - order_id (INT, PK)
+   - user_id (INT, FK)
+   - total (DECIMAL(10,2))
+   - order_date (DATETIME)
+6. Select **Relationship Tool**
+7. Create 1:N from Users to Orders (identifying)
+8. Click **Auto Layout** for clean arrangement
+9. Auto-save preserves your work
+
+**Result:**
+```
+┌─────────┐     ┌─────────┐     ┌─────────┐
+│  Users  │────▶│ Orders  │     │Products │
+└─────────┘     └─────────┘     └─────────┘
+```
+
+---
+
+### Example 2: Use AI to Add Tables
+
+**Scenario:** Quickly add a complex table using natural language.
+
+**Steps:**
+1. Open **Diagrammer**
+2. Click **AI Chat** button (💬)
+3. Type: "Add an Inventory table with inventory_id as primary key, product_id as foreign key to Products, quantity as integer, warehouse_id as integer, and last_updated as datetime"
+4. Click **Send**
+5. AI creates the table with all columns
+6. Click **Execute Actions** if prompted
+7. Table appears on canvas
+8. Drag to desired position
+
+**AI Response:**
+```
+I'll create an Inventory table with the specified columns.
+
+[Execute Actions]
+
+Created:
+- inventory_id (INT, PK)
+- product_id (INT, FK → Products)
+- quantity (INT)
+- warehouse_id (INT)
+- last_updated (DATETIME)
+```
+
+---
+
+### Example 3: Bulk Edit with Quick Editor
+
+**Scenario:** Add multiple columns to several tables efficiently.
+
+**Steps:**
+1. Click **Quick Editor** tab in top toolbar
+2. View all tables in card/list view
+3. Click **Edit** on Users table
+4. Switch to **Columns** tab
+5. Click **Add Column** multiple times:
+   - phone (VARCHAR(20))
+   - address (VARCHAR(255))
+   - is_active (BIT)
+6. Click **Save**
+7. Click **Back** to table list
+8. Repeat for other tables
+9. Switch to **Indexes** tab
+10. Add index on email column
+11. All changes auto-save
+
+---
+
+### Example 4: Configure Foreign Keys
+
+**Scenario:** Set up referential integrity with cascade options.
+
+**Steps:**
+1. Select `Orders` table on canvas
+2. Open **Properties Panel** (right side)
+3. Click **Foreign Keys** accordion
+4. Click **Add Foreign Key**
+5. Configure:
+   - Name: `FK_Orders_Users`
+   - Column: `user_id`
+   - Referenced Table: `Users`
+   - Referenced Column: `user_id`
+   - On Delete: `CASCADE`
+   - On Update: `CASCADE`
+6. Click **Save**
+7. Relationship updates with FK indicator
+
+---
+
+### Example 5: Apply Lock for Review
+
+**Scenario:** Lock model for team review before deployment.
+
+**Steps:**
+1. Open model in **Diagrammer**
+2. Click **Lock Dropdown** (🔓 Unlocked)
+3. Select **Shared Lock** (blue)
+4. Model enters read-only mode
+5. Share with team for review
+6. Team can view but not edit
+7. After approval, select **Unlocked** to resume editing
+
+**Lock States:**
+```
+🔓 Unlocked     → Full editing
+🟢 Existence    → No deletions
+🔵 Shared       → Read-only
+🟠 Update       → Limited edits
+🔴 Exclusive    → Completely locked
+```
+
+---
+
+## Quick Reference
+
+### Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl/Cmd + S` | Save changes |
+| `Escape` | Cancel current operation |
+| `Delete` | Delete selected element |
+| `Click + Drag` | Move table |
+| `Double-click` | Edit table name |
+
+### Common Tasks
+
+| Task | Method |
+|------|--------|
+| Add table | Click + button or toolbar |
+| Add column | Quick Editor → Columns → Add |
+| Create relationship | Relationship tool → Click parent → Click child |
+| Delete table | Select → Delete key or context menu |
+| Zoom | Controls at bottom or scroll wheel |
+| Search | Model Explorer search bar |
+| Auto-arrange | Click Auto Layout in controls |
+
+---
+
 ## Quick Reference
 
 ### Comparison: Reverse vs Forward Engineering
@@ -1910,9 +2754,10 @@ tables:
 
 ---
 
-*Document Version: 1.1*
+*Document Version: 1.2*
 *Last Updated: January 2026*
 *Feature Locations:*
 - *Complete Compare: `src/components/CompleteCompare.tsx`, `CompleteCompare2.tsx`, `QuickCompare.tsx`*
 - *Reverse Engineering: `src/components/ReverseEngineeringNew.tsx`*
 - *Forward Engineering: `src/components/FabricForwardEngineering.tsx`, `ForwardEngineeringNew.tsx`*
+- *Diagrammer: `src/components/Diagrammer.tsx`, `QuickEditorNew.tsx`*
