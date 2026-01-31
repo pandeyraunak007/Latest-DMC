@@ -40,6 +40,16 @@
    - [Benefits](#diagrammer-benefits)
    - [Usage Examples](#diagrammer-usage-examples)
 
+5. [Homepage](#homepage)
+   - [Overview](#homepage-overview)
+   - [Layout & Zones](#homepage-layout)
+   - [My Work Section](#homepage-my-work)
+   - [Activity Feed](#homepage-activity-feed)
+   - [Quick Actions](#homepage-quick-actions)
+   - [AI Insights Panel](#homepage-ai-insights)
+   - [Benefits](#homepage-benefits)
+   - [Usage Examples](#homepage-usage-examples)
+
 ---
 
 # Complete Compare
@@ -2730,6 +2740,599 @@ Created:
 
 ---
 
+---
+
+# Homepage
+
+<a name="homepage-overview"></a>
+## Overview
+
+**Homepage** is the central command center and daily starting point for DMC users. It provides a comprehensive dashboard experience with quick access to recent work, team activity, AI-powered insights, and primary actions—all in one unified interface.
+
+The Homepage is organized into distinct zones:
+
+| Zone | Component | Purpose |
+|------|-----------|---------|
+| **Header** | Greeting Banner | Personalized welcome with time-based greeting |
+| **Zone 1** | Quick Actions Bar | 5 primary action buttons for common workflows |
+| **Zone 2** | My Work Section | Recent, Drafts, and Pinned models with tabs |
+| **Zone 3** | Activity Feed | Team collaboration and change notifications |
+| **Zone 4** | AI Insights Panel | Smart suggestions and natural language search |
+
+**Key Capabilities:**
+- Resume last editing session instantly
+- Pin up to 10 important models for quick access
+- Track team activity with filtered notifications
+- Receive AI-powered optimization suggestions
+- Navigate to any feature with one click
+
+---
+
+<a name="homepage-layout"></a>
+## Layout & Zones
+
+### Complete Layout Structure
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  HEADER                                                                      │
+│  Good morning, Data Architect 👋                                            │
+│  Welcome back! Here's what's happening with your data models.               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  QUICK ACTIONS BAR (Full Width)                                             │
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐               │
+│  │   New   │ │ Import  │ │ Import  │ │Generate │ │ Compare │               │
+│  │  Model  │ │ from DB │ │   DDL   │ │   DDL   │ │         │               │
+│  │ (violet)│ │ (blue)  │ │(emerald)│ │ (amber) │ │(purple) │               │
+│  └─────────┘ └─────────┘ └─────────┘ └─────────┘ └─────────┘               │
+│                                                                             │
+├──────────────────────────────────────────────┬──────────────────────────────┤
+│                                              │                              │
+│  MY WORK SECTION                             │  AI INSIGHTS PANEL           │
+│  ┌────────────────────────────────────────┐  │  ┌────────────────────────┐  │
+│  │ [Recent] [Drafts & Reviews] [Pinned]  │  │  │ 🧠 AI Insights         │  │
+│  ├────────────────────────────────────────┤  │  │ Powered by AI          │  │
+│  │                                        │  │  ├────────────────────────┤  │
+│  │  ┌─ Continue Editing ──────────────┐  │  │  │ 🔍 Ask AI...           │  │
+│  │  │ ▶ E-Commerce Platform v2.1      │  │  │  ├────────────────────────┤  │
+│  │  │   Continue where you left off   │  │  │  │                        │  │
+│  │  └─────────────────────────────────┘  │  │  │ ⚡ Normalize Customer   │  │
+│  │                                        │  │  │    Address (HIGH)      │  │
+│  │  📋 E-Commerce Platform    [Active]   │  │  │    [Accept][Dismiss]   │  │
+│  │     /projects/ecom • 42 entities      │  │  │                        │  │
+│  │                                        │  │  │ 📊 Add Index on        │  │
+│  │  📋 Customer Analytics    [In-review] │  │  │    OrderDate (MEDIUM)  │  │
+│  │     /projects/analytics • 28 entities │  │  │    [Accept][Dismiss]   │  │
+│  │                                        │  │  │                        │  │
+│  │  📋 User Management       [Draft]     │  │  │ 📝 Rename tbl_usr      │  │
+│  │     /projects/users • 12 entities     │  │  │    to Users (LOW)      │  │
+│  │                                        │  │  │    [Accept][Dismiss]   │  │
+│  └────────────────────────────────────────┘  │  │                        │  │
+│                                              │  ├────────────────────────┤  │
+│  ACTIVITY & COLLABORATION                    │  │ [🤖 Open AI Chat]      │  │
+│  ┌────────────────────────────────────────┐  │  └────────────────────────┘  │
+│  │ All│Mentions│Reviews│Comments│Changes │  │                              │
+│  ├────────────────────────────────────────┤  │                              │
+│  │ @ Sarah M. mentioned you         10m  │  │                              │
+│  │   E-Commerce Platform      [Resolve]  │  │                              │
+│  │                                        │  │                              │
+│  │ 👁 Mike R. requested review       1h  │  │                              │
+│  │   Payment Processing       [Review]   │  │                              │
+│  │                                        │  │                              │
+│  │ ⚠ Version conflict detected      2h  │  │                              │
+│  │   User Management         [Resolve]   │  │                              │
+│  └────────────────────────────────────────┘  │                              │
+│                                              │                              │
+└──────────────────────────────────────────────┴──────────────────────────────┘
+```
+
+### Responsive Breakpoints
+
+| Breakpoint | Quick Actions | Main Grid |
+|------------|---------------|-----------|
+| **Desktop (xl+)** | 5 columns | 2/3 + 1/3 split |
+| **Tablet (lg)** | 5 columns | Stacked |
+| **Mobile (sm)** | 2-3 columns | Single column |
+
+---
+
+<a name="homepage-my-work"></a>
+## My Work Section
+
+### Continue Editing Banner
+
+A prominent banner at the top helps users resume their last session:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  ▶  E-Commerce Platform v2.1                                                │
+│     Continue where you left off                          [Continue Editing] │
+│                                                                             │
+│  Background: Gradient from violet to purple                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Three-Tab System
+
+| Tab | Content | Filter Logic |
+|-----|---------|--------------|
+| **Recent** | Last 10 accessed models | Sorted by modification time |
+| **Drafts & Reviews** | Work in progress | Status = 'draft' OR 'in-review' |
+| **Pinned** | User's favorites | Max 10, user-controlled |
+
+### Model Card Structure
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  🗄️  E-Commerce Platform v2.1                              [Active]        │
+│                                                                             │
+│  📁 /projects/ecommerce                                                    │
+│  42 entities  •  📅 2 hours ago  •  Edited by You                          │
+│                                                                    ⭐ [···] │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Model Status Badges
+
+| Status | Color | Background | Use Case |
+|--------|-------|------------|----------|
+| **Draft** | Amber | `bg-amber-500/20` | Work in progress |
+| **In-review** | Blue | `bg-blue-500/20` | Awaiting approval |
+| **Approved** | Emerald | `bg-emerald-500/20` | Ready for deployment |
+| **Active** | Violet | `bg-violet-500/20` | In production |
+
+### Pin Functionality
+
+| Feature | Behavior |
+|---------|----------|
+| **Max Pinned** | 10 models |
+| **Pin Icon** | Star (outline when unpinned, filled amber when pinned) |
+| **Toggle** | Click to pin/unpin |
+| **Counter** | Tab shows "Pinned (3/10)" |
+| **Persistence** | Currently client-side only |
+
+### Mock Model Data
+
+| Model | Status | Entities | Last Modified |
+|-------|--------|----------|---------------|
+| E-Commerce Platform v2.1 | Active | 42 | 2 hours ago |
+| Customer Analytics Schema | In-review | 28 | 5 hours ago |
+| User Management System | Draft | 12 | 1 day ago |
+| Inventory Tracking DB | Approved | 35 | 2 days ago |
+| Payment Processing Model | Active | 18 | 3 days ago |
+| Reporting Data Warehouse | In-review | 56 | 1 week ago |
+
+---
+
+<a name="homepage-activity-feed"></a>
+## Activity Feed
+
+### Activity Types
+
+| Type | Icon | Color | Description |
+|------|------|-------|-------------|
+| **Mention** | @ | Violet | Someone mentioned you in a comment |
+| **Review** | Eye | Blue | Review request on a model |
+| **Conflict** | Alert Triangle | Red | Version conflict detected |
+| **Change** | Git Branch | Emerald | Entity modifications by team |
+| **Comment** | Message Square | Amber | Comments on your changes |
+
+### Activity Card Structure
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  @ Sarah M. mentioned you in a comment                            10 min   │
+│    E-Commerce Platform                                          [Resolve]  │
+│                                                                        ●   │
+└─────────────────────────────────────────────────────────────────────────────┘
+  │                                                                      │
+  └─ Activity description with user name                    Unread dot ─┘
+```
+
+### Filter System
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  [All] [Mentions] [Reviews] [Comments] [Changes]          Mark all read    │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+| Filter | Shows |
+|--------|-------|
+| **All** | All activity types (default) |
+| **Mentions** | Only @mentions |
+| **Reviews** | Only review requests |
+| **Comments** | Only comment notifications |
+| **Changes** | Only change notifications |
+
+### Unread Indicators
+
+| Indicator | Location | Style |
+|-----------|----------|-------|
+| **Badge Counter** | Header | Red circle with number |
+| **Row Highlight** | Activity row | Violet tint background |
+| **Blue Dot** | Right side of row | Small circle indicator |
+
+### Action Buttons
+
+| Activity Type | Button | Action |
+|---------------|--------|--------|
+| **Conflict** | "Resolve" (Red) | Navigate to conflict resolution |
+| **Review** | "Review" (Blue) | Navigate to model for review |
+| **Others** | None | Click to mark as read |
+
+### Mock Activity Data
+
+| Type | User | Action | Model | Time | Status |
+|------|------|--------|-------|------|--------|
+| Mention | Sarah M. | mentioned you | E-Commerce Platform | 10 min | Unread |
+| Review | Mike R. | requested review | Payment Processing | 1h | Unread |
+| Conflict | System | detected conflict | User Management | 2h | Unread |
+| Change | Lisa K. | added 3 entities | Inventory Tracking | 3h | Read |
+| Comment | John D. | commented | Customer Analytics | 5h | Read |
+| Change | Sarah M. | modified relationships | E-Commerce Platform | 1 day | Read |
+
+---
+
+<a name="homepage-quick-actions"></a>
+## Quick Actions Bar
+
+### Five Primary Actions
+
+```
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                                                                               │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐
+│  │     ➕      │  │     🗄️      │  │     📤      │  │     📥      │  │     ⚖️      │
+│  │  New Model  │  │Import from  │  │ Import DDL │  │Generate DDL │  │   Compare   │
+│  │             │  │     DB      │  │             │  │             │  │             │
+│  │   Create    │  │  Reverse    │  │   Upload    │  │   Forward   │  │ Side-by-side│
+│  │   new data  │  │  engineer   │  │    SQL      │  │ engineering │  │    diff     │
+│  │    model    │  │  database   │  │   script    │  │             │  │             │
+│  │             │  │             │  │             │  │             │  │             │
+│  │   VIOLET    │  │    BLUE     │  │   EMERALD   │  │    AMBER    │  │   PURPLE    │
+│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘
+│                                                                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Action Details
+
+| # | Icon | Label | Description | Color | Navigates To |
+|---|------|-------|-------------|-------|--------------|
+| 1 | Plus | New Model | Create Logical/Physical/Conceptual model | Violet | `model-explorer` |
+| 2 | Database | Import from DB | Reverse engineer existing database | Blue | `reverse-engineering` |
+| 3 | Upload | Import DDL | Upload and parse SQL script | Emerald | *(not implemented)* |
+| 4 | Download | Generate DDL | Forward engineering to SQL | Amber | `forward-engineering` |
+| 5 | Scale | Compare | Compare two models side-by-side | Purple | `complete-compare-2` |
+
+### Visual Design
+
+| Property | Value |
+|----------|-------|
+| **Grid** | Responsive: 2 cols (mobile) → 3 cols (tablet) → 5 cols (desktop) |
+| **Padding** | 16px (p-4) |
+| **Border Radius** | 12px (rounded-xl) |
+| **Border** | 1px with color-specific opacity |
+| **Hover** | Background opacity increases |
+| **Transition** | 200ms duration |
+
+---
+
+<a name="homepage-ai-insights"></a>
+## AI Insights Panel
+
+### Panel Header
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  ✨ AI Insights                                        🧠 Powered by AI    │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Natural Language Search
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  🔍 Ask AI: "Find all tables with customer data" or "Show relationships..." │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+| Feature | Description |
+|---------|-------------|
+| **Placeholder** | Suggests example queries |
+| **Icon** | Search icon on left |
+| **Focus** | Violet ring on focus |
+| **Action** | Triggers AI search (connected to AI Chat) |
+
+### Suggestion Types
+
+| Type | Icon | Color | Description |
+|------|------|-------|-------------|
+| **Normalization** | Database | Violet | Data structure optimization |
+| **Indexing** | Zap | Amber | Performance improvements |
+| **Naming** | FileText | Blue | Convention compliance |
+| **Documentation** | BookOpen | Emerald | Missing documentation |
+
+### Priority Levels
+
+| Priority | Color | Background |
+|----------|-------|------------|
+| **High** | Red | `bg-red-500/10 text-red-500` |
+| **Medium** | Amber | `bg-amber-500/10 text-amber-500` |
+| **Low** | Blue | `bg-blue-500/10 text-blue-500` |
+
+### Suggestion Card Structure
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  🗄️  Normalize Customer Address                              [HIGH]        │
+│      Split address fields into separate table                               │
+│      for better data integrity                                              │
+│      Model: E-Commerce Platform                                             │
+│                                                                             │
+│                              [👍 Accept]  [👎 Dismiss]  [Defer]            │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Suggestion Actions
+
+| Action | Icon | Effect |
+|--------|------|--------|
+| **Accept** | Thumbs Up (green) | Removes from list, implies implementation |
+| **Dismiss** | Thumbs Down (gray) | Removes from list, rejects suggestion |
+| **Defer** | Text only | Keeps visible for later review |
+
+### Mock Suggestions
+
+| Title | Type | Priority | Model |
+|-------|------|----------|-------|
+| Normalize Customer Address | Normalization | High | E-Commerce Platform |
+| Add Index on OrderDate | Indexing | Medium | E-Commerce Platform |
+| Rename tbl_usr to Users | Naming | Low | User Management |
+| Add description to Payment table | Documentation | Medium | Payment Model |
+
+### Open AI Chat Button
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     🤖 Open AI Chat                                         │
+│                                                                             │
+│  Gradient: violet → purple                                                  │
+│  Full width button at bottom of panel                                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+<a name="homepage-benefits"></a>
+## Benefits
+
+### For Individual Users
+
+| Benefit | Description |
+|---------|-------------|
+| **Quick Resume** | Continue last work with one click |
+| **Organized Workspace** | Pin important models (max 10) |
+| **Task Prioritization** | See drafts and reviews separately |
+| **Reduced Navigation** | Access all features from one page |
+
+### For Team Collaboration
+
+| Benefit | Description |
+|---------|-------------|
+| **Activity Visibility** | See team changes in real-time |
+| **Mention Alerts** | Get notified when referenced |
+| **Review Workflow** | Easy access to pending reviews |
+| **Conflict Awareness** | Immediate notification of issues |
+
+### For Data Quality
+
+| Benefit | Description |
+|---------|-------------|
+| **AI Suggestions** | Automated optimization recommendations |
+| **Priority Guidance** | Know which issues are most important |
+| **Documentation Gaps** | Identify missing descriptions |
+| **Convention Compliance** | Catch naming issues early |
+
+### For Productivity
+
+| Benefit | Description |
+|---------|-------------|
+| **One-Click Actions** | All primary workflows accessible |
+| **Contextual Help** | AI search for answers |
+| **Filtering** | Focus on relevant activities |
+| **Visual Status** | Instant understanding via badges |
+
+### Key Feature Benefits
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  FEATURE                          │  BENEFIT                                │
+├───────────────────────────────────┼─────────────────────────────────────────┤
+│  Continue Editing banner          │  Resume work instantly                  │
+│  3-tab model organization         │  Find models by status/priority         │
+│  Pin functionality (max 10)       │  Quick access to important models       │
+│  Activity feed with filters       │  Stay updated on team changes           │
+│  5 quick action buttons           │  Launch any workflow in one click       │
+│  AI suggestions                   │  Proactive optimization guidance        │
+│  Natural language search          │  Ask questions in plain English         │
+│  Status badges                    │  Visual workflow status at a glance     │
+│  Unread indicators                │  Know what needs attention              │
+│  Responsive layout                │  Works on all device sizes              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+<a name="homepage-usage-examples"></a>
+## Usage Examples
+
+### Example 1: Resume Yesterday's Work
+
+**Scenario:** A data architect returns to continue modeling.
+
+**Steps:**
+1. Open DMC application
+2. Homepage loads as default
+3. See **Continue Editing** banner at top
+4. Banner shows "E-Commerce Platform v2.1"
+5. Click **Continue Editing** button
+6. Immediately opens Diagrammer with last model
+
+**Result:** Zero navigation required to resume work.
+
+---
+
+### Example 2: Pin Important Models
+
+**Scenario:** User wants quick access to frequently used models.
+
+**Steps:**
+1. View **Recent** tab in My Work section
+2. Find "Payment Processing Model"
+3. Hover over the model card
+4. Click **Star icon** (appears on hover)
+5. Star fills with amber color
+6. Switch to **Pinned** tab
+7. Model now appears in Pinned list
+8. Tab counter updates to show "Pinned (4/10)"
+
+**Result:** Model accessible in Pinned tab on future visits.
+
+---
+
+### Example 3: Handle Review Request
+
+**Scenario:** Team member requested a model review.
+
+**Steps:**
+1. See Activity Feed on homepage
+2. Notice unread indicator (blue dot) on review item
+3. Read: "Mike R. requested your review on Payment Processing Model"
+4. Click **Review** button
+5. Activity marked as read (dot disappears)
+6. Navigate to model for review
+
+**Result:** Review request handled with full context.
+
+---
+
+### Example 4: Resolve Version Conflict
+
+**Scenario:** System detected a conflict that needs resolution.
+
+**Steps:**
+1. Activity Feed shows conflict notification
+2. Red alert triangle indicates severity
+3. Message: "System detected version conflict in User Management System"
+4. Click **Resolve** button
+5. Navigate to conflict resolution interface
+6. Review conflicting changes
+7. Choose resolution strategy
+
+**Result:** Conflict addressed before it causes issues.
+
+---
+
+### Example 5: Accept AI Suggestion
+
+**Scenario:** AI recommends a database optimization.
+
+**Steps:**
+1. View AI Insights panel on right side
+2. See suggestion: "Add Index on OrderDate" (Medium priority)
+3. Read description: "Queries frequently filter by OrderDate"
+4. Click **Accept** button
+5. Suggestion disappears from panel
+6. (In production) Index would be added to model
+
+**Result:** Performance optimization applied with one click.
+
+---
+
+### Example 6: Filter Activity by Type
+
+**Scenario:** User wants to see only review-related activities.
+
+**Steps:**
+1. View Activity Feed
+2. Click **Reviews** filter button
+3. Button highlights (violet background)
+4. Feed updates to show only review activities
+5. Other activity types hidden
+6. Click **All** to reset filter
+
+**Result:** Focused view of review requests.
+
+---
+
+### Example 7: Start New Model
+
+**Scenario:** User needs to create a new data model.
+
+**Steps:**
+1. View Quick Actions Bar at top
+2. Click **New Model** button (violet)
+3. Navigate to Model Explorer
+4. Choose model type (Logical/Physical/Conceptual)
+5. Select template or start blank
+6. Open in Diagrammer
+
+**Result:** New model creation started from homepage.
+
+---
+
+### Example 8: Ask AI a Question
+
+**Scenario:** User wants to find tables containing customer data.
+
+**Steps:**
+1. View AI Insights panel
+2. Click search input
+3. Type: "Find all tables with customer data"
+4. Click **Open AI Chat** button
+5. AI Chat opens with query
+6. AI responds with list of relevant tables
+7. Click on table name to navigate
+
+**Result:** Information found without manual searching.
+
+---
+
+## Quick Reference
+
+### Homepage Zones
+
+| Zone | Component | Key Feature |
+|------|-----------|-------------|
+| Header | Greeting | Time-based personalization |
+| Quick Actions | 5 Buttons | One-click workflow access |
+| My Work | Tab Panel | Recent, Drafts, Pinned models |
+| Activity | Feed | Team collaboration tracking |
+| AI Insights | Panel | Smart suggestions + search |
+
+### Model Status Workflow
+
+```
+Draft → In-review → Approved → Active
+  │         │           │         │
+  └── Amber └── Blue   └─ Green  └── Violet
+```
+
+### Activity Priorities
+
+| Priority | Action Required |
+|----------|-----------------|
+| Conflicts (Red) | Resolve immediately |
+| Reviews (Blue) | Review when possible |
+| Mentions (Violet) | Check and respond |
+| Changes (Green) | Informational |
+| Comments (Amber) | Review feedback |
+
+---
+
 ## Quick Reference
 
 ### Comparison: Reverse vs Forward Engineering
@@ -2754,10 +3357,11 @@ Created:
 
 ---
 
-*Document Version: 1.2*
+*Document Version: 1.3*
 *Last Updated: January 2026*
 *Feature Locations:*
 - *Complete Compare: `src/components/CompleteCompare.tsx`, `CompleteCompare2.tsx`, `QuickCompare.tsx`*
 - *Reverse Engineering: `src/components/ReverseEngineeringNew.tsx`*
 - *Forward Engineering: `src/components/FabricForwardEngineering.tsx`, `ForwardEngineeringNew.tsx`*
 - *Diagrammer: `src/components/Diagrammer.tsx`, `QuickEditorNew.tsx`*
+- *Homepage: `src/components/Homepage.tsx`*
