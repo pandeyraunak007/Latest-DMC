@@ -276,6 +276,54 @@ const CompleteCompare2 = () => {
   const [comparisonResults, setComparisonResults] = useState<ComparisonObject[]>([]);
   const [showExportMenu, setShowExportMenu] = useState(false);
 
+  // Inline conflict / missing-item resolution state
+  // - 'left'  : use the left model's value (for conflict / different)
+  // - 'right' : use the right model's value (for conflict / different)
+  // - 'add'   : include the missing item in the merged model (for left-only / right-only)
+  // - 'skip'  : leave the missing item out of the merged model
+  type ResolutionChoice = 'left' | 'right' | 'add' | 'skip';
+  const [resolutions, setResolutions] = useState<Record<string, ResolutionChoice>>({});
+
+  const setResolution = (id: string, choice: ResolutionChoice) => {
+    setResolutions(prev => ({ ...prev, [id]: choice }));
+  };
+  const clearResolution = (id: string) => {
+    setResolutions(prev => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  };
+
+  const flattenResolvable = (objs: ComparisonObject[]): ComparisonObject[] => {
+    const out: ComparisonObject[] = [];
+    const walk = (arr: ComparisonObject[]) => {
+      arr.forEach(o => {
+        if (o.status !== 'equal') out.push(o);
+        if (o.children) walk(o.children);
+      });
+    };
+    walk(objs);
+    return out;
+  };
+  const allResolvable = flattenResolvable(comparisonResults);
+  const resolvedCount = allResolvable.filter(o => resolutions[o.id]).length;
+  const unresolvedCount = allResolvable.length - resolvedCount;
+  const allResolved = unresolvedCount === 0;
+
+  const bulkAddAllMissing = () => {
+    setResolutions(prev => {
+      const next = { ...prev };
+      allResolvable.forEach(o => {
+        if (!next[o.id] && (o.status === 'left-only' || o.status === 'right-only')) {
+          next[o.id] = 'add';
+        }
+      });
+      return next;
+    });
+  };
+  const resetAllResolutions = () => setResolutions({});
+
   // Mock data for model library
   const modelMart: Model[] = [
     { id: '1', name: 'Customer_Order_Model_v1', source: 'mart', entities: 8, relationships: 12 },
@@ -338,6 +386,22 @@ const CompleteCompare2 = () => {
               rightValue: { type: 'VARCHAR(255)', nullable: false },
               mergeValue: null
             },
+            // Column missing on right — clean "+ Add to Right" example
+            {
+              id: 'e-1-attr-phone',
+              name: 'Phone',
+              type: 'attribute',
+              status: 'left-only',
+              leftValue: { type: 'VARCHAR(20)', nullable: true }
+            },
+            // Column missing on left — clean "+ Add to Left" example
+            {
+              id: 'e-1-attr-loyalty',
+              name: 'LoyaltyPoints',
+              type: 'attribute',
+              status: 'right-only',
+              rightValue: { type: 'INT', nullable: false, default: 0 }
+            },
             // Primary Key
             {
               id: 'e-1-pk-1',
@@ -386,6 +450,22 @@ const CompleteCompare2 = () => {
           status: 'equal',
           expanded: false,
           children: []
+        },
+        // Entity: Payment — whole TABLE missing on left, clean one-click "+ Add to Left" example
+        {
+          id: 'e-payment',
+          name: 'Payment',
+          type: 'entity',
+          status: 'right-only',
+          rightValue: { columns: 4, primaryKey: 'PaymentID', note: 'Tracks payment transactions per order' }
+        },
+        // Entity: OrderHistory — whole TABLE missing on right, clean one-click "+ Add to Right" example
+        {
+          id: 'e-orderhistory',
+          name: 'OrderHistory',
+          type: 'entity',
+          status: 'left-only',
+          leftValue: { columns: 5, primaryKey: 'HistoryID', note: 'Audit log of order state changes' }
         }
       ]
     },
@@ -1737,14 +1817,43 @@ const CompleteCompare2 = () => {
     }
   };
 
-  const renderObjectRow = (obj: ComparisonObject, depth: number = 0) => {
+  // pane semantics:
+  //   'compare' — single tree (2-Pane Compare view): show inline action buttons
+  //   'left'    — left source pane in 3-Pane Merge: read-only view of LEFT model; right-only items are ghosted (not in left)
+  //   'merge'   — middle pane in 3-Pane Merge: this is where decisions live, show inline action buttons
+  //   'right'   — right source pane in 3-Pane Merge: read-only view of RIGHT model; left-only items are ghosted (not in right)
+  const renderObjectRow = (obj: ComparisonObject, depth: number = 0, pane: 'compare' | 'left' | 'merge' | 'right' = 'compare') => {
+    const choice = resolutions[obj.id];
+    const needsResolution = obj.status === 'conflict' || obj.status === 'different' || obj.status === 'left-only' || obj.status === 'right-only';
+    const showActions = pane === 'compare' || pane === 'merge';
+
+    // In source panes (left/right) ghost items that don't exist in this model
+    const ghosted =
+      (pane === 'left'  && obj.status === 'right-only') ||
+      (pane === 'right' && obj.status === 'left-only');
+
+    // Resolved badge styling
+    let resolvedBadge: { label: string; cls: string } | null = null;
+    if (choice === 'left')  resolvedBadge = { label: 'Using Left',          cls: 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300' };
+    if (choice === 'right') resolvedBadge = { label: 'Using Right',         cls: 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' };
+    if (choice === 'add')   resolvedBadge = { label: obj.status === 'left-only' ? 'Will add to Right' : 'Will add to Left', cls: 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300' };
+    if (choice === 'skip')  resolvedBadge = { label: 'Skipped',             cls: 'bg-gray-100 dark:bg-zinc-700 text-gray-600 dark:text-zinc-400' };
+
+    // Row tint when unresolved (only highlight in panes that show actions, so left/right stay calm)
+    const rowBg =
+      !showActions || !needsResolution || choice ? '' :
+      obj.status === 'conflict'   ? 'bg-red-50/40 dark:bg-red-950/10' :
+      obj.status === 'different'  ? 'bg-amber-50/30 dark:bg-amber-950/10' :
+      obj.status === 'left-only'  ? 'bg-blue-50/30 dark:bg-blue-950/10' :
+      obj.status === 'right-only' ? 'bg-blue-50/30 dark:bg-blue-950/10' : '';
+
     return (
-      <div key={obj.id}>
-        <button
+      <div key={`${pane}-${obj.id}`}>
+        <div
           onClick={() => setSelectedObject(obj)}
-          className={`w-full flex items-center gap-1.5 px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors text-left ${
-            selectedObject?.id === obj.id ? 'bg-blue-50 dark:bg-blue-950/30 border-l-2 border-blue-600' : ''
-          }`}
+          className={`w-full flex items-center gap-1.5 px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors text-left cursor-pointer ${
+            selectedObject?.id === obj.id ? 'bg-blue-50 dark:bg-blue-950/30 border-l-2 border-blue-600' : rowBg
+          } ${ghosted ? 'opacity-40' : ''}`}
           style={{ paddingLeft: `${depth * 16 + 8}px` }}
         >
           {/* Expand/Collapse Button */}
@@ -1769,31 +1878,108 @@ const CompleteCompare2 = () => {
           {/* Object Icon */}
           {getObjectIcon(obj.type)}
 
-          {/* Object Name */}
-          <span className="text-xs font-medium text-gray-900 dark:text-zinc-100 flex-1 truncate">{obj.name}</span>
+          {/* Object Name (strikethrough if ghosted — item doesn't exist in this pane's model) */}
+          <span className={`text-xs font-medium flex-1 truncate ${
+            ghosted ? 'text-gray-400 dark:text-zinc-600 line-through italic' : 'text-gray-900 dark:text-zinc-100'
+          }`}>{obj.name}</span>
 
-          {/* Presence Indicators */}
-          <div className="flex items-center gap-0.5">
-            {obj.status !== 'right-only' && (
-              <div className="w-1.5 h-1.5 rounded-full bg-purple-500" title="In left model" />
-            )}
-            {obj.status !== 'left-only' && (
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" title="In right model" />
-            )}
-          </div>
+          {/* Presence Indicators (shown in compare + merge panes; redundant in left/right) */}
+          {showActions && (
+            <div className="flex items-center gap-0.5 shrink-0">
+              {obj.status !== 'right-only' && (
+                <div className="w-1.5 h-1.5 rounded-full bg-purple-500" title="In left model" />
+              )}
+              {obj.status !== 'left-only' && (
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" title="In right model" />
+              )}
+            </div>
+          )}
 
-          {/* Status Indicator */}
-          <div className={`w-1.5 h-1.5 rounded-full ${
-            obj.status === 'conflict' ? 'bg-red-500 animate-pulse' :
-            obj.status === 'different' ? 'bg-amber-500' :
-            obj.status === 'left-only' ? 'bg-purple-500' :
-            obj.status === 'right-only' ? 'bg-blue-500' :
-            'bg-emerald-500'
-          }`} />
-        </button>
+          {/* Inline action buttons — only in panes where decisions are made */}
+          {showActions && (
+            <div className="flex items-center gap-1 shrink-0 ml-1" onClick={(e) => e.stopPropagation()}>
+              {!needsResolution && (
+                <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 className="w-3 h-3" /> Equal
+                </span>
+              )}
 
-        {/* Render children recursively */}
-        {obj.expanded && obj.children && obj.children.map(child => renderObjectRow(child, depth + 1))}
+              {needsResolution && resolvedBadge && (
+                <>
+                  <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded ${resolvedBadge.cls}`}>
+                    <CheckCircle className="w-3 h-3" /> {resolvedBadge.label}
+                  </span>
+                  <button
+                    onClick={() => clearResolution(obj.id)}
+                    title="Change decision"
+                    className="text-gray-400 hover:text-gray-700 dark:hover:text-zinc-300 p-0.5 rounded"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                  </button>
+                </>
+              )}
+
+              {needsResolution && !choice && (obj.status === 'conflict' || obj.status === 'different') && (
+                <>
+                  <button
+                    onClick={() => setResolution(obj.id, 'left')}
+                    title="Use Left value"
+                    className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-white dark:bg-zinc-900 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-500 hover:text-white hover:border-purple-500"
+                  >
+                    <ArrowLeft className="w-3 h-3" /> Use Left
+                  </button>
+                  <button
+                    onClick={() => setResolution(obj.id, 'right')}
+                    title="Use Right value"
+                    className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-white dark:bg-zinc-900 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500 hover:text-white hover:border-emerald-500"
+                  >
+                    Use Right <ArrowRight className="w-3 h-3" />
+                  </button>
+                </>
+              )}
+
+              {needsResolution && !choice && obj.status === 'left-only' && (
+                <button
+                  onClick={() => setResolution(obj.id, 'add')}
+                  title="Add this to the Right model so both have it"
+                  className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded bg-blue-600 text-white hover:bg-blue-700 shadow-sm"
+                >
+                  <Plus className="w-3 h-3" /> Add to Right <ArrowRight className="w-3 h-3" />
+                </button>
+              )}
+
+              {needsResolution && !choice && obj.status === 'right-only' && (
+                <button
+                  onClick={() => setResolution(obj.id, 'add')}
+                  title="Add this to the Left model so both have it"
+                  className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded bg-blue-600 text-white hover:bg-blue-700 shadow-sm"
+                >
+                  <ArrowLeft className="w-3 h-3" /> <Plus className="w-3 h-3" /> Add to Left
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* In source panes (left/right): show a small read-only status pill instead of buttons */}
+          {!showActions && (
+            <div className="flex items-center gap-1 shrink-0 ml-1">
+              {ghosted ? (
+                <span className="text-[10px] text-gray-400 dark:text-zinc-600 italic">missing here</span>
+              ) : choice ? (
+                <span className="text-[10px] text-blue-600 dark:text-blue-400 inline-flex items-center gap-1" title="Resolved in merge">
+                  <CheckCircle className="w-3 h-3" /> resolved
+                </span>
+              ) : obj.status === 'equal' ? (
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400">=</span>
+              ) : (
+                <span className="text-[10px] text-amber-600 dark:text-amber-400">≠</span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Render children recursively (preserve pane) */}
+        {obj.expanded && obj.children && obj.children.map(child => renderObjectRow(child, depth + 1, pane))}
       </div>
     );
   };
@@ -1840,8 +2026,68 @@ const CompleteCompare2 = () => {
     const conflicts = comparisonResults.filter(obj => obj.status === 'conflict').length;
     const modified = comparisonResults.filter(obj => obj.status === 'different').length;
 
+    const missingItems = allResolvable.filter(o => o.status === 'left-only' || o.status === 'right-only');
+    const unresolvedMissing = missingItems.filter(o => !resolutions[o.id]).length;
+
     return (
     <div className="flex flex-col h-[calc(100vh-200px)]">
+      {/* Resolution status banner */}
+      {allResolvable.length > 0 && (
+        <div className={`mb-3 flex items-center gap-3 px-3 py-2 rounded-lg border ${
+          allResolved
+            ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/30'
+            : 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/30'
+        }`}>
+          {allResolved ? (
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+          ) : (
+            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+          )}
+          <div className="text-xs flex-1 min-w-0">
+            {allResolved ? (
+              <span className="text-emerald-900 dark:text-emerald-200">
+                <b>All {allResolvable.length} differences resolved.</b> Save Merge to apply.
+              </span>
+            ) : (
+              <span className="text-amber-900 dark:text-amber-200">
+                <b>{resolvedCount} of {allResolvable.length} resolved.</b> Use the inline buttons on each row,
+                {missingItems.length > 0 && <> or hit <b>Add all missing</b> for one-click insert of the {missingItems.length} table/column{missingItems.length === 1 ? '' : 's'} that exist on only one side.</>}
+              </span>
+            )}
+          </div>
+          {/* Progress */}
+          <div className="hidden md:flex items-center gap-2 shrink-0">
+            <div className="w-32 h-1.5 bg-white dark:bg-zinc-800 rounded-full overflow-hidden border border-gray-200 dark:border-zinc-700">
+              <div
+                className="h-full bg-emerald-500 transition-all duration-300"
+                style={{ width: `${allResolvable.length === 0 ? 100 : (resolvedCount / allResolvable.length) * 100}%` }}
+              />
+            </div>
+          </div>
+          {/* Bulk actions */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {unresolvedMissing > 0 && (
+              <button
+                onClick={bulkAddAllMissing}
+                title="Add every missing table/column to the side it's missing from"
+                className="text-[11px] px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white inline-flex items-center gap-1 font-semibold shadow-sm"
+              >
+                <Plus className="w-3 h-3" /> Add all missing ({unresolvedMissing})
+              </button>
+            )}
+            {resolvedCount > 0 && (
+              <button
+                onClick={resetAllResolutions}
+                title="Clear all decisions"
+                className="text-[11px] px-2 py-1 rounded border border-gray-200 dark:border-zinc-700 text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 inline-flex items-center gap-1"
+              >
+                <RefreshCw className="w-3 h-3" /> Reset
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Toolbar */}
       <div className="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-zinc-800">
         <div className="flex items-center gap-3">
@@ -1982,41 +2228,43 @@ const CompleteCompare2 = () => {
       <div className="flex-1 flex flex-col mt-3 border border-gray-200 dark:border-zinc-800 rounded-lg overflow-hidden bg-white dark:bg-zinc-900">
         {/* Upper Section: Object Hierarchies Side-by-Side */}
         <div className="flex-1 flex overflow-hidden" style={{ height: '60%' }}>
-          {/* Left Model Pane */}
+          {/* Left Model Pane — read-only view of LEFT source */}
           <div className="flex-1 flex flex-col border-r border-gray-200 dark:border-zinc-800">
             <div className="px-3 py-2 bg-purple-50 dark:bg-purple-950/20 border-b border-gray-200 dark:border-zinc-800 flex items-center gap-2">
               <div className="w-2 h-2 bg-purple-600 rounded-full" />
               <span className="text-xs font-bold text-purple-700 dark:text-purple-400">LEFT MODEL</span>
               <span className="text-[10px] text-gray-600 dark:text-zinc-400">({leftModel?.name})</span>
+              <span className="text-[10px] text-gray-400 dark:text-zinc-600 ml-auto italic">read-only</span>
             </div>
             <div className="flex-1 overflow-y-auto p-2">
-              {getFilteredResults().map(obj => renderObjectRow(obj, 0))}
+              {getFilteredResults().map(obj => renderObjectRow(obj, 0, viewMode === 'merge' ? 'left' : 'compare'))}
             </div>
           </div>
 
           {viewMode === 'merge' && (
-            // Merge Model Pane (only in 3-pane mode)
+            // Merge Model Pane (only in 3-pane mode) — decisions live here
             <div className="flex-1 flex flex-col border-r border-gray-200 dark:border-zinc-800 bg-blue-50/30 dark:bg-blue-950/10">
               <div className="px-3 py-2 bg-blue-50 dark:bg-blue-950/20 border-b border-gray-200 dark:border-zinc-800 flex items-center gap-2">
                 <GitMerge className="w-3 h-3 text-blue-600 dark:text-blue-400" />
                 <span className="text-xs font-bold text-blue-700 dark:text-blue-400">MERGE MODEL</span>
-                <span className="text-[10px] text-gray-600 dark:text-zinc-400">(Result)</span>
+                <span className="text-[10px] text-gray-600 dark:text-zinc-400">(Result — decide here)</span>
               </div>
               <div className="flex-1 overflow-y-auto p-2">
-                {getFilteredResults().map(obj => renderObjectRow(obj, 0))}
+                {getFilteredResults().map(obj => renderObjectRow(obj, 0, 'merge'))}
               </div>
             </div>
           )}
 
-          {/* Right Model Pane */}
+          {/* Right Model Pane — read-only view of RIGHT source */}
           <div className="flex-1 flex flex-col">
             <div className="px-3 py-2 bg-emerald-50 dark:bg-emerald-950/20 border-b border-gray-200 dark:border-zinc-800 flex items-center gap-2">
               <div className="w-2 h-2 bg-emerald-600 rounded-full" />
               <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">RIGHT MODEL</span>
               <span className="text-[10px] text-gray-600 dark:text-zinc-400">({rightModel?.name})</span>
+              {viewMode === 'merge' && <span className="text-[10px] text-gray-400 dark:text-zinc-600 ml-auto italic">read-only</span>}
             </div>
             <div className="flex-1 overflow-y-auto p-2">
-              {getFilteredResults().map(obj => renderObjectRow(obj, 0))}
+              {getFilteredResults().map(obj => renderObjectRow(obj, 0, viewMode === 'merge' ? 'right' : 'compare'))}
             </div>
           </div>
         </div>
@@ -2072,26 +2320,91 @@ const CompleteCompare2 = () => {
                   <div className="space-y-2">
                     <div className="text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase">Merge Value</div>
                     <div className="bg-blue-50/50 dark:bg-blue-950/20 rounded-lg p-3 border border-blue-200 dark:border-blue-900">
-                      {selectedObject.status === 'conflict' ? (
-                        <div className="space-y-2">
-                          <select className="w-full bg-white dark:bg-zinc-900 border border-red-300 dark:border-red-700 rounded px-2 py-1.5 text-xs">
-                            <option>Choose resolution...</option>
-                            <option>Use left value</option>
-                            <option>Use right value</option>
-                            <option>Edit manually</option>
-                          </select>
-                          <div className="flex gap-1">
-                            <button className="flex-1 px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-semibold rounded transition-colors">
-                              Accept Left
-                            </button>
-                            <button className="flex-1 px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-semibold rounded transition-colors">
-                              Accept Right
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        renderValue(selectedObject.mergeValue || selectedObject.leftValue || selectedObject.rightValue)
-                      )}
+                      {(() => {
+                        const choice = resolutions[selectedObject.id];
+                        const isConflict = selectedObject.status === 'conflict' || selectedObject.status === 'different';
+                        const isLeftOnly  = selectedObject.status === 'left-only';
+                        const isRightOnly = selectedObject.status === 'right-only';
+
+                        if (choice) {
+                          return (
+                            <div className="space-y-2">
+                              <div className={`text-[10px] font-bold uppercase tracking-wide inline-flex items-center gap-1 px-2 py-0.5 rounded ${
+                                choice === 'left'  ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300' :
+                                choice === 'right' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' :
+                                choice === 'add'   ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300' :
+                                'bg-gray-100 dark:bg-zinc-700 text-gray-600 dark:text-zinc-400'
+                              }`}>
+                                <CheckCircle className="w-3 h-3" />
+                                {choice === 'left'  && 'Using Left value'}
+                                {choice === 'right' && 'Using Right value'}
+                                {choice === 'add'   && (isLeftOnly ? 'Will add to Right model' : 'Will add to Left model')}
+                                {choice === 'skip'  && 'Skipped — not added'}
+                              </div>
+                              {choice !== 'skip' && (
+                                renderValue(
+                                  choice === 'left'  ? selectedObject.leftValue :
+                                  choice === 'right' ? selectedObject.rightValue :
+                                  (selectedObject.leftValue || selectedObject.rightValue)
+                                )
+                              )}
+                              <button
+                                onClick={() => clearResolution(selectedObject.id)}
+                                className="w-full text-[10px] text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-zinc-100 inline-flex items-center justify-center gap-1 py-1 border border-gray-200 dark:border-zinc-700 rounded"
+                              >
+                                <RefreshCw className="w-3 h-3" /> Change decision
+                              </button>
+                            </div>
+                          );
+                        }
+
+                        if (isConflict) {
+                          return (
+                            <div className="space-y-2">
+                              <p className="text-[10px] text-gray-600 dark:text-zinc-400">Pick which side's value to keep:</p>
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={() => setResolution(selectedObject.id, 'left')}
+                                  className="flex-1 px-2 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-semibold rounded transition-colors inline-flex items-center justify-center gap-1"
+                                >
+                                  <ArrowLeft className="w-3 h-3" /> Accept Left
+                                </button>
+                                <button
+                                  onClick={() => setResolution(selectedObject.id, 'right')}
+                                  className="flex-1 px-2 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-semibold rounded transition-colors inline-flex items-center justify-center gap-1"
+                                >
+                                  Accept Right <ArrowRight className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        if (isLeftOnly || isRightOnly) {
+                          const target = isLeftOnly ? 'Right' : 'Left';
+                          return (
+                            <div className="space-y-2">
+                              <p className="text-[10px] text-gray-600 dark:text-zinc-400">
+                                This {selectedObject.type} only exists on the {isLeftOnly ? 'left' : 'right'} side.
+                              </p>
+                              <button
+                                onClick={() => setResolution(selectedObject.id, 'add')}
+                                className="w-full px-2 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded transition-colors inline-flex items-center justify-center gap-1.5 shadow-sm"
+                              >
+                                <Plus className="w-4 h-4" /> Add to {target} model
+                              </button>
+                              <button
+                                onClick={() => setResolution(selectedObject.id, 'skip')}
+                                className="w-full px-2 py-1 text-[10px] text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-zinc-100 border border-gray-200 dark:border-zinc-700 rounded"
+                              >
+                                Skip — leave as {isLeftOnly ? 'left' : 'right'}-only
+                              </button>
+                            </div>
+                          );
+                        }
+
+                        return renderValue(selectedObject.mergeValue || selectedObject.leftValue || selectedObject.rightValue);
+                      })()}
                     </div>
                   </div>
                 )}

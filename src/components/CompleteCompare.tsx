@@ -37,7 +37,13 @@ import {
   BarChart3,
   Key,
   Loader2,
-  CheckCircle2
+  CheckCircle2,
+  ArrowLeft,
+  ArrowRight,
+  Sparkles,
+  HelpCircle,
+  AlertTriangle,
+  RotateCcw
 } from 'lucide-react';
 
 // Type definitions
@@ -95,7 +101,7 @@ const CompleteCompare = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   // Step 4: Advanced Options
-  const [conflictResolution, setConflictResolution] = useState<ConflictResolution>('favor-baseline');
+  const [conflictResolution, setConflictResolution] = useState<ConflictResolution>('best-match');
   const [deltaModelName, setDeltaModelName] = useState('Customer_Order_Enhanced_Delta');
 
   // Step 5: Results
@@ -103,6 +109,128 @@ const CompleteCompare = () => {
   const [showResults, setShowResults] = useState(false);
 
   const [showModelBrowser, setShowModelBrowser] = useState<'baseline' | 'target' | null>(null);
+
+  // ===== Comparison data model =====
+  // Three diff kinds:
+  //   'conflict'      — same property exists on both, with different values (user picks one)
+  //   'only-baseline' — property/table exists only on baseline (user can ADD it to target, or skip)
+  //   'only-target'   — property/table exists only on target  (user can ADD it to baseline, or skip)
+  type DiffKind = 'conflict' | 'only-baseline' | 'only-target';
+  type SubDiff = {
+    id: string;
+    kind: DiffKind;
+    label: string;
+    baselineValue?: string;
+    targetValue?: string;
+  };
+  type CompareRow = {
+    name: string;
+    presence: 'both' | 'baseline-only' | 'target-only';
+    propsBaseline?: number;
+    propsTarget?: number;
+    diffs: SubDiff[];
+  };
+  type ResolutionValue = 'baseline' | 'target' | 'add' | 'skip';
+
+  const compareTree: CompareRow[] = [
+    {
+      name: 'Customer', presence: 'both', propsBaseline: 5, propsTarget: 6,
+      diffs: [
+        { id: 'd-cust-email', kind: 'conflict',    label: 'email — column length', baselineValue: 'VARCHAR(100)', targetValue: 'VARCHAR(255)' },
+        { id: 'd-cust-phone', kind: 'only-target', label: 'phone — new column',                                    targetValue: 'VARCHAR(20) NULL' },
+      ],
+    },
+    {
+      name: 'Order', presence: 'both', propsBaseline: 7, propsTarget: 6,
+      diffs: [
+        { id: 'd-order-date',    kind: 'conflict',      label: 'order_date — column type', baselineValue: 'DATE',                                 targetValue: 'TIMESTAMP' },
+        { id: 'd-order-status',  kind: 'conflict',      label: 'status — enum values',     baselineValue: "['NEW','PAID','SHIPPED']",             targetValue: "['NEW','PAID','SHIPPED','REFUNDED']" },
+        { id: 'd-order-deleted', kind: 'only-baseline', label: 'deleted_at — soft-delete column', baselineValue: 'TIMESTAMP NULL' },
+      ],
+    },
+    {
+      name: 'Product', presence: 'both', propsBaseline: 4, propsTarget: 4,
+      diffs: [
+        { id: 'd-prod-price', kind: 'conflict', label: 'price — precision', baselineValue: 'DECIMAL(10,2)', targetValue: 'DECIMAL(12,4)' },
+      ],
+    },
+    {
+      name: 'Category', presence: 'both', propsBaseline: 3, propsTarget: 3,
+      diffs: [],
+    },
+    // Whole table missing on baseline — user can ADD it
+    { name: 'Payment',      presence: 'target-only',   propsTarget: 4,   diffs: [] },
+    // Whole table missing on target — user can ADD it
+    { name: 'OrderHistory', presence: 'baseline-only', propsBaseline: 4, diffs: [] },
+  ];
+
+  // Flatten everything that needs a resolution
+  const allDiffs = compareTree.flatMap<{ id: string; kind: DiffKind; level: 'table' | 'column'; objectName: string }>(obj => {
+    const items: { id: string; kind: DiffKind; level: 'table' | 'column'; objectName: string }[] = [];
+    if (obj.presence === 'baseline-only') items.push({ id: `tbl-${obj.name}`, kind: 'only-baseline', level: 'table', objectName: obj.name });
+    if (obj.presence === 'target-only')   items.push({ id: `tbl-${obj.name}`, kind: 'only-target',   level: 'table', objectName: obj.name });
+    obj.diffs.forEach(d => items.push({ id: d.id, kind: d.kind, level: 'column', objectName: obj.name }));
+    return items;
+  });
+  const valueConflicts  = allDiffs.filter(d => d.kind === 'conflict');
+  const presenceDiffs   = allDiffs.filter(d => d.kind !== 'conflict');
+
+  const [resolutions, setResolutions] = useState<Record<string, ResolutionValue | null>>({});
+  const totalConflicts  = valueConflicts.length;
+  const totalDiffs      = allDiffs.length;
+  const resolvedCount   = allDiffs.filter(d => resolutions[d.id]).length;
+  const unresolvedCount = totalDiffs - resolvedCount;
+  const allResolved     = unresolvedCount === 0;
+
+  const setResolution = (id: string, choice: ResolutionValue) => {
+    setResolutions(prev => ({ ...prev, [id]: choice }));
+  };
+  const clearResolution = (id: string) => {
+    setResolutions(prev => ({ ...prev, [id]: null }));
+  };
+  // "Use baseline" / "Use target" semantics applied across all diffs:
+  //   value conflict   → use that side's value
+  //   only-baseline    → 'baseline' bulk: add (baseline keeps it)         | 'target' bulk: skip (target stays without it)
+  //   only-target      → 'baseline' bulk: skip (baseline stays without it) | 'target' bulk: add (baseline adopts it)
+  const bulkResolveRemaining = (choice: 'baseline' | 'target') => {
+    setResolutions(prev => {
+      const next = { ...prev };
+      allDiffs.forEach(d => {
+        if (next[d.id]) return;
+        if (d.kind === 'conflict')              next[d.id] = choice;
+        else if (d.kind === 'only-baseline')    next[d.id] = choice === 'baseline' ? 'add' : 'skip';
+        else /* only-target */                  next[d.id] = choice === 'target'   ? 'add' : 'skip';
+      });
+      return next;
+    });
+  };
+  const bulkAddAllMissing = () => {
+    setResolutions(prev => {
+      const next = { ...prev };
+      allDiffs.forEach(d => { if (!next[d.id] && d.kind !== 'conflict') next[d.id] = 'add'; });
+      return next;
+    });
+  };
+  const resetAllResolutions = () => setResolutions({});
+
+  // Inline compare tree state
+  const [compareFilter, setCompareFilter] = useState<'all' | 'differences' | 'conflicts'>('differences');
+  const [collapsedObjects, setCollapsedObjects] = useState<Set<string>>(new Set());
+  const toggleCollapse = (name: string) => {
+    setCollapsedObjects(prev => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name); else next.add(name);
+      return next;
+    });
+  };
+
+  // Strategy preview applies to value conflicts. Presence diffs are decided inline (Add / Skip).
+  const strategyOutcome = {
+    'favor-baseline': { auto: totalConflicts, manual: 0,  note: `All ${totalConflicts} value conflicts will use baseline values.` },
+    'favor-target':   { auto: totalConflicts, manual: 0,  note: `All ${totalConflicts} value conflicts will use target values.` },
+    'best-match':     { auto: Math.max(0, totalConflicts - 1), manual: Math.min(1, totalConflicts), note: `${Math.max(0, totalConflicts - 1)} auto-resolved · 1 needs your decision.` },
+    'manual':         { auto: 0, manual: totalConflicts, note: `You will resolve all ${totalConflicts} value conflicts side-by-side.` },
+  } as const;
 
   // Sample models for the library
   const modelLibrary: Model[] = [
@@ -160,8 +288,8 @@ const CompleteCompare = () => {
     { id: 1, title: 'Source Selection', description: 'Choose models to compare' },
     { id: 2, title: 'Compare Options', description: 'Configure comparison settings' },
     { id: 3, title: 'Object Selection', description: 'Select objects to compare' },
-    { id: 4, title: 'Advanced', description: 'Fine-tune comparison' },
-    { id: 5, title: 'Results', description: 'Review comparison results' }
+    { id: 4, title: 'Conflict Strategy', description: 'Decide how conflicting changes are resolved' },
+    { id: 5, title: 'Results', description: 'Review and resolve' }
   ];
 
   const canProceed = () => {
@@ -195,6 +323,17 @@ const CompleteCompare = () => {
 
   const handleRunComparison = () => {
     setIsRunning(true);
+    // Pre-resolve value conflicts based on chosen strategy.
+    // Presence diffs (missing tables/columns) start unresolved so the user can demo the inline "Add" button.
+    const pre: Record<string, ResolutionValue | null> = {};
+    valueConflicts.forEach((d, i) => {
+      if (conflictResolution === 'favor-baseline') pre[d.id] = 'baseline';
+      else if (conflictResolution === 'favor-target') pre[d.id] = 'target';
+      else if (conflictResolution === 'best-match') pre[d.id] = i < valueConflicts.length - 1 ? 'baseline' : null;
+      else pre[d.id] = null; // manual
+    });
+    presenceDiffs.forEach(d => { pre[d.id] = null; });
+    setResolutions(pre);
     setTimeout(() => {
       setIsRunning(false);
       setShowResults(true);
@@ -776,40 +915,179 @@ const CompleteCompare = () => {
     </div>
   );
 
-  const renderStep4 = () => (
-    <div className="space-y-5">
-      {/* Conflict Resolution */}
-      <div>
-        <label className="block text-[11px] font-semibold text-gray-500 dark:text-zinc-500 mb-2 uppercase tracking-wide">
-          Conflict Resolution Strategy
-        </label>
-        <div className="space-y-2">
-          {[
-            { value: 'favor-baseline', label: 'Favor Baseline', description: 'Left model wins conflicts' },
-            { value: 'favor-target', label: 'Favor Target', description: 'Right model wins conflicts' },
-            { value: 'manual', label: 'Manual Resolution', description: 'Prompt for each conflict' },
-            { value: 'best-match', label: 'Best Match', description: 'Automatic intelligent resolution' }
-          ].map(option => (
-            <label
-              key={option.value}
-              className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg cursor-pointer hover:border-purple-300 dark:hover:border-purple-700 transition-colors"
-            >
-              <input
-                type="radio"
-                name="conflict-resolution"
-                value={option.value}
-                checked={conflictResolution === option.value}
-                onChange={(e) => setConflictResolution(e.target.value as ConflictResolution)}
-                className="mt-0.5"
-              />
-              <div>
-                <span className="text-sm font-medium">{option.label}</span>
-                <span className="text-xs text-gray-600 dark:text-zinc-400 ml-1.5">({option.description})</span>
-              </div>
-            </label>
-          ))}
+  const renderStep4 = () => {
+    type StratDef = {
+      value: ConflictResolution;
+      label: string;
+      icon: React.ComponentType<{ className?: string }>;
+      tagline: string;
+      bestFor: string;
+      diagram: 'left' | 'right' | 'auto' | 'manual';
+      badge?: { text: string; color: 'emerald' | 'amber' };
+    };
+    const strategies: StratDef[] = [
+      {
+        value: 'best-match',
+        label: 'Best Match',
+        icon: Sparkles,
+        tagline: 'Auto-resolve obvious cases. Flag only what genuinely needs you.',
+        bestFor: 'Most merges. Quick and safe.',
+        diagram: 'auto',
+        badge: { text: 'Recommended', color: 'emerald' },
+      },
+      {
+        value: 'manual',
+        label: 'Manual Resolution',
+        icon: HelpCircle,
+        tagline: 'Decide each conflict yourself, side-by-side, in the next step.',
+        bestFor: 'Critical merges where every decision matters.',
+        diagram: 'manual',
+        badge: { text: 'You decide', color: 'amber' },
+      },
+      {
+        value: 'favor-baseline',
+        label: 'Favor Baseline',
+        icon: ArrowLeft,
+        tagline: 'Keep baseline values. Discard conflicting target changes.',
+        bestFor: 'Baseline is your source of truth.',
+        diagram: 'left',
+      },
+      {
+        value: 'favor-target',
+        label: 'Favor Target',
+        icon: ArrowRight,
+        tagline: 'Keep target values. Discard conflicting baseline changes.',
+        bestFor: 'Pulling target changes back into baseline.',
+        diagram: 'right',
+      },
+    ];
+
+    const renderDiagram = (kind: StratDef['diagram'], selected: boolean) => {
+      const pillBase = 'px-2 py-1 rounded text-[11px] font-medium';
+      const winBase  = 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300';
+      const winTgt   = 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300';
+      const neutral  = 'bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-400';
+      const lose     = 'bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-600 line-through';
+      const arrow    = 'w-3.5 h-3.5 text-gray-400 dark:text-zinc-500';
+
+      if (kind === 'left')
+        return (
+          <div className="flex items-center gap-2">
+            <span className={`${pillBase} ${selected ? winBase : neutral}`}>Baseline</span>
+            <ArrowLeft className={arrow} />
+            <span className={`${pillBase} ${lose}`}>Target</span>
+          </div>
+        );
+      if (kind === 'right')
+        return (
+          <div className="flex items-center gap-2">
+            <span className={`${pillBase} ${lose}`}>Baseline</span>
+            <ArrowRight className={arrow} />
+            <span className={`${pillBase} ${selected ? winTgt : neutral}`}>Target</span>
+          </div>
+        );
+      if (kind === 'auto')
+        return (
+          <div className="flex items-center gap-2">
+            <span className={`${pillBase} ${neutral}`}>Baseline</span>
+            <Sparkles className={`w-3.5 h-3.5 ${selected ? 'text-amber-500' : 'text-gray-400 dark:text-zinc-500'}`} />
+            <span className={`${pillBase} ${neutral}`}>Target</span>
+          </div>
+        );
+      return (
+        <div className="flex items-center gap-2">
+          <span className={`${pillBase} ${neutral}`}>Baseline</span>
+          <span className={`text-[11px] font-medium ${selected ? 'text-amber-600 dark:text-amber-400' : 'text-gray-400 dark:text-zinc-500'}`}>you choose</span>
+          <span className={`${pillBase} ${neutral}`}>Target</span>
         </div>
-      </div>
+      );
+    };
+
+    const summary = strategyOutcome[conflictResolution];
+
+    return (
+      <div className="space-y-5">
+        {/* What's a conflict — context callout */}
+        <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 rounded-lg">
+          <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+          <div className="text-xs text-amber-900 dark:text-amber-200 leading-relaxed">
+            <b>{totalConflicts} value conflicts</b> + <b>{presenceDiffs.length} missing tables/columns</b> detected.
+            A <i>conflict</i> is when the same property exists on both sides with different values; a <i>missing</i> item exists on only one side and can be added to the other in one click. The strategy below applies to value conflicts — missing items are resolved inline in the results step.
+          </div>
+        </div>
+
+        {/* Strategy cards */}
+        <div>
+          <label className="block text-[11px] font-semibold text-gray-500 dark:text-zinc-500 mb-3 uppercase tracking-wide">
+            Conflict Resolution Strategy
+          </label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {strategies.map(s => {
+              const selected = conflictResolution === s.value;
+              const Icon = s.icon;
+              return (
+                <label
+                  key={s.value}
+                  className={`relative flex flex-col gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                    selected
+                      ? 'border-purple-500 dark:border-purple-400 bg-purple-50/40 dark:bg-purple-950/10 shadow-sm'
+                      : 'border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900 hover:border-gray-300 dark:hover:border-zinc-700'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="conflict-resolution"
+                    value={s.value}
+                    checked={selected}
+                    onChange={() => setConflictResolution(s.value)}
+                    className="sr-only"
+                  />
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                        selected
+                          ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-300'
+                          : 'bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-zinc-400'
+                      }`}>
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-semibold">{s.label}</span>
+                          {s.badge && (
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wide ${
+                              s.badge.color === 'emerald'
+                                ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300'
+                                : 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300'
+                            }`}>{s.badge.text}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    {selected && <CheckCircle className="w-5 h-5 text-purple-500 shrink-0" />}
+                  </div>
+
+                  {renderDiagram(s.diagram, selected)}
+
+                  <p className="text-xs text-gray-700 dark:text-zinc-300 leading-relaxed">{s.tagline}</p>
+                  <p className="text-[11px] text-gray-500 dark:text-zinc-500">
+                    <span className="font-semibold">Best for:</span> {s.bestFor}
+                  </p>
+                </label>
+              );
+            })}
+          </div>
+
+          {/* Outcome preview */}
+          <div className="mt-3 flex flex-wrap items-center gap-3 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/30 rounded-lg">
+            <Info className="w-4 h-4 text-blue-500 shrink-0" />
+            <p className="text-xs text-blue-900 dark:text-blue-200 flex-1 min-w-[200px]">{summary.note}</p>
+            <div className="flex items-center gap-3 text-[11px]">
+              <span className="text-emerald-700 dark:text-emerald-400"><b>{summary.auto}</b> auto-resolved</span>
+              <span className="text-amber-700 dark:text-amber-400"><b>{summary.manual}</b> need you</span>
+            </div>
+          </div>
+        </div>
 
       {/* Delta Model Name */}
       <div className="pt-4 border-t border-gray-200 dark:border-zinc-800">
@@ -849,112 +1127,544 @@ const CompleteCompare = () => {
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
-  const renderStep5 = () => (
-    <div className="space-y-5">
-      {showResults ? (
-        <>
-          {/* Executive Summary */}
-          <div className="bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/30 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                Comparison Complete
-              </h3>
-              <button className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300">
-                Export Report
+  const renderStep5 = () => {
+    const progressPct = totalConflicts === 0 ? 100 : Math.round((resolvedCount / totalConflicts) * 100);
+
+    return (
+      <div className="space-y-5">
+        {showResults ? (
+          <>
+            {/* Executive Summary */}
+            <div className="bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/30 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  Comparison Complete
+                </h3>
+                <button className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300">
+                  Export Report
+                </button>
+              </div>
+              <div className="grid grid-cols-4 gap-4 text-center">
+                <div>
+                  <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">58</div>
+                  <div className="text-[10px] text-gray-600 dark:text-zinc-400 uppercase tracking-wide">Objects Compared</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">23</div>
+                  <div className="text-[10px] text-gray-600 dark:text-zinc-400 uppercase tracking-wide">Differences Found</div>
+                </div>
+                <div>
+                  <div className={`text-2xl font-bold ${allResolved ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                    {unresolvedCount}
+                  </div>
+                  <div className="text-[10px] text-gray-600 dark:text-zinc-400 uppercase tracking-wide">Conflicts to Resolve</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">78%</div>
+                  <div className="text-[10px] text-gray-600 dark:text-zinc-400 uppercase tracking-wide">Compatibility</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Status banner */}
+            {!allResolved ? (
+              <div className="flex flex-wrap items-center gap-3 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 rounded-lg">
+                <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                <div className="text-xs text-amber-900 dark:text-amber-200 flex-1 min-w-[200px]">
+                  <b>{unresolvedCount} conflict{unresolvedCount === 1 ? '' : 's'} need{unresolvedCount === 1 ? 's' : ''} your decision</b> before the delta model can be created. Review each side-by-side below, or apply a bulk action.
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => bulkResolveRemaining('baseline')}
+                    className="text-[11px] px-2.5 py-1 rounded border border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-950/40 inline-flex items-center gap-1.5"
+                  >
+                    <ArrowLeft className="w-3 h-3" /> Apply Baseline to remaining
+                  </button>
+                  <button
+                    onClick={() => bulkResolveRemaining('target')}
+                    className="text-[11px] px-2.5 py-1 rounded border border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-950/40 inline-flex items-center gap-1.5"
+                  >
+                    <ArrowRight className="w-3 h-3" /> Apply Target to remaining
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center gap-3 p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 rounded-lg">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                <div className="text-xs text-emerald-900 dark:text-emerald-200 flex-1">
+                  <b>All {totalConflicts} conflicts resolved.</b> You can create the delta model now.
+                </div>
+                {totalConflicts > 0 && (
+                  <button
+                    onClick={resetAllResolutions}
+                    className="text-[11px] px-2.5 py-1 rounded border border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-950/40 inline-flex items-center gap-1.5"
+                  >
+                    <RotateCcw className="w-3 h-3" /> Reset all
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Inline compare tree — erwin DM style: side-by-side with explicit per-row buttons. */}
+            {(() => {
+              const filteredTree = compareTree.filter(o => {
+                const hasConflict = o.diffs.some(d => d.kind === 'conflict');
+                const hasAnyDiff  = o.presence !== 'both' || o.diffs.length > 0;
+                if (compareFilter === 'all') return true;
+                if (compareFilter === 'differences') return hasAnyDiff;
+                return hasConflict;
+              });
+
+              return (
+                <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg overflow-hidden">
+                  {/* Toolbar */}
+                  <div className="border-b border-gray-200 dark:border-zinc-800 px-3 py-2.5 flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] font-semibold text-gray-500 dark:text-zinc-500 uppercase tracking-wide mr-2">Show:</span>
+                      {([
+                        { id: 'all',         label: 'All' },
+                        { id: 'differences', label: 'Differences' },
+                        { id: 'conflicts',   label: `Conflicts only (${totalConflicts})` },
+                      ] as const).map(f => (
+                        <button
+                          key={f.id}
+                          onClick={() => setCompareFilter(f.id)}
+                          className={`text-[11px] px-2.5 py-1 rounded transition-colors ${
+                            compareFilter === f.id
+                              ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 font-medium'
+                              : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800'
+                          }`}
+                        >
+                          {f.label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] text-gray-500 dark:text-zinc-500 uppercase tracking-wide mr-1">Bulk:</span>
+                      <button
+                        onClick={bulkAddAllMissing}
+                        title="Add every missing table/column to the side it's missing from"
+                        className="text-[11px] px-2 py-1 rounded border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/30 inline-flex items-center gap-1 font-medium"
+                      >
+                        <Plus className="w-3 h-3" /> Add all missing ({presenceDiffs.length})
+                      </button>
+                      <button
+                        onClick={() => bulkResolveRemaining('baseline')}
+                        title="For conflicts: use baseline. For missing items: keep state baseline-favoring."
+                        className="text-[11px] px-2 py-1 rounded border border-gray-200 dark:border-zinc-700 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/30 inline-flex items-center gap-1"
+                      >
+                        <ArrowLeft className="w-3 h-3" /> Use baseline
+                      </button>
+                      <button
+                        onClick={() => bulkResolveRemaining('target')}
+                        title="For conflicts: use target. For missing items: keep state target-favoring."
+                        className="text-[11px] px-2 py-1 rounded border border-gray-200 dark:border-zinc-700 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 inline-flex items-center gap-1"
+                      >
+                        Use target <ArrowRight className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={resetAllResolutions}
+                        title="Clear all decisions"
+                        className="text-[11px] px-2 py-1 rounded border border-gray-200 dark:border-zinc-700 text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 inline-flex items-center gap-1"
+                      >
+                        <RotateCcw className="w-3 h-3" /> Reset
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Column headers */}
+                  <div className="grid grid-cols-[1fr_220px_1fr] bg-gray-50 dark:bg-zinc-900/60 border-b border-gray-200 dark:border-zinc-800">
+                    <div className="px-4 py-2 text-[10px] font-semibold uppercase tracking-wide text-purple-600 dark:text-purple-400 flex items-center gap-2 border-r border-gray-200 dark:border-zinc-800">
+                      <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                      Baseline
+                      <span className="text-gray-400 dark:text-zinc-600 normal-case font-normal text-[10px] ml-auto truncate">
+                        {selectedBaseline?.name || 'Customer_Order_Model'}
+                      </span>
+                    </div>
+                    <div className="px-2 py-2 text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-500 text-center border-r border-gray-200 dark:border-zinc-800">
+                      Action
+                    </div>
+                    <div className="px-4 py-2 text-[10px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      Target
+                      <span className="text-gray-400 dark:text-zinc-600 normal-case font-normal text-[10px] ml-auto truncate">
+                        {selectedTarget?.name || 'E_Commerce_Enhanced'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Empty state */}
+                  {filteredTree.length === 0 && (
+                    <div className="p-8 text-center text-xs text-gray-500 dark:text-zinc-500">
+                      No rows match the current filter.
+                    </div>
+                  )}
+
+                  {filteredTree.map(obj => {
+                    const collapsed = collapsedObjects.has(obj.name);
+                    const hasDiffs = obj.diffs.length > 0;
+                    const resolvedHere = obj.diffs.filter(d => resolutions[d.id]).length;
+                    const allResolvedHere = hasDiffs && resolvedHere === obj.diffs.length;
+
+                    // Whole-table missing (top-level diff)
+                    if (obj.presence !== 'both') {
+                      const id = `tbl-${obj.name}`;
+                      const choice = resolutions[id];
+                      const missingFrom = obj.presence === 'baseline-only' ? 'target' : 'baseline';
+                      const colCount = obj.presence === 'baseline-only' ? obj.propsBaseline : obj.propsTarget;
+                      const headerBg =
+                        choice === 'add'  ? 'bg-emerald-50/30 dark:bg-emerald-950/10' :
+                        choice === 'skip' ? 'bg-gray-50 dark:bg-zinc-900/40' :
+                        'bg-blue-50/30 dark:bg-blue-950/10';
+                      return (
+                        <div key={obj.name} className={`grid grid-cols-[1fr_220px_1fr] border-t border-gray-100 dark:border-zinc-800 first:border-t-0 ${headerBg}`}>
+                          {/* Baseline cell */}
+                          <div className="px-4 py-3 border-r border-gray-200 dark:border-zinc-800 flex items-center gap-2 min-w-0">
+                            {obj.presence === 'baseline-only' ? (
+                              <>
+                                <Table className="w-4 h-4 text-purple-500 shrink-0" />
+                                <span className="text-sm font-medium truncate">{obj.name}</span>
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 uppercase tracking-wide shrink-0">Only here</span>
+                                <span className="text-[11px] text-gray-500 dark:text-zinc-500 shrink-0">{colCount} cols</span>
+                              </>
+                            ) : (
+                              <span className="text-[11px] text-gray-400 dark:text-zinc-600 italic flex items-center gap-2">
+                                <XCircle className="w-3.5 h-3.5" />
+                                Missing — table not in baseline
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Action cell — explicit Add / Skip buttons */}
+                          <div className="px-2 py-3 border-r border-gray-200 dark:border-zinc-800 flex flex-col items-stretch justify-center gap-1">
+                            {choice === 'add' ? (
+                              <span className="inline-flex items-center justify-center gap-1.5 text-[11px] text-emerald-700 dark:text-emerald-300 font-semibold bg-emerald-100 dark:bg-emerald-500/20 rounded py-1.5">
+                                <CheckCircle className="w-3.5 h-3.5" /> Will add to {missingFrom}
+                              </span>
+                            ) : choice === 'skip' ? (
+                              <span className="inline-flex items-center justify-center gap-1.5 text-[11px] text-gray-600 dark:text-zinc-400 bg-gray-100 dark:bg-zinc-800 rounded py-1.5">
+                                Skipped
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => setResolution(id, 'add')}
+                                className="text-[11px] font-semibold px-2 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700 inline-flex items-center justify-center gap-1.5 shadow-sm"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                                Add to {missingFrom === 'target' ? 'Target' : 'Baseline'}
+                                {missingFrom === 'target' ? <ArrowRight className="w-3 h-3" /> : <ArrowLeft className="w-3 h-3" />}
+                              </button>
+                            )}
+                            <div className="flex items-center justify-center gap-2">
+                              {choice ? (
+                                <button onClick={() => clearResolution(id)} className="text-[10px] text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200 inline-flex items-center gap-1">
+                                  <RotateCcw className="w-3 h-3" /> Change
+                                </button>
+                              ) : (
+                                <button onClick={() => setResolution(id, 'skip')} className="text-[10px] text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200">
+                                  Skip
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Target cell */}
+                          <div className="px-4 py-3 flex items-center gap-2 min-w-0">
+                            {obj.presence === 'target-only' ? (
+                              <>
+                                <Table className="w-4 h-4 text-emerald-500 shrink-0" />
+                                <span className="text-sm font-medium truncate">{obj.name}</span>
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 uppercase tracking-wide shrink-0">Only here</span>
+                                <span className="text-[11px] text-gray-500 dark:text-zinc-500 shrink-0">{colCount} cols</span>
+                              </>
+                            ) : (
+                              <span className="text-[11px] text-gray-400 dark:text-zinc-600 italic flex items-center gap-2">
+                                <XCircle className="w-3.5 h-3.5" />
+                                Missing — table not in target
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // Object that exists on both sides
+                    const headerBg =
+                      hasDiffs ? (allResolvedHere ? 'bg-emerald-50/30 dark:bg-emerald-950/10' : 'bg-amber-50/30 dark:bg-amber-950/10') : '';
+
+                    return (
+                      <div key={obj.name} className="border-t border-gray-100 dark:border-zinc-800 first:border-t-0">
+                        {/* Object header row */}
+                        <div className={`grid grid-cols-[1fr_220px_1fr] ${headerBg}`}>
+                          <div className="px-4 py-2.5 border-r border-gray-200 dark:border-zinc-800 flex items-center gap-2 min-w-0">
+                            {hasDiffs ? (
+                              <button
+                                onClick={() => toggleCollapse(obj.name)}
+                                className="text-gray-400 hover:text-gray-700 dark:hover:text-zinc-300 shrink-0"
+                                aria-label={collapsed ? 'Expand' : 'Collapse'}
+                              >
+                                {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                              </button>
+                            ) : (<span className="w-4 shrink-0" />)}
+                            <Table className={`w-4 h-4 shrink-0 ${hasDiffs ? 'text-amber-500' : 'text-purple-500'}`} />
+                            <span className="text-sm font-medium truncate">{obj.name}</span>
+                            <span className="text-[11px] text-gray-500 dark:text-zinc-500 shrink-0">{obj.propsBaseline} cols</span>
+                          </div>
+                          <div className="px-2 py-2.5 border-r border-gray-200 dark:border-zinc-800 flex items-center justify-center">
+                            {hasDiffs ? (
+                              <span className={`inline-flex items-center gap-1 text-[11px] ${
+                                allResolvedHere ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
+                              }`}>
+                                {allResolvedHere ? <CheckCircle className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+                                {resolvedHere}/{obj.diffs.length} resolved
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400">
+                                <CheckCircle className="w-3.5 h-3.5" /> Match
+                              </span>
+                            )}
+                          </div>
+                          <div className="px-4 py-2.5 flex items-center gap-2 min-w-0">
+                            <Table className={`w-4 h-4 shrink-0 ${hasDiffs ? 'text-amber-500' : 'text-emerald-500'}`} />
+                            <span className="text-sm font-medium truncate">{obj.name}</span>
+                            <span className="text-[11px] text-gray-500 dark:text-zinc-500 shrink-0">{obj.propsTarget} cols</span>
+                          </div>
+                        </div>
+
+                        {/* Sub-rows: one per diff */}
+                        {hasDiffs && !collapsed && obj.diffs.map(d => {
+                          const choice = resolutions[d.id];
+
+                          // Value conflict — both sides present, different values
+                          if (d.kind === 'conflict') {
+                            return (
+                              <div
+                                key={d.id}
+                                className={`grid grid-cols-[1fr_220px_1fr] border-t border-gray-100 dark:border-zinc-800/60 ${
+                                  !choice ? 'bg-amber-50/20 dark:bg-amber-950/5' : ''
+                                }`}
+                              >
+                                <button
+                                  onClick={() => setResolution(d.id, 'baseline')}
+                                  className={`text-left px-4 py-3 border-r border-gray-200 dark:border-zinc-800 transition-colors border-l-4 min-w-0 ${
+                                    choice === 'baseline'
+                                      ? 'bg-purple-50 dark:bg-purple-950/30 border-l-purple-500'
+                                      : 'border-l-transparent hover:bg-purple-50/40 dark:hover:bg-purple-950/10'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2 mb-1 ml-6">
+                                    <span className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold uppercase tracking-wide">{d.label}</span>
+                                    {choice === 'baseline' && <CheckCircle className="w-3 h-3 text-purple-500 ml-auto shrink-0" />}
+                                  </div>
+                                  <code className="block text-xs font-mono text-gray-900 dark:text-zinc-100 ml-6 break-all">
+                                    {d.baselineValue}
+                                  </code>
+                                </button>
+
+                                {/* Inline action — three explicit text buttons */}
+                                <div className="px-2 py-3 border-r border-gray-200 dark:border-zinc-800 flex flex-col items-stretch justify-center gap-1">
+                                  <button
+                                    onClick={() => setResolution(d.id, 'baseline')}
+                                    className={`text-[11px] font-medium px-2 py-1.5 rounded inline-flex items-center justify-center gap-1.5 transition-colors ${
+                                      choice === 'baseline'
+                                        ? 'bg-purple-500 text-white shadow-sm'
+                                        : 'bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/40'
+                                    }`}
+                                  >
+                                    <ArrowLeft className="w-3 h-3" /> Use Baseline
+                                  </button>
+                                  <button
+                                    onClick={() => setResolution(d.id, 'target')}
+                                    className={`text-[11px] font-medium px-2 py-1.5 rounded inline-flex items-center justify-center gap-1.5 transition-colors ${
+                                      choice === 'target'
+                                        ? 'bg-emerald-500 text-white shadow-sm'
+                                        : 'bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
+                                    }`}
+                                  >
+                                    Use Target <ArrowRight className="w-3 h-3" />
+                                  </button>
+                                  <div className="flex items-center justify-center">
+                                    {choice ? (
+                                      <button onClick={() => clearResolution(d.id)} className="text-[10px] text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200 inline-flex items-center gap-1">
+                                        <RotateCcw className="w-3 h-3" /> Change
+                                      </button>
+                                    ) : (
+                                      <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">Needs decision</span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <button
+                                  onClick={() => setResolution(d.id, 'target')}
+                                  className={`text-left px-4 py-3 transition-colors border-r-4 min-w-0 ${
+                                    choice === 'target'
+                                      ? 'bg-emerald-50 dark:bg-emerald-950/30 border-r-emerald-500'
+                                      : 'border-r-transparent hover:bg-emerald-50/40 dark:hover:bg-emerald-950/10'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2 mb-1 ml-6">
+                                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wide">{d.label}</span>
+                                    {choice === 'target' && <CheckCircle className="w-3 h-3 text-emerald-500 ml-auto shrink-0" />}
+                                  </div>
+                                  <code className="block text-xs font-mono text-gray-900 dark:text-zinc-100 ml-6 break-all">
+                                    {d.targetValue}
+                                  </code>
+                                </button>
+                              </div>
+                            );
+                          }
+
+                          // Column missing on one side — show "Add to <missing side>" button
+                          const missingFromSide = d.kind === 'only-baseline' ? 'target' : 'baseline';
+                          const value = d.kind === 'only-baseline' ? d.baselineValue : d.targetValue;
+                          const rowBg =
+                            choice === 'add'  ? 'bg-emerald-50/30 dark:bg-emerald-950/10' :
+                            choice === 'skip' ? 'bg-gray-50 dark:bg-zinc-900/40' :
+                            'bg-blue-50/20 dark:bg-blue-950/10';
+
+                          return (
+                            <div
+                              key={d.id}
+                              className={`grid grid-cols-[1fr_220px_1fr] border-t border-gray-100 dark:border-zinc-800/60 ${rowBg}`}
+                            >
+                              {/* Baseline cell */}
+                              <div className="px-4 py-3 border-r border-gray-200 dark:border-zinc-800 min-w-0 ml-6">
+                                {d.kind === 'only-baseline' ? (
+                                  <>
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <Plus className="w-3 h-3 text-purple-500" />
+                                      <span className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold uppercase tracking-wide">{d.label}</span>
+                                    </div>
+                                    <code className="block text-xs font-mono text-gray-900 dark:text-zinc-100 break-all">{value}</code>
+                                  </>
+                                ) : (
+                                  <span className="text-[11px] text-gray-400 dark:text-zinc-600 italic inline-flex items-center gap-2">
+                                    <XCircle className="w-3.5 h-3.5" />
+                                    column missing in baseline
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Action cell — Add / Skip */}
+                              <div className="px-2 py-3 border-r border-gray-200 dark:border-zinc-800 flex flex-col items-stretch justify-center gap-1">
+                                {choice === 'add' ? (
+                                  <span className="inline-flex items-center justify-center gap-1.5 text-[11px] text-emerald-700 dark:text-emerald-300 font-semibold bg-emerald-100 dark:bg-emerald-500/20 rounded py-1.5">
+                                    <CheckCircle className="w-3.5 h-3.5" /> Will add to {missingFromSide}
+                                  </span>
+                                ) : choice === 'skip' ? (
+                                  <span className="inline-flex items-center justify-center gap-1.5 text-[11px] text-gray-600 dark:text-zinc-400 bg-gray-100 dark:bg-zinc-800 rounded py-1.5">
+                                    Skipped
+                                  </span>
+                                ) : (
+                                  <button
+                                    onClick={() => setResolution(d.id, 'add')}
+                                    className="text-[11px] font-semibold px-2 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700 inline-flex items-center justify-center gap-1.5 shadow-sm"
+                                  >
+                                    <Plus className="w-3.5 h-3.5" />
+                                    Add to {missingFromSide === 'target' ? 'Target' : 'Baseline'}
+                                    {missingFromSide === 'target' ? <ArrowRight className="w-3 h-3" /> : <ArrowLeft className="w-3 h-3" />}
+                                  </button>
+                                )}
+                                <div className="flex items-center justify-center gap-2">
+                                  {choice ? (
+                                    <button onClick={() => clearResolution(d.id)} className="text-[10px] text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200 inline-flex items-center gap-1">
+                                      <RotateCcw className="w-3 h-3" /> Change
+                                    </button>
+                                  ) : (
+                                    <button onClick={() => setResolution(d.id, 'skip')} className="text-[10px] text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200">
+                                      Skip
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Target cell */}
+                              <div className="px-4 py-3 min-w-0 ml-6">
+                                {d.kind === 'only-target' ? (
+                                  <>
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <Plus className="w-3 h-3 text-emerald-500" />
+                                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wide">{d.label}</span>
+                                    </div>
+                                    <code className="block text-xs font-mono text-gray-900 dark:text-zinc-100 break-all">{value}</code>
+                                  </>
+                                ) : (
+                                  <span className="text-[11px] text-gray-400 dark:text-zinc-600 italic inline-flex items-center gap-2">
+                                    <XCircle className="w-3.5 h-3.5" />
+                                    column missing in target
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+
+                  {/* Footer hint */}
+                  <div className="border-t border-gray-200 dark:border-zinc-800 px-3 py-2 bg-gray-50/50 dark:bg-zinc-900/40 text-[10px] text-gray-500 dark:text-zinc-500 flex items-center gap-3 flex-wrap">
+                    <span className="inline-flex items-center gap-1"><Plus className="w-3 h-3 text-blue-500" /> <b>Add</b> = include the missing item in the other model</span>
+                    <span className="inline-flex items-center gap-1"><ArrowLeft className="w-3 h-3" /> Use Baseline / <ArrowRight className="w-3 h-3" /> Use Target — pick a side for value conflicts</span>
+                    <span className="ml-auto">Click any row's button to resolve it inline.</span>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Actions */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 text-sm">
+                <FileText className="w-4 h-4" />
+                View Full Report
+              </button>
+              <button
+                disabled={!allResolved}
+                title={!allResolved ? `Resolve all ${unresolvedCount} remaining conflict${unresolvedCount === 1 ? '' : 's'} first` : ''}
+                className={`px-4 py-2 rounded-lg flex items-center gap-2 text-sm transition-colors ${
+                  allResolved
+                    ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                    : 'bg-gray-200 dark:bg-zinc-800 text-gray-400 dark:text-zinc-600 cursor-not-allowed'
+                }`}
+              >
+                <GitMerge className="w-4 h-4" />
+                Create Delta Model
+                {!allResolved && (
+                  <span className="text-[10px] bg-amber-500 text-white px-1.5 py-0.5 rounded">
+                    {unresolvedCount} pending
+                  </span>
+                )}
+              </button>
+              <button
+                disabled={!allResolved}
+                title={!allResolved ? `Resolve all ${unresolvedCount} remaining conflict${unresolvedCount === 1 ? '' : 's'} first` : ''}
+                className={`px-4 py-2 rounded-lg flex items-center gap-2 text-sm transition-colors ${
+                  allResolved
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-gray-200 dark:bg-zinc-800 text-gray-400 dark:text-zinc-600 cursor-not-allowed'
+                }`}
+              >
+                <Zap className="w-4 h-4" />
+                Generate Sync Script
               </button>
             </div>
-            <div className="grid grid-cols-4 gap-4 text-center">
-              <div>
-                <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">58</div>
-                <div className="text-[10px] text-gray-600 dark:text-zinc-400 uppercase tracking-wide">Objects Compared</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">23</div>
-                <div className="text-[10px] text-gray-600 dark:text-zinc-400 uppercase tracking-wide">Differences Found</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">35</div>
-                <div className="text-[10px] text-gray-600 dark:text-zinc-400 uppercase tracking-wide">Matches</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">78%</div>
-                <div className="text-[10px] text-gray-600 dark:text-zinc-400 uppercase tracking-wide">Compatibility</div>
-              </div>
+
+          </>
+        ) : (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-600 border-t-transparent mx-auto mb-4" />
+              <p className="text-sm text-gray-600 dark:text-zinc-400">Running comparison...</p>
             </div>
           </div>
-
-          {/* Actions */}
-          <div className="flex items-center gap-2">
-            <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 text-sm">
-              <FileText className="w-4 h-4" />
-              View Full Report
-            </button>
-            <button className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 text-sm">
-              <GitMerge className="w-4 h-4" />
-              Create Delta Model
-            </button>
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm">
-              <Zap className="w-4 h-4" />
-              Generate Sync Script
-            </button>
-          </div>
-
-          {/* Comparison Details */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg p-4">
-              <h4 className="text-sm font-medium text-purple-600 dark:text-purple-400 mb-3">Baseline Model</h4>
-              <div className="space-y-2 text-xs">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>Customer</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RefreshCw className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Order</span>
-                  <span className="text-[10px] text-gray-500 dark:text-zinc-500">(Modified)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <XCircle className="w-3.5 h-3.5 text-red-500" />
-                  <span>Payment</span>
-                  <span className="text-[10px] text-gray-500 dark:text-zinc-500">(Missing)</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg p-4">
-              <h4 className="text-sm font-medium text-emerald-600 dark:text-emerald-400 mb-3">Target Model</h4>
-              <div className="space-y-2 text-xs">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>Customer</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RefreshCw className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Order</span>
-                  <span className="text-[10px] text-gray-500 dark:text-zinc-500">(Modified)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Plus className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>Payment</span>
-                  <span className="text-[10px] text-gray-500 dark:text-zinc-500">(New)</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </>
-      ) : (
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-600 border-t-transparent mx-auto mb-4" />
-            <p className="text-sm text-gray-600 dark:text-zinc-400">Running comparison...</p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-zinc-950 text-gray-900 dark:text-zinc-100 p-6">
