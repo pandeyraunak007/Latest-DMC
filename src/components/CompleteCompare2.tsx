@@ -276,21 +276,36 @@ const CompleteCompare2 = () => {
   const [comparisonResults, setComparisonResults] = useState<ComparisonObject[]>([]);
   const [showExportMenu, setShowExportMenu] = useState(false);
 
-  // Inline conflict / missing-item resolution state
-  // - 'left'  : use the left model's value (for conflict / different)
-  // - 'right' : use the right model's value (for conflict / different)
+  // Resolution semantics:
+  // - 'left'  : use the left model's value  (for value differences)
+  // - 'right' : use the right model's value (for value differences)
   // - 'add'   : include the missing item in the merged model (for left-only / right-only)
   // - 'skip'  : leave the missing item out of the merged model
   type ResolutionChoice = 'left' | 'right' | 'add' | 'skip';
   const [resolutions, setResolutions] = useState<Record<string, ResolutionChoice>>({});
+  // Items the system auto-merged on its own (status='different' with a clear mergeValue).
+  // User can override an auto-merge — once they do, the id leaves this set and becomes "manual".
+  const [autoResolved, setAutoResolved] = useState<Set<string>>(new Set());
 
   const setResolution = (id: string, choice: ResolutionChoice) => {
     setResolutions(prev => ({ ...prev, [id]: choice }));
+    setAutoResolved(prev => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
   };
   const clearResolution = (id: string) => {
     setResolutions(prev => {
       const next = { ...prev };
       delete next[id];
+      return next;
+    });
+    setAutoResolved(prev => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
       return next;
     });
   };
@@ -306,10 +321,14 @@ const CompleteCompare2 = () => {
     walk(objs);
     return out;
   };
-  const allResolvable = flattenResolvable(comparisonResults);
-  const resolvedCount = allResolvable.filter(o => resolutions[o.id]).length;
-  const unresolvedCount = allResolvable.length - resolvedCount;
-  const allResolved = unresolvedCount === 0;
+  const allResolvable    = flattenResolvable(comparisonResults);
+  const resolvedCount    = allResolvable.filter(o => resolutions[o.id]).length;
+  const autoCount        = allResolvable.filter(o => autoResolved.has(o.id)).length;
+  const manualCount      = resolvedCount - autoCount;
+  const unresolvedCount  = allResolvable.length - resolvedCount;
+  // "Needs decision" = items the user genuinely needs to act on (conflicts, missing items, manual differents)
+  const needsDecisionCount = unresolvedCount;
+  const allResolved      = unresolvedCount === 0;
 
   const bulkAddAllMissing = () => {
     setResolutions(prev => {
@@ -322,7 +341,10 @@ const CompleteCompare2 = () => {
       return next;
     });
   };
-  const resetAllResolutions = () => setResolutions({});
+  const resetAllResolutions = () => {
+    setResolutions({});
+    setAutoResolved(new Set());
+  };
 
   // Mock data for model library
   const modelMart: Model[] = [
@@ -612,6 +634,26 @@ const CompleteCompare2 = () => {
     setIsComparing(true);
     setTimeout(() => {
       setComparisonResults(mockComparisonResults);
+
+      // Auto-resolve "different" items where the system already proposed a clear mergeValue.
+      // These don't need user judgment — the user only sees them if they want to override.
+      const initial: Record<string, ResolutionChoice> = {};
+      const auto = new Set<string>();
+      const walk = (objs: ComparisonObject[]) => {
+        objs.forEach(o => {
+          if (o.status === 'different' && o.mergeValue !== null && o.mergeValue !== undefined) {
+            const matchesLeft  = JSON.stringify(o.leftValue)  === JSON.stringify(o.mergeValue);
+            const matchesRight = JSON.stringify(o.rightValue) === JSON.stringify(o.mergeValue);
+            if (matchesRight)     { initial[o.id] = 'right'; auto.add(o.id); }
+            else if (matchesLeft) { initial[o.id] = 'left';  auto.add(o.id); }
+          }
+          if (o.children) walk(o.children);
+        });
+      };
+      walk(mockComparisonResults);
+      setResolutions(initial);
+      setAutoResolved(auto);
+
       setIsComparing(false);
       setStep('comparison');
     }, 2000);
@@ -1832,14 +1874,22 @@ const CompleteCompare2 = () => {
       (pane === 'left'  && obj.status === 'right-only') ||
       (pane === 'right' && obj.status === 'left-only');
 
-    // Resolved badge styling
+    // Resolved badge styling. Auto-merged items get a quieter, neutral badge so they
+    // visually demote themselves and don't compete for the user's attention.
+    const isAuto = autoResolved.has(obj.id);
     let resolvedBadge: { label: string; cls: string } | null = null;
-    if (choice === 'left')  resolvedBadge = { label: 'Using Left',          cls: 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300' };
-    if (choice === 'right') resolvedBadge = { label: 'Using Right',         cls: 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' };
-    if (choice === 'add')   resolvedBadge = { label: obj.status === 'left-only' ? 'Will add to Right' : 'Will add to Left', cls: 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300' };
-    if (choice === 'skip')  resolvedBadge = { label: 'Skipped',             cls: 'bg-gray-100 dark:bg-zinc-700 text-gray-600 dark:text-zinc-400' };
+    if (isAuto && (choice === 'left' || choice === 'right')) {
+      resolvedBadge = {
+        label: `Auto-merged · ${choice === 'left' ? 'Left' : 'Right'}`,
+        cls: 'bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-400 border border-gray-200 dark:border-zinc-700',
+      };
+    } else if (choice === 'left')  resolvedBadge = { label: 'Using Left',          cls: 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300' };
+    else if (choice === 'right') resolvedBadge = { label: 'Using Right',         cls: 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' };
+    else if (choice === 'add')   resolvedBadge = { label: obj.status === 'left-only' ? 'Will add to Right' : 'Will add to Left', cls: 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300' };
+    else if (choice === 'skip')  resolvedBadge = { label: 'Skipped',             cls: 'bg-gray-100 dark:bg-zinc-700 text-gray-600 dark:text-zinc-400' };
 
-    // Row tint when unresolved (only highlight in panes that show actions, so left/right stay calm)
+    // Row tint when unresolved (only highlight in panes that show actions, so left/right stay calm).
+    // Auto-resolved items don't get tint — they're not actionable by default.
     const rowBg =
       !showActions || !needsResolution || choice ? '' :
       obj.status === 'conflict'   ? 'bg-red-50/40 dark:bg-red-950/10' :
@@ -2045,14 +2095,16 @@ const CompleteCompare2 = () => {
           )}
           <div className="text-xs flex-1 min-w-0">
             {allResolved ? (
-              <span className="text-emerald-900 dark:text-emerald-200">
-                <b>All {allResolvable.length} differences resolved.</b> Save Merge to apply.
-              </span>
+              <div className="text-emerald-900 dark:text-emerald-200">
+                <b>Ready to merge.</b> {autoCount > 0 && <span className="opacity-80">{autoCount} auto-merged · {manualCount} reviewed by you.</span>}
+              </div>
             ) : (
-              <span className="text-amber-900 dark:text-amber-200">
-                <b>{resolvedCount} of {allResolvable.length} resolved.</b> Use the inline buttons on each row,
-                {missingItems.length > 0 && <> or hit <b>Add all missing</b> for one-click insert of the {missingItems.length} table/column{missingItems.length === 1 ? '' : 's'} that exist on only one side.</>}
-              </span>
+              <div className="text-amber-900 dark:text-amber-200">
+                <b>{needsDecisionCount} item{needsDecisionCount === 1 ? '' : 's'} need{needsDecisionCount === 1 ? 's' : ''} your decision.</b>
+                {' '}
+                {autoCount > 0 && <span className="opacity-75">{autoCount} already auto-merged where the system was confident.</span>}
+                {unresolvedMissing > 0 && <span className="opacity-75"> Hit <b>Add all missing</b> to one-click {unresolvedMissing} missing table{unresolvedMissing === 1 ? '' : 's'}/column{unresolvedMissing === 1 ? '' : 's'}.</span>}
+              </div>
             )}
           </div>
           {/* Progress */}
@@ -2078,7 +2130,7 @@ const CompleteCompare2 = () => {
             {resolvedCount > 0 && (
               <button
                 onClick={resetAllResolutions}
-                title="Clear all decisions"
+                title="Clear all decisions including auto-merges"
                 className="text-[11px] px-2 py-1 rounded border border-gray-200 dark:border-zinc-700 text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 inline-flex items-center gap-1"
               >
                 <RefreshCw className="w-3 h-3" /> Reset
@@ -2327,17 +2379,22 @@ const CompleteCompare2 = () => {
                         const isRightOnly = selectedObject.status === 'right-only';
 
                         if (choice) {
+                          const selIsAuto = autoResolved.has(selectedObject.id);
                           return (
                             <div className="space-y-2">
                               <div className={`text-[10px] font-bold uppercase tracking-wide inline-flex items-center gap-1 px-2 py-0.5 rounded ${
+                                selIsAuto && (choice === 'left' || choice === 'right')
+                                  ? 'bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-400 border border-gray-200 dark:border-zinc-700' :
                                 choice === 'left'  ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300' :
                                 choice === 'right' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' :
                                 choice === 'add'   ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300' :
                                 'bg-gray-100 dark:bg-zinc-700 text-gray-600 dark:text-zinc-400'
                               }`}>
                                 <CheckCircle className="w-3 h-3" />
-                                {choice === 'left'  && 'Using Left value'}
-                                {choice === 'right' && 'Using Right value'}
+                                {selIsAuto && choice === 'left'  && 'Auto-merged · Using Left'}
+                                {selIsAuto && choice === 'right' && 'Auto-merged · Using Right'}
+                                {!selIsAuto && choice === 'left'  && 'Using Left value'}
+                                {!selIsAuto && choice === 'right' && 'Using Right value'}
                                 {choice === 'add'   && (isLeftOnly ? 'Will add to Right model' : 'Will add to Left model')}
                                 {choice === 'skip'  && 'Skipped — not added'}
                               </div>
@@ -2352,7 +2409,7 @@ const CompleteCompare2 = () => {
                                 onClick={() => clearResolution(selectedObject.id)}
                                 className="w-full text-[10px] text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-zinc-100 inline-flex items-center justify-center gap-1 py-1 border border-gray-200 dark:border-zinc-700 rounded"
                               >
-                                <RefreshCw className="w-3 h-3" /> Change decision
+                                <RefreshCw className="w-3 h-3" /> {selIsAuto ? 'Override auto-merge' : 'Change decision'}
                               </button>
                             </div>
                           );
